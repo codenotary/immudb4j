@@ -1,0 +1,10 @@
+.idea/
+.gradle/
+.settings/
+.classpath
+.project
+build/
+bin/
+src/generated/**
+immudb/
+**/.DS_Store
