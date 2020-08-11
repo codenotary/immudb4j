@@ -26,8 +26,6 @@ import io.grpc.ManagedChannelBuilder;
 import io.grpc.Metadata;
 import io.grpc.stub.MetadataUtils;
 import java.security.NoSuchAlgorithmException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * immudb client using grpc.
@@ -37,8 +35,6 @@ import org.slf4j.LoggerFactory;
 public class ImmuClient {
 
   private static final String AUTH_HEADER = "authorization";
-
-  private static final Logger LOG = LoggerFactory.getLogger(ImmuClient.class);
 
   private ImmuServiceGrpc.ImmuServiceBlockingStub stub;
 

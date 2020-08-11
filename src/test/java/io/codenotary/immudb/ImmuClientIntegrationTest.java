@@ -15,13 +15,9 @@ limitations under the License.
 */
 package io.codenotary.immudb;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.testng.annotations.BeforeClass;
 
 public abstract class ImmuClientIntegrationTest {
-
-  static final Logger logger = LoggerFactory.getLogger(ImmuClientIntegrationTest.class);
 
   static final String TEST_HOSTNAME = "localhost";
   static final int TEST_PORT = 3322;

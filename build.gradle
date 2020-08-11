@@ -21,7 +21,7 @@ buildscript {
         }
     }
     dependencies {
-        classpath 'com.google.protobuf:protobuf-gradle-plugin:0.8.8'
+        classpath 'com.google.protobuf:protobuf-gradle-plugin:0.8.12'
     }
 }
 
@@ -34,10 +34,11 @@ plugins {
 apply plugin: 'java'
 apply plugin: 'com.google.protobuf'
 apply plugin: 'idea'
+apply plugin: 'maven-publish'
 
 group = 'io.codenotary'
 archivesBaseName = 'immudb4j'
-version = '0.7'
+version = '0.1.0'
 sourceCompatibility = 1.8
 targetCompatibility = 1.8
 
@@ -93,10 +94,6 @@ configurations {
 }
 
 dependencies {
-    compile "org.slf4j:slf4j-api:1.7.21"
-
-    testCompile "org.slf4j:slf4j-simple:1.7.21"
-
     compile "io.grpc:grpc-protobuf:${grpcVersion}"
     compile "io.grpc:grpc-netty:${grpcVersion}"
     compile "io.grpc:grpc-stub:${grpcVersion}"
@@ -115,13 +112,12 @@ idea {
 
 test {
     useTestNG()
-    systemProperties['org.slf4j.simpleLogger.log.io.codenotary.immudb.ImmudbClientIntegrationTest'] = 'DEBUG'
 }
 
 task fatJar(type: Jar) {
     manifest {
         attributes 'Implementation-Title': 'immudb Client for Java',
-                   'Implementation-Version': version
+                   'Implementation-Version': archiveVersion
     }
     baseName = project.name + '-all'
     from { configurations.compile.collect { it.isDirectory() ? it : zipTree(it) } }
@@ -139,7 +135,6 @@ task sourceJar(type: Jar) {
     classifier 'sources'
     from sourceSets.main.allJava
 }
-
 
 task integrationTest(type: Test) {
     testClassesDirs = sourceSets.integrationTest.output.classesDirs
@@ -161,4 +156,22 @@ jacocoTestReport {
 
 coveralls {
     jacocoReportPath 'build/reports/jacoco/jacocoTestReport/jacocoTestReport.xml'
+}
+
+publishing {
+    repositories {
+        maven {
+            name = "GitHubPackages"
+            url = uri("https://maven.pkg.github.com/codenotary/immudb4j")
+            credentials {
+                username = project.findProperty("gpr.user") ?: System.getenv("USERNAME")
+                password = project.findProperty("gpr.key") ?: System.getenv("TOKEN")
+            }
+        }
+    }
+    publications {
+        gpr(MavenPublication) {
+            from(components.java)
+        }
+    }
 }
