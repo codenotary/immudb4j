@@ -26,6 +26,8 @@ import io.grpc.ManagedChannelBuilder;
 import io.grpc.Metadata;
 import io.grpc.stub.MetadataUtils;
 import java.security.NoSuchAlgorithmException;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * immudb client using grpc.
@@ -149,6 +151,31 @@ public class ImmuClient {
       rootHolder.SetRoot(root);
     }
     return rootHolder.getRoot();
+  }
+
+  public void createDatabase(String database) {
+    ImmudbProto.Database db = ImmudbProto.Database.newBuilder()
+            .setDatabasename(database).build();
+    getStub().createDatabase(db);
+  }
+
+  public void useDatabase(String database) {
+    ImmudbProto.Database db = ImmudbProto.Database.newBuilder()
+            .setDatabasename(database).build();
+    getStub().useDatabase(db);
+  }
+
+  public List<String> databases() {
+    Empty empty = com.google.protobuf.Empty.getDefaultInstance();
+    ImmudbProto.DatabaseListResponse res = getStub().databaseList(empty);
+
+    List<String> list = new ArrayList<>(res.getDatabasesCount());
+
+    for (ImmudbProto.Database db : res.getDatabasesList()) {
+      list.add(db.getDatabasename());
+    }
+
+    return list;
   }
 
   public void set(String key, byte[] value) {

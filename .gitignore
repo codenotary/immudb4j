@@ -6,5 +6,5 @@
 build/
 bin/
 src/generated/**
-immudb/
+/immudb/
 **/.DS_Store
