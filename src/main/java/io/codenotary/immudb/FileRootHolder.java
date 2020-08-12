@@ -50,7 +50,7 @@ public class FileRootHolder implements RootHolder {
     String lastRootFilename = new String(Files.readAllBytes(currentRootFile));
 
     if (!lastRootFilename.isEmpty()) {
-      rootHolderFile = Paths.get(lastRootFilename);
+      rootHolderFile = rootsFolder.resolve(lastRootFilename);
 
       if (Files.notExists(rootHolderFile)) {
         throw new RuntimeException("Inconsistent current root file");
@@ -80,7 +80,7 @@ public class FileRootHolder implements RootHolder {
       rootHolder.writeTo(Files.newOutputStream(newRootHolderFile));
 
       BufferedWriter bufferedWriter = Files.newBufferedWriter(currentRootFile, StandardOpenOption.TRUNCATE_EXISTING);
-      bufferedWriter.write(newRootHolderFile.toString());
+      bufferedWriter.write(newRootHolderFile.getFileName().toString());
       bufferedWriter.flush();
       bufferedWriter.close();
 
