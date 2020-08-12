@@ -6,10 +6,6 @@ Client-Server with [grpc] is hidden and a transport agnostic API is provided to 
 
 [grpc]: https://grpc.io/
 
-
-### Caveat: a very early start of the implementation!
-
-
 ### Running immudb
 
 Client assumes an already running immudb server. It can be as simple as downloading official binaries or running immudb docker container.
@@ -21,10 +17,7 @@ https://immudb.io/docs/quickstart.html
 The following code snippet shows how to create a synchronous client and run some basic operations
 
 ```java
-    String TEST_HOSTNAME = "localhost";
-    int TEST_PORT = 3322;
-
-    ImmuClient immuClient = ImmuClient.ImmuClientBuilder.newBuilder(TEST_HOSTNAME, TEST_PORT).build();
+    ImmuClient immuClient = ImmuClient.newBuilder().build();
 
     immuClient.login("immudb", "");
 
