@@ -21,7 +21,6 @@ fi
 
 echo "Starting immudb..."
 
-rm -rf data
 ./immudb --pidfile pid -d
 
 sleep 1
