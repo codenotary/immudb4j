@@ -51,6 +51,10 @@ public class ImmuClient {
     this.rootHolder = builder.getRootHolder();
   }
 
+  public static ImmuClientBuilder newBuilder() {
+    return new ImmuClientBuilder();
+  }
+
   private ImmuServiceGrpc.ImmuServiceBlockingStub createStubFrom(ImmuClientBuilder builder) {
     ManagedChannel channel =
         ManagedChannelBuilder.forAddress(builder.getServerUrl(), builder.getServerPort())
@@ -81,13 +85,9 @@ public class ImmuClient {
 
     private RootHolder rootHolder;
 
-    public static ImmuClientBuilder newBuilder(String serverUrl, int serverPort) {
-      return new ImmuClientBuilder(serverUrl, serverPort);
-    }
-
-    private ImmuClientBuilder(String serverUrl, int serverPort) {
-      this.serverUrl = serverUrl;
-      this.serverPort = serverPort;
+    private ImmuClientBuilder() {
+      this.serverUrl = "localhost";
+      this.serverPort = 3322;
       this.rootHolder = new TransientRootHolder();
       this.withAuthToken = true;
     }
@@ -108,13 +108,27 @@ public class ImmuClient {
       return serverPort;
     }
 
-    public ImmuClientBuilder setWithAuthToken(boolean withAuthToken) {
-      this.withAuthToken = withAuthToken;
+    public boolean isWithAuthToken() {
+      return withAuthToken;
+    }
+
+    public RootHolder getRootHolder() {
+      return rootHolder;
+    }
+
+    public ImmuClientBuilder setServerUrl(String serverUrl) {
+      this.serverUrl = serverUrl;
       return this;
     }
 
-    public boolean isWithAuthToken() {
-      return withAuthToken;
+    public ImmuClientBuilder setServerPort(int serverPort) {
+      this.serverPort = serverPort;
+      return this;
+    }
+
+    public ImmuClientBuilder setWithAuthToken(boolean withAuthToken) {
+      this.withAuthToken = withAuthToken;
+      return this;
     }
 
     public ImmuClientBuilder setRootHolder(RootHolder rootHolder) {
@@ -122,9 +136,6 @@ public class ImmuClient {
       return this;
     }
 
-    public RootHolder getRootHolder() {
-      return rootHolder;
-    }
   }
 
   public void login(String username, String password) {

@@ -19,12 +19,10 @@ import org.testng.annotations.BeforeClass;
 
 public abstract class ImmuClientIntegrationTest {
 
-  static final String TEST_HOSTNAME = "localhost";
-  static final int TEST_PORT = 3322;
   protected static ImmuClient immuClient;
 
   @BeforeClass
   public static void beforeClass() {
-    immuClient = ImmuClient.ImmuClientBuilder.newBuilder(TEST_HOSTNAME, TEST_PORT).build();
+    immuClient = ImmuClient.newBuilder().build();
   }
 }
