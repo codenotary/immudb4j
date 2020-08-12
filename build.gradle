@@ -38,7 +38,7 @@ apply plugin: 'maven-publish'
 
 group = 'io.codenotary'
 archivesBaseName = 'immudb4j'
-version = '0.1.0'
+version = '0.1.2'
 sourceCompatibility = 1.8
 targetCompatibility = 1.8
 
@@ -103,6 +103,19 @@ dependencies {
     compile 'javax.annotation:javax.annotation-api:1.2-b01'
 }
 
+task immudbStart {
+    ProcessBuilder pb = new ProcessBuilder("./start.sh")
+    pb.directory(new File("immudb"))
+    Process proc = pb.start();
+    proc.waitFor();
+    println "immudb is running... " + proc.exitValue()
+}
+
+task immudbStop(type: Exec) {
+    workingDir 'immudb'
+    commandLine './stop.sh'
+}
+
 idea {
     module {
         sourceDirs += file("${projectDir}/src/generated/main/java");
@@ -114,37 +127,12 @@ test {
     useTestNG()
 }
 
-task fatJar(type: Jar) {
-    manifest {
-        attributes 'Implementation-Title': 'immudb Client for Java',
-                   'Implementation-Version': archiveVersion
-    }
-    baseName = project.name + '-all'
-    from { configurations.compile.collect { it.isDirectory() ? it : zipTree(it) } }
-    with jar
-}
-
-task buildJar(type: Jar)
-
-task javadocJar(type: Jar) {
-    classifier = 'javadoc'
-    from javadoc
-}
-
-task sourceJar(type: Jar) {
-    classifier 'sources'
-    from sourceSets.main.allJava
-}
+test.dependsOn immudbStart
+test.finalizedBy(immudbStop)
 
 task integrationTest(type: Test) {
     testClassesDirs = sourceSets.integrationTest.output.classesDirs
     classpath = sourceSets.integrationTest.runtimeClasspath
-}
-
-artifacts {
-    archives jar
-    archives sourceJar
-    archives javadocJar
 }
 
 jacocoTestReport {
