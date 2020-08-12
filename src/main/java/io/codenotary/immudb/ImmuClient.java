@@ -45,6 +45,8 @@ public class ImmuClient {
 
   private RootHolder rootHolder;
 
+  private String activeDatabase = "defaultdb";
+
   public ImmuClient(ImmuClientBuilder builder) throws NoSuchAlgorithmException {
     this.stub = createStubFrom(builder);
     this.withAuthToken = builder.isWithAuthToken();
@@ -155,13 +157,13 @@ public class ImmuClient {
   }
 
   public Root root() {
-    if (rootHolder.getRoot() == null) {
+    if (rootHolder.getRoot(activeDatabase) == null) {
       Empty empty = com.google.protobuf.Empty.getDefaultInstance();
       ImmudbProto.Root r = getStub().currentRoot(empty);
-      Root root = new Root(r.getIndex(), r.getRoot().toByteArray());
+      Root root = new Root(activeDatabase, r.getIndex(), r.getRoot().toByteArray());
       rootHolder.SetRoot(root);
     }
-    return rootHolder.getRoot();
+    return rootHolder.getRoot(activeDatabase);
   }
 
   public void createDatabase(String database) {
@@ -174,6 +176,7 @@ public class ImmuClient {
     ImmudbProto.Database db = ImmudbProto.Database.newBuilder()
             .setDatabasename(database).build();
     getStub().useDatabase(db);
+    activeDatabase = database;
   }
 
   public List<String> databases() {
@@ -237,7 +240,7 @@ public class ImmuClient {
 
     CryptoUtils.verify(proof, safeItem.getItem(), root);
 
-    rootHolder.SetRoot(new Root(proof.getAt(), proof.getRoot().toByteArray()));
+    rootHolder.SetRoot(new Root(activeDatabase, proof.getAt(), proof.getRoot().toByteArray()));
 
     return safeItem.getItem().getValue().toByteArray();
   }
@@ -272,8 +275,8 @@ public class ImmuClient {
             .setValue(ByteString.copyFrom(value))
             .build();
 
-    CryptoUtils.verify(proof, item, root);
+    CryptoUtils.verify(proof, item, rootHolder.getRoot(activeDatabase));
 
-    rootHolder.SetRoot(new Root(proof.getAt(), proof.getRoot().toByteArray()));
+    rootHolder.SetRoot(new Root(activeDatabase, proof.getAt(), proof.getRoot().toByteArray()));
   }
 }

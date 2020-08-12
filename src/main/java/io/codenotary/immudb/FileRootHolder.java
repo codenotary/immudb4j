@@ -19,11 +19,13 @@ import io.codenotary.immudb.crypto.Root;
 
 public class FileRootHolder implements RootHolder {
 
+
   @Override
-  public Root getRoot() {
+  public Root getRoot(String database) {
     return null;
   }
 
   @Override
   public void SetRoot(Root root) {}
+
 }

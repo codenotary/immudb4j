@@ -19,7 +19,8 @@ import io.codenotary.immudb.crypto.Root;
 
 public interface RootHolder {
 
-  Root getRoot();
+  Root getRoot(String database);
 
   void SetRoot(Root root);
+
 }

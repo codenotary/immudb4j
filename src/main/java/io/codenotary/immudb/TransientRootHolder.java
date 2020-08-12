@@ -17,17 +17,21 @@ package io.codenotary.immudb;
 
 import io.codenotary.immudb.crypto.Root;
 
+import java.util.HashMap;
+import java.util.Map;
+
 public class TransientRootHolder implements RootHolder {
 
-  private Root root;
+  private Map<String,Root> rootMap = new HashMap<>();
 
   @Override
-  public Root getRoot() {
-    return this.root;
+  public Root getRoot(String database) {
+    return this.rootMap.get(database);
   }
 
   @Override
   public void SetRoot(Root root) {
-    this.root = root;
+    this.rootMap.put(root.getDatabase(),root);
   }
+
 }

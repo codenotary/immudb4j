@@ -17,12 +17,18 @@ package io.codenotary.immudb.crypto;
 
 public class Root {
 
+  private String database;
   private long index;
   private byte[] digest;
 
-  public Root(long index, byte[] digest) {
+  public Root(String database, long index, byte[] digest) {
+    this.database = database;
     this.index = index;
     this.digest = digest;
+  }
+
+  public String getDatabase() {
+    return this.database;
   }
 
   public long getIndex() {
@@ -32,4 +38,6 @@ public class Root {
   public byte[] getDigest() {
     return this.digest;
   }
+
+
 }
