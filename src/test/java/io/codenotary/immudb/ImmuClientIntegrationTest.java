@@ -17,12 +17,16 @@ package io.codenotary.immudb;
 
 import org.testng.annotations.BeforeClass;
 
+import java.io.IOException;
+
 public abstract class ImmuClientIntegrationTest {
 
   protected static ImmuClient immuClient;
 
   @BeforeClass
-  public static void beforeClass() {
-    immuClient = ImmuClient.newBuilder().build();
+  public static void beforeClass() throws IOException {
+    FileRootHolder rootHolder = FileRootHolder.newBuilder().setCurrentRootsFolder("immudb/roots").build();
+
+    immuClient = ImmuClient.newBuilder().setRootHolder(rootHolder).build();
   }
 }

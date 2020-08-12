@@ -15,14 +15,32 @@ limitations under the License.
 */
 package io.codenotary.immudb;
 
+import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
 import io.codenotary.immudb.crypto.Root;
 
+import java.io.*;
+import java.lang.reflect.Type;
+import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
 
-public class TransientRootHolder implements RootHolder {
+public class SerializableRootHolder implements RootHolder {
 
   private Map<String,Root> rootMap = new HashMap<>();
+
+  public void readFrom(InputStream is) {
+    Gson gson = new Gson();
+    Reader reader = new InputStreamReader(is, StandardCharsets.UTF_8);
+
+    Type type = new TypeToken<HashMap<String, Root>>(){}.getType();
+    rootMap = gson.fromJson(reader, type);
+  }
+
+  public void writeTo(OutputStream os) throws IOException {
+    Gson gson = new Gson();
+    os.write(gson.toJson(rootMap).getBytes(StandardCharsets.UTF_8));
+  }
 
   @Override
   public Root getRoot(String database) {

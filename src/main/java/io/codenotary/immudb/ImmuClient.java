@@ -90,7 +90,7 @@ public class ImmuClient {
     private ImmuClientBuilder() {
       this.serverUrl = "localhost";
       this.serverPort = 3322;
-      this.rootHolder = new TransientRootHolder();
+      this.rootHolder = new SerializableRootHolder();
       this.withAuthToken = true;
     }
 
