@@ -61,7 +61,7 @@ public class FileRootHolder implements RootHolder {
   }
 
   @Override
-  public Root getRoot(String database) {
+  public synchronized Root getRoot(String database) {
     return rootHolder.getRoot(database);
   }
 

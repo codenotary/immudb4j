@@ -67,12 +67,12 @@ public class ImmuClient {
     return ImmuServiceGrpc.newBlockingStub(channel);
   }
 
-  public void shutdown() {
+  public synchronized void shutdown() {
     channel.shutdown();
     channel = null;
   }
 
-  public boolean isShutdown() {
+  public synchronized boolean isShutdown() {
     return channel == null;
   }
 
@@ -151,7 +151,7 @@ public class ImmuClient {
 
   }
 
-  public void login(String username, String password) {
+  public synchronized void login(String username, String password) {
     ImmudbProto.LoginRequest loginRequest =
         ImmudbProto.LoginRequest.newBuilder()
             .setUser(ByteString.copyFrom(username, Charsets.UTF_8))
@@ -162,7 +162,7 @@ public class ImmuClient {
     authToken = loginResponse.getToken();
   }
 
-  public void logout() {
+  public synchronized void logout() {
     getStub().logout(com.google.protobuf.Empty.getDefaultInstance());
     authToken = null;
   }
@@ -183,7 +183,7 @@ public class ImmuClient {
     getStub().createDatabase(db);
   }
 
-  public void useDatabase(String database) {
+  public synchronized void useDatabase(String database) {
     ImmudbProto.Database db = ImmudbProto.Database.newBuilder()
             .setDatabasename(database).build();
     getStub().useDatabase(db);
