@@ -38,6 +38,7 @@ public class ImmuClient {
 
   private static final String AUTH_HEADER = "authorization";
 
+  private ManagedChannel channel;
   private ImmuServiceGrpc.ImmuServiceBlockingStub stub;
 
   private boolean withAuthToken;
@@ -46,6 +47,7 @@ public class ImmuClient {
   private RootHolder rootHolder;
 
   private String activeDatabase = "defaultdb";
+
 
   public ImmuClient(ImmuClientBuilder builder) throws NoSuchAlgorithmException {
     this.stub = createStubFrom(builder);
@@ -58,11 +60,20 @@ public class ImmuClient {
   }
 
   private ImmuServiceGrpc.ImmuServiceBlockingStub createStubFrom(ImmuClientBuilder builder) {
-    ManagedChannel channel =
+    channel =
         ManagedChannelBuilder.forAddress(builder.getServerUrl(), builder.getServerPort())
             .usePlaintext()
             .build();
     return ImmuServiceGrpc.newBlockingStub(channel);
+  }
+
+  public void shutdown() {
+    channel.shutdown();
+    channel = null;
+  }
+
+  public boolean isShutdown() {
+    return channel == null;
   }
 
   private ImmuServiceGrpc.ImmuServiceBlockingStub getStub() {
