@@ -66,7 +66,13 @@ public class FileRootHolder implements RootHolder {
   }
 
   @Override
-  public void SetRoot(Root root) {
+  public synchronized void SetRoot(Root root) {
+    Root currentRoot = rootHolder.getRoot(root.getDatabase());
+
+    if (currentRoot != null && currentRoot.getIndex() >= root.getIndex()) {
+      return;
+    }
+
     rootHolder.SetRoot(root);
 
     Path newRootHolderFile = rootsFolder.resolve("root_" + System.currentTimeMillis());
