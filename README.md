@@ -7,15 +7,15 @@ Official [immudb] client for Java 1.8 and above.
 
 ## Table of Contents
 
-- [Prerequisites] (#prerequisites)
-- [Installation] (#installation)
-- [Supported Versions] (#supported-versions)
-- [Quickstart] (#quickstart)
-- [Client description] (#description)
-- [Step by step] (#step-by-step)
-- [Known limitations] (#known-limitations)
-- [Development] (#development)
-- [Contributing] (#contributing)
+- [Prerequisites](#prerequisites)
+- [Installation](#installation)
+- [Supported Versions](#supported-versions)
+- [Quickstart](#quickstart)
+- [Client description](#description)
+- [Step by step](#step-by-step)
+- [Known limitations](#known-limitations)
+- [Development](#development)
+- [Contributing](#contributing)
 
 ## Prerequisites
 
