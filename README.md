@@ -26,6 +26,7 @@ https://immudb.io/docs/quickstart.html
 ## Installation
 
 Client-Server with [grpc] is hidden and a transport agnostic API is provided to the final application.
+
 [grpc]: https://grpc.io/
 
 Include immudb4j as a dependency in your project:
@@ -85,7 +86,7 @@ The following code snippet shows how to create a client and run some basic opera
 ```java
     ImmuClient immuClient = ImmuClient.newBuilder().build();
 
-    immuClient.login("immudb", "");
+    immuClient.login("immudb", "");  // Initiates user session
 
     byte[] v0 = new byte[] {0, 1, 2, 3};
     immuClient.set("k0", v0);
@@ -93,10 +94,16 @@ The following code snippet shows how to create a client and run some basic opera
     byte[] rv0 = immuClient.get("k0");
     Assert.assertEquals(v0, rv0);
 
-    byte[] sv0 = immuClient.safeGet("k0");
-    Assert.assertEquals(sv0, v0);
+    try {
+      byte[] v = client.safeGet("k0");
+    } catch (VerificationException e) {
+      // TODO: tampering detected!
+      e.printStackTrace();
+    }    
 
-    immuClient.logout();
+    immuClient.logout();  // Terminate user session
+
+    immuClient.shutdown(); // Closing connection
 ```
 
 ## Known limitations
