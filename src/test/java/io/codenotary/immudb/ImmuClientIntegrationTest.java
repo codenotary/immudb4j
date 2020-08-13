@@ -25,7 +25,7 @@ public abstract class ImmuClientIntegrationTest {
 
   @BeforeClass
   public static void beforeClass() throws IOException {
-    FileRootHolder rootHolder = FileRootHolder.newBuilder().setCurrentRootsFolder("immudb/roots").build();
+    FileRootHolder rootHolder = FileRootHolder.newBuilder().setRootsFolder("immudb/roots").build();
 
     immuClient = ImmuClient.newBuilder().setRootHolder(rootHolder).build();
   }

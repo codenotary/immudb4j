@@ -110,14 +110,14 @@ public class FileRootHolder implements RootHolder {
     private String rootsFolder;
 
     private FileRootHolderBuilder() {
-      rootsFolder = "immudb_roots";
+      rootsFolder = "roots";
     }
 
     public FileRootHolder build() throws IOException {
       return new FileRootHolder(this);
     }
 
-    public FileRootHolderBuilder setCurrentRootsFolder(String rootsFolder) {
+    public FileRootHolderBuilder setRootsFolder(String rootsFolder) {
       this.rootsFolder = rootsFolder;
       return this;
     }
