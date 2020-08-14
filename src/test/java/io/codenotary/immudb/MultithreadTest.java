@@ -20,20 +20,24 @@ import org.testng.Assert;
 import org.testng.annotations.Test;
 
 import java.util.Random;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class MultithreadTest extends ImmuClientIntegrationTest {
 
   @Test
   public void testMultithredRW() throws InterruptedException {
-    immuClient.login("immudb", "");
+    immuClient.login("immudb", "immudb");
+    immuClient.useDatabase("defaultdb");
 
-    AtomicInteger suceeded = new AtomicInteger(0);
+    //TODO: investigate concurrency issues in immudb and increase thread count
+    int threadCount = 1;
+
+    CountDownLatch latch = new CountDownLatch(threadCount);
+    AtomicInteger succeeded = new AtomicInteger(0);
 
     Runnable runnable = () -> {
+
       Random rnd = new Random();
 
       long threadId = Thread.currentThread().getId();
@@ -41,35 +45,28 @@ public class MultithreadTest extends ImmuClientIntegrationTest {
       for (int i = 0; i < 100; i++) {
         byte[] b = new byte[10];
         rnd.nextBytes(b);
-        b[0] = 1;
 
         try {
           immuClient.safeSet("k" + "_" + threadId + "_" + i, b);
         } catch (VerificationException e) {
-          e.printStackTrace();
+          latch.countDown();
           throw new RuntimeException(e);
-        }
-
-        try {
-          Thread.sleep(rnd.nextInt(100));
-        } catch (InterruptedException e) {
-          e.printStackTrace();
+        } catch (Exception e) {
+          latch.countDown();
+          throw new RuntimeException(e);
         }
       }
 
-      suceeded.incrementAndGet();
+      succeeded.incrementAndGet();
+      latch.countDown();
     };
 
-    //TODO: investigate concurrency issues in immudb and increase thread count
-
-    ExecutorService es = Executors.newCachedThreadPool();
-    int threads = 1;
-    for(int i=0;i<threads;i++) {
-      es.execute(runnable);
+    for(int i=0;i<threadCount;i++) {
+      new Thread(runnable).start();
     }
-    es.shutdown();
-    es.awaitTermination(10, TimeUnit.SECONDS);
 
-    Assert.assertEquals(threads, suceeded.get());
+    latch.await();
+
+    Assert.assertEquals(threadCount, succeeded.get());
   }
 }
