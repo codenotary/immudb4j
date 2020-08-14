@@ -186,7 +186,8 @@ public class ImmuClient {
   public synchronized void useDatabase(String database) {
     ImmudbProto.Database db = ImmudbProto.Database.newBuilder()
             .setDatabasename(database).build();
-    getStub().useDatabase(db);
+    ImmudbProto.UseDatabaseReply response = getStub().useDatabase(db);
+    authToken = response.getToken();
     activeDatabase = database;
   }
 
