@@ -56,7 +56,7 @@ public class CryptoUtils {
 
     verifyInclusion(proof);
 
-    if (root != null) {
+    if (root != null && root.getIndex() > 0) {
       verifyConsistency(proof, root);
     }
   }
