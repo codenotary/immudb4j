@@ -22,7 +22,7 @@ public class LoginImmuClientTest extends ImmuClientIntegrationTest {
 
   @Test
   public void testLoginWithDefaultCredentials() {
-    immuClient.login("immudb", "");
+    immuClient.login("immudb", "immudb");
   }
 
   @Test(expectedExceptions = StatusRuntimeException.class)

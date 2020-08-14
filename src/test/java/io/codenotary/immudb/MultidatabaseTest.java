@@ -23,7 +23,7 @@ public class MultidatabaseTest extends ImmuClientIntegrationTest {
 
   @Test
   public void testCreateDatabase() throws VerificationException {
-    immuClient.login("immudb", "");
+    immuClient.login("immudb", "immudb");
 
     immuClient.createDatabase("db1");
     immuClient.createDatabase("db2");

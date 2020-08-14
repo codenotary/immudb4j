@@ -23,7 +23,8 @@ public class BasicImmuClientTest extends ImmuClientIntegrationTest {
 
   @Test
   public void testGet() throws VerificationException {
-    immuClient.login("immudb", "");
+    immuClient.login("immudb", "immudb");
+    immuClient.useDatabase("defaultdb");
 
     byte[] v0 = new byte[] {0, 1, 2, 3};
     byte[] v1 = new byte[] {3, 2, 1, 0};
