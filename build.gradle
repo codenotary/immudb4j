@@ -38,7 +38,7 @@ apply plugin: 'maven-publish'
 
 group = 'io.codenotary'
 archivesBaseName = 'immudb4j'
-version = '0.1.4'
+version = '0.1.5'
 sourceCompatibility = 1.8
 targetCompatibility = 1.8
 
@@ -129,7 +129,8 @@ test {
 }
 
 test.dependsOn immudbStart
-test.finalizedBy(immudbStop)
+
+test.finalizedBy([jacocoTestReport, immudbStop])
 
 task integrationTest(type: Test) {
     testClassesDirs = sourceSets.integrationTest.output.classesDirs
@@ -139,7 +140,13 @@ task integrationTest(type: Test) {
 jacocoTestReport {
     reports {
         xml.enabled true
-        html.enabled false
+        html.enabled true
+    }
+
+    afterEvaluate {
+        getClassDirectories().setFrom(files(classDirectories.files.collect {
+            fileTree(dir: it, exclude: 'io/codenotary/immudb/**')
+        }))
     }
 }
 

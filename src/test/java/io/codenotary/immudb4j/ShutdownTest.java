@@ -13,13 +13,25 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
-package io.codenotary.immudb.crypto;
+package io.codenotary.immudb4j;
 
-public class VerificationException extends Exception {
+import io.grpc.StatusRuntimeException;
+import org.testng.Assert;
+import org.testng.annotations.Test;
 
-  private String message;
+public class ShutdownTest extends ImmuClientIntegrationTest {
 
-  public VerificationException(String message) {
-    this.message = message;
+  @Test(expectedExceptions = StatusRuntimeException.class)
+  public void testLoginAttemptAfterShutdown() {
+
+    Assert.assertFalse(immuClient.isShutdown());
+
+    immuClient.shutdown();
+
+    Assert.assertTrue(immuClient.isShutdown());
+
+    immuClient.login("immudb", "immudb");
+
   }
+
 }

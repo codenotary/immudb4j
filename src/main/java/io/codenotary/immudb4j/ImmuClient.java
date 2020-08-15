@@ -13,14 +13,16 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
-package io.codenotary.immudb;
+package io.codenotary.immudb4j;
 
 import com.google.common.base.Charsets;
 import com.google.protobuf.ByteString;
 import com.google.protobuf.Empty;
-import io.codenotary.immudb.crypto.CryptoUtils;
-import io.codenotary.immudb.crypto.Root;
-import io.codenotary.immudb.crypto.VerificationException;
+import io.codenotary.immudb.ImmuServiceGrpc;
+import io.codenotary.immudb.ImmudbProto;
+import io.codenotary.immudb4j.crypto.CryptoUtils;
+import io.codenotary.immudb4j.crypto.Root;
+import io.codenotary.immudb4j.crypto.VerificationException;
 import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
 import io.grpc.Metadata;

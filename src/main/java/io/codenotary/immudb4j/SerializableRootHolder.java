@@ -13,11 +13,11 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
-package io.codenotary.immudb;
+package io.codenotary.immudb4j;
 
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
-import io.codenotary.immudb.crypto.Root;
+import io.codenotary.immudb4j.crypto.Root;
 
 import java.io.*;
 import java.lang.reflect.Type;

@@ -13,8 +13,10 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
-package io.codenotary.immudb;
+package io.codenotary.immudb4j;
 
+import io.codenotary.immudb4j.FileRootHolder;
+import io.codenotary.immudb4j.ImmuClient;
 import org.testng.annotations.BeforeClass;
 
 import java.io.IOException;

@@ -13,31 +13,13 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
-package io.codenotary.immudb.crypto;
+package io.codenotary.immudb4j.crypto;
 
-public class Root {
+public class VerificationException extends Exception {
 
-  private String database;
-  private long index;
-  private byte[] digest;
+  private String message;
 
-  public Root(String database, long index, byte[] digest) {
-    this.database = database;
-    this.index = index;
-    this.digest = digest;
+  public VerificationException(String message) {
+    this.message = message;
   }
-
-  public String getDatabase() {
-    return this.database;
-  }
-
-  public long getIndex() {
-    return this.index;
-  }
-
-  public byte[] getDigest() {
-    return this.digest;
-  }
-
-
 }

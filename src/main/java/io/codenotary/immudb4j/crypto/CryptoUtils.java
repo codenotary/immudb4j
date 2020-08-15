@@ -13,7 +13,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
-package io.codenotary.immudb.crypto;
+package io.codenotary.immudb4j.crypto;
 
 import com.google.protobuf.ByteString;
 import io.codenotary.immudb.ImmudbProto;
