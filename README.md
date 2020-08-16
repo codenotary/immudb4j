@@ -19,8 +19,13 @@ Official [immudb] client for Java 1.8 and above.
 - [Supported Versions](#supported-versions)
 - [Quickstart](#quickstart)
 - [Step by step guide](#step-by-step-guide)
-- [Known limitations](#known-limitations)
-- [Development](#development)
+    * [Creating a Client](#creating-a-client)
+    * [User sessions](#user-sessions)
+    * [Creating a database](#creating-a-database)
+    * [Setting the active database](#setting-the-active-database)
+    * [Traditional read and write](#traditional-read-and-write)
+    * [Verified or Safe read and write](#verified-or-safe-read-and-write)
+    * [Closing the client](#creating-a-database)
 - [Contributing](#contributing)
 
 ## Introduction
@@ -48,13 +53,13 @@ if using `Maven`:
     <dependency>
         <groupId>io.codenotary</groupId>
         <artifactId>immudb4j</artifactId>
-        <version>0.1.3</version>
+        <version>0.1.5</version>
     </dependency> 
 ```
 
 if using `Gradle`:
 ```groovy
-    compile 'io.codenotary:immudb4j:0.1.3'
+    compile 'io.codenotary:immudb4j:0.1.5'
 ```
 
 Note: immudb4j is currently hosted in [Github Packages].
