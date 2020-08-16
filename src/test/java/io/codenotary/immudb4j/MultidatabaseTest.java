@@ -19,6 +19,8 @@ import io.codenotary.immudb4j.crypto.VerificationException;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
+import java.util.List;
+
 public class MultidatabaseTest extends ImmuClientIntegrationTest {
 
   @Test
@@ -47,6 +49,13 @@ public class MultidatabaseTest extends ImmuClientIntegrationTest {
     Assert.assertEquals(v1, rv1);
     byte[] sv1 = immuClient.safeGet("k1");
     Assert.assertEquals(sv1, v1);
+
+    List<String> dbs = immuClient.databases();
+    Assert.assertNotNull(dbs);
+    Assert.assertEquals(3 , dbs.size());
+    Assert.assertTrue(dbs.contains("defaultdb"));
+    Assert.assertTrue(dbs.contains("db1"));
+    Assert.assertTrue(dbs.contains("db2"));
 
     immuClient.logout();
   }
