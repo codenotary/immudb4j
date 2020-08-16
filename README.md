@@ -106,7 +106,7 @@ Setting `immudb` url and port:
 
 Customizing the `Root Holder`:
 ```java
-	FileRootHolder rootHolder = FileRootHolder.newBuilder()
+    FileRootHolder rootHolder = FileRootHolder.newBuilder()
                                     .setRootsFolder("./my_immuapp_roots")
                                     .build();
 ```
@@ -158,9 +158,16 @@ implements the mathematical validations while the application uses as a traditio
 read or write operation:
 
 ```java
-    client.safeSet("k123", new byte[]{1, 2, 3});
+    try {
+        client.safeSet("k123", new byte[]{1, 2, 3});
     
-    byte[] v = client.safeGet("k123");
+        byte[] v = client.safeGet("k123");
+
+    } (catch VerificationException e) {
+
+        //TODO: tampering detected!
+
+    }
 ```
 
 ### Closing the client
