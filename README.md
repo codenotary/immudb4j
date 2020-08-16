@@ -109,6 +109,10 @@ Customizing the `Root Holder`:
     FileRootHolder rootHolder = FileRootHolder.newBuilder()
                                     .setRootsFolder("./my_immuapp_roots")
                                     .build();
+
+    ImmuClient immuClient = ImmuClient.newBuilder()
+                                      .withRootHolder(rootHolder)
+                                      .build();
 ```
 
 ### User sessions
