@@ -26,12 +26,11 @@ import java.util.concurrent.atomic.AtomicInteger;
 public class MultithreadTest extends ImmuClientIntegrationTest {
 
   @Test
-  public void testMultithredRW() throws InterruptedException {
+  public void testMultithredRW() throws InterruptedException, VerificationException {
     immuClient.login("immudb", "immudb");
     immuClient.useDatabase("defaultdb");
 
-    //TODO: investigate concurrency issues in immudb and increase thread count
-    int threadCount = 1;
+    int threadCount = 10;
 
     CountDownLatch latch = new CountDownLatch(threadCount);
     AtomicInteger succeeded = new AtomicInteger(0);
@@ -40,17 +39,16 @@ public class MultithreadTest extends ImmuClientIntegrationTest {
 
       Random rnd = new Random();
 
-      long threadId = Thread.currentThread().getId();
-
-      for (int i = 0; i < 100; i++) {
+      for (int i = 0; i < 1000; i++) {
         byte[] b = new byte[10];
         rnd.nextBytes(b);
 
         try {
-          immuClient.safeSet("k" + "_" + threadId + "_" + i, b);
-        } catch (VerificationException e) {
-          latch.countDown();
-          throw new RuntimeException(e);
+//          immuClient.safeSet("k" + i, b); // TODO: pending issue fix in immudb
+          immuClient.set("k" + i, b);
+//        } catch (VerificationException e) {
+//          latch.countDown();
+//          throw new RuntimeException(e);
         } catch (Exception e) {
           latch.countDown();
           throw new RuntimeException(e);
@@ -67,6 +65,11 @@ public class MultithreadTest extends ImmuClientIntegrationTest {
 
     latch.await();
 
-    Assert.assertEquals(threadCount, succeeded.get());
+    Assert.assertEquals(succeeded.get(), threadCount);
+
+    for (int i = 0; i < 100; i++) {
+      immuClient.safeGet("k" + i);
+    }
+
   }
 }
