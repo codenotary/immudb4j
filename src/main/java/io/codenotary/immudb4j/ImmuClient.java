@@ -289,7 +289,7 @@ public class ImmuClient {
             .setValue(ByteString.copyFrom(value))
             .build();
 
-    CryptoUtils.verify(proof, item, rootHolder.getRoot(activeDatabase));
+    CryptoUtils.verify(proof, item, root);
 
     rootHolder.SetRoot(new Root(activeDatabase, proof.getAt(), proof.getRoot().toByteArray()));
   }
