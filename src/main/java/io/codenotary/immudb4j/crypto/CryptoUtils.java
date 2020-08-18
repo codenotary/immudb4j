@@ -35,16 +35,7 @@ public class CryptoUtils {
 
   private static final byte LEAF_PREFIX = 0;
   private static final byte NODE_PREFIX = 1;
-
-  private static MessageDigest sha256;
-
-  static {
-    try {
-      sha256 = MessageDigest.getInstance("SHA-256");
-    } catch (NoSuchAlgorithmException e) {
-      e.printStackTrace();
-    }
-  }
+  private static final int DIGEST_LENGTH = 32;
 
   public static void verify(ImmudbProto.Proof proof, ImmudbProto.Item item, Root root)
       throws VerificationException {
@@ -72,7 +63,7 @@ public class CryptoUtils {
     byte[] h = proof.getLeaf().toByteArray();
 
     for (ByteString v : proof.getInclusionPathList()) {
-      ByteBuffer buffer = ByteBuffer.allocate(sha256.getDigestLength() * 2 + 1);
+      ByteBuffer buffer = ByteBuffer.allocate(DIGEST_LENGTH * 2 + 1);
 
       buffer.put(NODE_PREFIX);
 
@@ -84,7 +75,7 @@ public class CryptoUtils {
         buffer.put(h);
       }
 
-      h = sha256.digest(buffer.array());
+      h = digest(buffer.array());
       i /= 2;
       at /= 2;
     }
@@ -141,23 +132,23 @@ public class CryptoUtils {
         throw new VerificationException("Consistency proof does not verify!");
       }
 
-      ByteBuffer bufferSr = ByteBuffer.allocate(sha256.getDigestLength() * 2 + 1);
+      ByteBuffer bufferSr = ByteBuffer.allocate(DIGEST_LENGTH * 2 + 1);
       bufferSr.order(ByteOrder.BIG_ENDIAN);
       bufferSr.put(NODE_PREFIX);
 
       byte[] c = pp.get(step);
 
       if (fn % 2 == 1 || fn == sn) {
-        ByteBuffer bufferFn = ByteBuffer.allocate(sha256.getDigestLength() * 2 + 1);
+        ByteBuffer bufferFn = ByteBuffer.allocate(DIGEST_LENGTH * 2 + 1);
         bufferFn.order(ByteOrder.BIG_ENDIAN);
         bufferFn.put(NODE_PREFIX);
         bufferFn.put(c);
         bufferFn.put(fr);
-        fr = sha256.digest(bufferFn.array());
+        fr = digest(bufferFn.array());
 
         bufferSr.put(c);
         bufferSr.put(sr);
-        sr = sha256.digest(bufferSr.array());
+        sr = digest(bufferSr.array());
 
         while (fn % 2 == 0 && fn != 0) {
           fn >>= 1;
@@ -166,7 +157,7 @@ public class CryptoUtils {
       } else {
         bufferSr.put(sr);
         bufferSr.put(c);
-        sr = sha256.digest(bufferSr.array());
+        sr = digest(bufferSr.array());
       }
 
       fn >>= 1;
@@ -194,6 +185,15 @@ public class CryptoUtils {
     buffer.put(item.getKey().toByteArray());
     buffer.put(item.getValue().toByteArray());
 
-    return sha256.digest(buffer.array());
+    return digest(buffer.array());
+  }
+
+  private static byte[] digest(byte[] data) {
+    try {
+      MessageDigest sha256 = MessageDigest.getInstance("SHA-256");
+      return sha256.digest(data);
+    } catch (NoSuchAlgorithmException e) {
+      throw new RuntimeException(e);
+    }
   }
 }

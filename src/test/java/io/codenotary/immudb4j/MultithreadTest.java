@@ -22,6 +22,7 @@ import org.testng.annotations.Test;
 import java.util.Random;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Function;
 
 public class MultithreadTest extends ImmuClientIntegrationTest {
 
@@ -30,25 +31,24 @@ public class MultithreadTest extends ImmuClientIntegrationTest {
     immuClient.login("immudb", "immudb");
     immuClient.useDatabase("defaultdb");
 
-    int threadCount = 10;
+    final int threadCount = 10;
+    final int keyCount = 1000;
 
     CountDownLatch latch = new CountDownLatch(threadCount);
     AtomicInteger succeeded = new AtomicInteger(0);
 
-    Runnable runnable = () -> {
-
+    Function<String, Runnable> workerFactory = (uuid) -> (Runnable) () -> {
       Random rnd = new Random();
 
-      for (int i = 0; i < 1000; i++) {
+      for (int i = 0; i < keyCount; i++) {
         byte[] b = new byte[10];
         rnd.nextBytes(b);
 
         try {
-//          immuClient.safeSet("k" + i, b); // TODO: pending issue fix in immudb
-          immuClient.set("k" + i, b);
-//        } catch (VerificationException e) {
-//          latch.countDown();
-//          throw new RuntimeException(e);
+          immuClient.safeSet(uuid + "k" + i, b);
+        } catch (VerificationException e) {
+          latch.countDown();
+          throw new RuntimeException(e);
         } catch (Exception e) {
           latch.countDown();
           throw new RuntimeException(e);
@@ -60,15 +60,18 @@ public class MultithreadTest extends ImmuClientIntegrationTest {
     };
 
     for(int i=0;i<threadCount;i++) {
-      new Thread(runnable).start();
+      Thread t = new Thread(workerFactory.apply("t"+i));
+      t.start();
     }
 
     latch.await();
 
     Assert.assertEquals(succeeded.get(), threadCount);
 
-    for (int i = 0; i < 100; i++) {
-      immuClient.safeGet("k" + i);
+    for(int i=0;i<threadCount;i++) {
+      for (int k = 0; k < keyCount; k++) {
+        immuClient.safeGet("t" + i + "k" + i);
+      }
     }
 
   }
