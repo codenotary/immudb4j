@@ -51,13 +51,13 @@ if using `Maven`:
     <dependency>
         <groupId>io.codenotary</groupId>
         <artifactId>immudb4j</artifactId>
-        <version>0.1.5</version>
+        <version>0.1.6</version>
     </dependency> 
 ```
 
 if using `Gradle`:
 ```groovy
-    compile 'io.codenotary:immudb4j:0.1.5'
+    compile 'io.codenotary:immudb4j:0.1.6'
 ```
 
 Note: immudb4j is currently hosted in [Github Packages].
@@ -73,7 +73,7 @@ and "Configuring Gradle for use with GitHub Packages" at [Github Packages].
 
 immudb4j supports the [latest immudb release].
 
-[latest immudb release]: https://github.com/codenotary/immudb/releases/tag/v0.7.0
+[latest immudb release]: https://github.com/codenotary/immudb/releases/tag/v0.7.1
 
 ## Quickstart
 

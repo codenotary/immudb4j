@@ -7,10 +7,10 @@ then
   echo "Downloading immudb..."
 
   if [[ "$OSTYPE" == "linux-gnu"* ]]; then
-    URL=https://github.com/vchain-us/immudb/releases/download/v0.7.0/immudb-v0.7.0-linux-amd64
+    URL=https://github.com/vchain-us/immudb/releases/download/v0.7.1/immudb-v0.7.1-linux-amd64
     wget -O immudb $URL
   elif [[ "$OSTYPE" == "darwin"* ]]; then
-    URL=https://github.com/vchain-us/immudb/releases/download/v0.7.0/immudb-v0.7.0-darwin-amd64
+    URL=https://github.com/vchain-us/immudb/releases/download/v0.7.1/immudb-v0.7.1-darwin-amd64
     curl -o immudb -L $URL
   fi
 
