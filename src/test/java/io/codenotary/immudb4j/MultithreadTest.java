@@ -27,7 +27,7 @@ import java.util.function.Function;
 public class MultithreadTest extends ImmuClientIntegrationTest {
 
   @Test
-  public void testMultithredRW() throws InterruptedException, VerificationException {
+  public void testMultithredWithoutKeyOverlap() throws InterruptedException, VerificationException {
     immuClient.login("immudb", "immudb");
     immuClient.useDatabase("defaultdb");
 
@@ -71,6 +71,56 @@ public class MultithreadTest extends ImmuClientIntegrationTest {
     for(int i=0;i<threadCount;i++) {
       for (int k = 0; k < keyCount; k++) {
         immuClient.safeGet("t" + i + "k" + i);
+      }
+    }
+
+  }
+
+  @Test
+  public void testMultithredWithKeyOverlap() throws InterruptedException, VerificationException {
+    immuClient.login("immudb", "immudb");
+    immuClient.useDatabase("defaultdb");
+
+    final int threadCount = 10;
+    final int keyCount = 1000;
+
+    CountDownLatch latch = new CountDownLatch(threadCount);
+    AtomicInteger succeeded = new AtomicInteger(0);
+
+    Runnable runnable = () -> {
+      Random rnd = new Random();
+
+      for (int i = 0; i < keyCount; i++) {
+        byte[] b = new byte[10];
+        rnd.nextBytes(b);
+
+        try {
+          immuClient.safeSet("k" + i, b);
+        } catch (VerificationException e) {
+          latch.countDown();
+          throw new RuntimeException(e);
+        } catch (Exception e) {
+          latch.countDown();
+          throw new RuntimeException(e);
+        }
+      }
+
+      succeeded.incrementAndGet();
+      latch.countDown();
+    };
+
+    for(int i=0;i<threadCount;i++) {
+      Thread t = new Thread(runnable);
+      t.start();
+    }
+
+    latch.await();
+
+    Assert.assertEquals(succeeded.get(), threadCount);
+
+    for(int i=0;i<threadCount;i++) {
+      for (int k = 0; k < keyCount; k++) {
+        immuClient.safeGet("k" + i);
       }
     }
 
