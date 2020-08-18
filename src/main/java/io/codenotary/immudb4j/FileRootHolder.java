@@ -75,7 +75,7 @@ public class FileRootHolder implements RootHolder {
 
     rootHolder.SetRoot(root);
 
-    Path newRootHolderFile = rootsFolder.resolve("root_" + System.currentTimeMillis());
+    Path newRootHolderFile = rootsFolder.resolve("root_" + System.nanoTime());
 
     if (Files.exists(newRootHolderFile)) {
       throw new RuntimeException("Attempt to create fresh root file failed. Please retry");
