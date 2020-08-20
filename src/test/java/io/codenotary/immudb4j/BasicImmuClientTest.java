@@ -20,6 +20,9 @@ import io.codenotary.immudb4j.crypto.VerificationException;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
+import java.util.ArrayList;
+import java.util.List;
+
 public class BasicImmuClientTest extends ImmuClientIntegrationTest {
 
   @Test
@@ -55,24 +58,42 @@ public class BasicImmuClientTest extends ImmuClientIntegrationTest {
   }
 
   @Test
-  public void testSetAll() {
+  public void testGetAllAndSetAll() {
     immuClient.login("immudb", "immudb");
 
-    byte[] v0 = new byte[] {0, 1, 0, 1};
-    byte[] v1 = new byte[] {1, 0, 1, 0};
+    List<String> keys = new ArrayList<>();
+    keys.add("k0");
+    keys.add("k1");
 
-    KVList kvList = KVList.newBuilder()
-            .add("k0", v0)
-            .add("k1", v1)
-            .build();
+    List<byte[]> values = new ArrayList<>();
+    values.add(new byte[] {0, 1, 0, 1});
+    values.add(new byte[] {1, 0, 1, 0});
+
+    KVList.KVListBuilder kvListBuilder = KVList.newBuilder();
+
+    for (int i = 0; i < keys.size(); i++) {
+      kvListBuilder.add(keys.get(i), values.get(i));
+    }
+
+    KVList kvList = kvListBuilder.build();
 
     immuClient.setAll(kvList);
 
-    byte[] rv0 = immuClient.get("k0");
-    byte[] rv1 = immuClient.get("k1");
+    List<KV> getAllResult = immuClient.getAll(keys);
 
-    Assert.assertEquals(v0, rv0);
-    Assert.assertEquals(v1, rv1);
+    Assert.assertNotNull(getAllResult);
+    Assert.assertTrue(getAllResult.size() == keys.size());
+
+    for (int i = 0; i < getAllResult.size(); i++) {
+      KV kv = getAllResult.get(i);
+      Assert.assertEquals(kv.getKey(), keys.get(i).getBytes(Charsets.UTF_8));
+      Assert.assertEquals(kv.getValue(), values.get(i));
+    }
+
+    for (int i = 0; i < keys.size(); i++) {
+      byte[] v = immuClient.get(keys.get(i));
+      Assert.assertEquals(v, values.get(i));
+    }
 
     immuClient.logout();
   }

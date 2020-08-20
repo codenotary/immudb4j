@@ -309,4 +309,51 @@ public class ImmuClient {
 
     getStub().setBatch(builder.build());
   }
+
+  public List<KV> getAll(List<?> keyList) {
+    if (keyList == null) {
+      throw new RuntimeException("Illegal argument");
+    }
+
+    if (keyList.size() == 0) {
+      return new ArrayList<>();
+    }
+
+    if (keyList.get(0) instanceof String) {
+      List<byte[]> kList = new ArrayList<>(keyList.size());
+
+      for (Object key : keyList) {
+        kList.add(((String)key).getBytes(Charsets.UTF_8));
+      }
+
+      return getAllFrom(kList);
+    }
+
+    if (keyList.get(0) instanceof byte[]) {
+      return getAllFrom((List<byte[]>)keyList);
+    }
+
+    throw new RuntimeException("Illegal argument");
+  }
+
+  private List<KV> getAllFrom(List<byte[]> keyList) {
+
+    ImmudbProto.KeyList.Builder builder = ImmudbProto.KeyList.newBuilder();
+
+    for (byte[] key : keyList) {
+      ImmudbProto.Key k = ImmudbProto.Key.newBuilder().setKey(ByteString.copyFrom(key)).build();
+      builder.addKeys(k);
+    }
+
+    ImmudbProto.ItemList res = getStub().getBatch(builder.build());
+
+    List<KV> result = new ArrayList<>(res.getItemsCount());
+
+    for (ImmudbProto.Item item : res.getItemsList()) {
+      KV kv = new KVPair(item.getKey().toByteArray(), item.getValue().toByteArray());
+      result.add(kv);
+    }
+
+    return result;
+  }
 }

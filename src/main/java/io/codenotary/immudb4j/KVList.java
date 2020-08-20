@@ -70,24 +70,4 @@ public class KVList {
         }
     }
 
-    private static final class KVPair implements KV {
-
-        private byte[] key;
-        private byte[] value;
-
-        private KVPair(byte[] key, byte[] value) {
-            this.key = key;
-            this.value = value;
-        }
-
-        @Override
-        public byte[] getKey() {
-            return this.key;
-        }
-
-        @Override
-        public byte[] getValue() {
-            return this.value;
-        }
-    }
 }

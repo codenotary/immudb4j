@@ -15,7 +15,23 @@ limitations under the License.
 */
 package io.codenotary.immudb4j;
 
-public interface KV {
-    byte[] getKey();
-    byte[] getValue();
+public class KVPair implements KV {
+
+    private byte[] key;
+    private byte[] value;
+
+    public KVPair(byte[] key, byte[] value) {
+        this.key = key;
+        this.value = value;
+    }
+
+    @Override
+    public byte[] getKey() {
+        return this.key;
+    }
+
+    @Override
+    public byte[] getValue() {
+        return this.value;
+    }
 }
