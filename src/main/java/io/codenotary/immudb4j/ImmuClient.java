@@ -293,4 +293,20 @@ public class ImmuClient {
 
     rootHolder.SetRoot(new Root(activeDatabase, proof.getAt(), proof.getRoot().toByteArray()));
   }
+
+  public void setAll(KVList kvList) {
+    ImmudbProto.KVList.Builder builder = ImmudbProto.KVList.newBuilder();
+
+    for (KV kv : kvList.entries()) {
+      ImmudbProto.KeyValue skv =
+              ImmudbProto.KeyValue.newBuilder()
+                      .setKey(ByteString.copyFrom(kv.getKey()))
+                      .setValue(ByteString.copyFrom(kv.getValue()))
+                      .build();
+
+      builder.addKVs(skv);
+    }
+
+    getStub().setBatch(builder.build());
+  }
 }

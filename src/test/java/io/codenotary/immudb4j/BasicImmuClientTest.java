@@ -15,6 +15,7 @@ limitations under the License.
 */
 package io.codenotary.immudb4j;
 
+import com.google.common.base.Charsets;
 import io.codenotary.immudb4j.crypto.VerificationException;
 import org.testng.Assert;
 import org.testng.annotations.Test;
@@ -49,6 +50,29 @@ public class BasicImmuClientTest extends ImmuClientIntegrationTest {
     immuClient.safeSet("k2", v2);
     byte[] sv2 = immuClient.safeGet("k2");
     Assert.assertEquals(v2, sv2);
+
+    immuClient.logout();
+  }
+
+  @Test
+  public void testSetAll() {
+    immuClient.login("immudb", "immudb");
+
+    byte[] v0 = new byte[] {0, 1, 0, 1};
+    byte[] v1 = new byte[] {1, 0, 1, 0};
+
+    KVList kvList = KVList.newBuilder()
+            .add("k0", v0)
+            .add("k1", v1)
+            .build();
+
+    immuClient.setAll(kvList);
+
+    byte[] rv0 = immuClient.get("k0");
+    byte[] rv1 = immuClient.get("k1");
+
+    Assert.assertEquals(v0, rv0);
+    Assert.assertEquals(v1, rv1);
 
     immuClient.logout();
   }
