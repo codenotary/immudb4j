@@ -23,6 +23,7 @@
     * [Setting the active database](#setting-the-active-database)
     * [Traditional read and write](#traditional-read-and-write)
     * [Verified or Safe read and write](#verified-or-safe-read-and-write)
+    * [Multi-key read and write](#multi-key-read-and-write)
     * [Closing the client](#creating-a-database)
 - [Contributing](#contributing)
 
@@ -51,13 +52,13 @@ if using `Maven`:
     <dependency>
         <groupId>io.codenotary</groupId>
         <artifactId>immudb4j</artifactId>
-        <version>0.1.6</version>
+        <version>0.1.7</version>
     </dependency> 
 ```
 
 if using `Gradle`:
 ```groovy
-    compile 'io.codenotary:immudb4j:0.1.6'
+    compile 'io.codenotary:immudb4j:0.1.7'
 ```
 
 Note: immudb4j is currently hosted in [Github Packages].
@@ -169,6 +170,40 @@ read or write operation:
 
         //TODO: tampering detected!
 
+    }
+```
+
+### Multi-key read and write
+
+Transactional multi-key read and write operations are supported by immudb and immudb4j.
+
+Atomic multi-key write (all entries are persisted or none):
+
+```java
+    KVList.KVListBuilder builder = KVList.newBuilder();
+
+    builder.add("k123", new byte[]{1, 2, 3});
+    builder.add("k321", new byte[]{3, 2, 1});
+
+    KVList kvList = builder.build();
+
+    client.setAll(kvList);
+```
+
+Atomic multi-key read (all entries are retrieved or none):
+
+```java
+    List<String> keyList = new ArrayList<String>();
+
+    keys.add("k123");
+    keys.add("k321");
+
+    List<KV> result = client.getAll(keyList);
+
+    for (KV kv : result) {
+        byte[] key = kv.getKey();
+        byte[] value = kv.getValue();
+        ...
     }
 ```
 
