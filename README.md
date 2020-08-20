@@ -195,8 +195,8 @@ Atomic multi-key read (all entries are retrieved or none):
 ```java
     List<String> keyList = new ArrayList<String>();
 
-    keys.add("k123");
-    keys.add("k321");
+    keyList.add("k123");
+    keyList.add("k321");
 
     List<KV> result = client.getAll(keyList);
 
