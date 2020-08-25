@@ -21,6 +21,6 @@ public interface RootHolder {
 
   Root getRoot(String database);
 
-  void SetRoot(Root root);
+  void setRoot(Root root);
 
 }
