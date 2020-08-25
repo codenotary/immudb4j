@@ -174,7 +174,7 @@ public class ImmuClient {
       Empty empty = com.google.protobuf.Empty.getDefaultInstance();
       ImmudbProto.Root r = getStub().currentRoot(empty);
       Root root = new Root(activeDatabase, r.getIndex(), r.getRoot().toByteArray());
-      rootHolder.SetRoot(root);
+      rootHolder.setRoot(root);
     }
     return rootHolder.getRoot(activeDatabase);
   }
@@ -254,7 +254,7 @@ public class ImmuClient {
 
     CryptoUtils.verify(proof, safeItem.getItem(), root);
 
-    rootHolder.SetRoot(new Root(activeDatabase, proof.getAt(), proof.getRoot().toByteArray()));
+    rootHolder.setRoot(new Root(activeDatabase, proof.getAt(), proof.getRoot().toByteArray()));
 
     return safeItem.getItem().getValue().toByteArray();
   }
@@ -291,7 +291,7 @@ public class ImmuClient {
 
     CryptoUtils.verify(proof, item, root);
 
-    rootHolder.SetRoot(new Root(activeDatabase, proof.getAt(), proof.getRoot().toByteArray()));
+    rootHolder.setRoot(new Root(activeDatabase, proof.getAt(), proof.getRoot().toByteArray()));
   }
 
   public void setAll(KVList kvList) {

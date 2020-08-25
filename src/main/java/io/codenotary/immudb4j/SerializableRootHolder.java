@@ -48,7 +48,7 @@ public class SerializableRootHolder implements RootHolder {
   }
 
   @Override
-  public void SetRoot(Root root) {
+  public void setRoot(Root root) {
     this.rootMap.put(root.getDatabase(),root);
   }
 
