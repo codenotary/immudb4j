@@ -173,7 +173,7 @@ public class ImmuClient {
     if (rootHolder.getRoot(activeDatabase) == null) {
       Empty empty = com.google.protobuf.Empty.getDefaultInstance();
       ImmudbProto.Root r = getStub().currentRoot(empty);
-      Root root = new Root(activeDatabase, r.getIndex(), r.getRoot().toByteArray());
+      Root root = new Root(activeDatabase, r.getPayload().getIndex(), r.getPayload().getRoot().toByteArray());
       rootHolder.setRoot(root);
     }
     return rootHolder.getRoot(activeDatabase);
