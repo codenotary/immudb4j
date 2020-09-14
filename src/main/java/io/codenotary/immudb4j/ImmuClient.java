@@ -18,6 +18,7 @@ package io.codenotary.immudb4j;
 import com.google.common.base.Charsets;
 import com.google.protobuf.ByteString;
 import com.google.protobuf.Empty;
+import com.google.protobuf.InvalidProtocolBufferException;
 import io.codenotary.immudb.ImmuServiceGrpc;
 import io.codenotary.immudb.ImmudbProto;
 import io.codenotary.immudb4j.crypto.CryptoUtils;
@@ -211,6 +212,57 @@ public class ImmuClient {
   }
 
   public void set(byte[] key, byte[] value) {
+    ImmudbProto.Content content = ImmudbProto.Content.newBuilder()
+            .setTimestamp(System.currentTimeMillis() / 1000L)
+            .setPayload(ByteString.copyFrom(value))
+            .build();
+    this.rawSet(key, content.toByteArray());
+  }
+
+  public byte[] get(String key) {
+    return get(key.getBytes(Charsets.UTF_8));
+  }
+
+  public byte[] get(byte[] key) {
+    try {
+      ImmudbProto.Content content = ImmudbProto.Content.parseFrom(rawGet(key));
+      return content.getPayload().toByteArray();
+    } catch (InvalidProtocolBufferException e) {
+      throw new RuntimeException(e);
+    }
+  }
+
+  public byte[] safeGet(String key) throws VerificationException {
+    return safeGet(key.getBytes(Charsets.UTF_8));
+  }
+
+  public byte[] safeGet(byte[] key) throws VerificationException {
+    try {
+      ImmudbProto.Content content = ImmudbProto.Content.parseFrom(safeRawGet(key, this.root()));
+      return content.getPayload().toByteArray();
+    } catch (InvalidProtocolBufferException e) {
+      throw new RuntimeException(e);
+    }
+  }
+
+  public void safeSet(String key, byte[] value) throws VerificationException {
+    safeSet(key.getBytes(Charsets.UTF_8), value);
+  }
+
+  public void safeSet(byte[] key, byte[] value) throws VerificationException {
+    ImmudbProto.Content content = ImmudbProto.Content.newBuilder()
+            .setTimestamp(System.currentTimeMillis() / 1000L)
+            .setPayload(ByteString.copyFrom(value))
+            .build();
+
+    safeRawSet(key, content.toByteArray(), this.root());
+  }
+
+  public void rawSet(String key, byte[] value) {
+    rawSet(key.getBytes(Charsets.UTF_8), value);
+  }
+
+  public void rawSet(byte[] key, byte[] value) {
     ImmudbProto.KeyValue kv =
         ImmudbProto.KeyValue.newBuilder()
             .setKey(ByteString.copyFrom(key))
@@ -220,26 +272,26 @@ public class ImmuClient {
     getStub().set(kv);
   }
 
-  public byte[] get(String key) {
-    return get(key.getBytes(Charsets.UTF_8));
+  public byte[] rawGet(String key) {
+    return rawGet(key.getBytes(Charsets.UTF_8));
   }
 
-  public byte[] get(byte[] key) {
+  public byte[] rawGet(byte[] key) {
     ImmudbProto.Key k = ImmudbProto.Key.newBuilder().setKey(ByteString.copyFrom(key)).build();
 
     ImmudbProto.Item item = getStub().get(k);
     return item.getValue().toByteArray();
   }
 
-  public byte[] safeGet(String key) throws VerificationException {
-    return safeGet(key.getBytes(Charsets.UTF_8));
+  public byte[] safeRawGet(String key) throws VerificationException {
+    return safeRawGet(key.getBytes(Charsets.UTF_8));
   }
 
-  public byte[] safeGet(byte[] key) throws VerificationException {
-    return safeGet(key, this.root());
+  public byte[] safeRawGet(byte[] key) throws VerificationException {
+    return safeRawGet(key, this.root());
   }
 
-  public byte[] safeGet(byte[] key, Root root) throws VerificationException {
+  public byte[] safeRawGet(byte[] key, Root root) throws VerificationException {
     ImmudbProto.Index index = ImmudbProto.Index.newBuilder().setIndex(root.getIndex()).build();
 
     ImmudbProto.SafeGetOptions sOpts =
@@ -259,15 +311,15 @@ public class ImmuClient {
     return safeItem.getItem().getValue().toByteArray();
   }
 
-  public void safeSet(String key, byte[] value) throws VerificationException {
-    safeSet(key.getBytes(Charsets.UTF_8), value);
+  public void safeRawSet(String key, byte[] value) throws VerificationException {
+    safeRawSet(key.getBytes(Charsets.UTF_8), value);
   }
 
-  public void safeSet(byte[] key, byte[] value) throws VerificationException {
-    safeSet(key, value, this.root());
+  public void safeRawSet(byte[] key, byte[] value) throws VerificationException {
+    safeRawSet(key, value, this.root());
   }
 
-  public void safeSet(byte[] key, byte[] value, Root root) throws VerificationException {
+  public void safeRawSet(byte[] key, byte[] value, Root root) throws VerificationException {
     ImmudbProto.KeyValue kv =
         ImmudbProto.KeyValue.newBuilder()
             .setKey(ByteString.copyFrom(key))
@@ -295,6 +347,20 @@ public class ImmuClient {
   }
 
   public void setAll(KVList kvList) {
+    KVList.KVListBuilder svListBuilder = KVList.newBuilder();
+
+    for (KV kv : kvList.entries()) {
+      ImmudbProto.Content content = ImmudbProto.Content.newBuilder()
+              .setTimestamp(System.currentTimeMillis() / 1000L)
+              .setPayload(ByteString.copyFrom(kv.getValue()))
+              .build();
+      svListBuilder.add(kv.getKey(), content.toByteArray());
+    }
+
+    rawSetAll(svListBuilder.build());
+  }
+
+  public void rawSetAll(KVList kvList) {
     ImmudbProto.KVList.Builder builder = ImmudbProto.KVList.newBuilder();
 
     for (KV kv : kvList.entries()) {
@@ -311,6 +377,22 @@ public class ImmuClient {
   }
 
   public List<KV> getAll(List<?> keyList) {
+    List<KV> rawKVs = rawGetAll(keyList);
+    List<KV>  kvs = new ArrayList<>(rawKVs.size());
+
+    for (KV rawKV : rawKVs) {
+      try {
+        ImmudbProto.Content content = ImmudbProto.Content.parseFrom(rawKV.getValue());
+        kvs.add(new KVPair(rawKV.getKey(), content.getPayload().toByteArray()));
+      } catch (InvalidProtocolBufferException e) {
+        throw new RuntimeException(e);
+      }
+    }
+
+    return kvs;
+  }
+
+  public List<KV> rawGetAll(List<?> keyList) {
     if (keyList == null) {
       throw new RuntimeException("Illegal argument");
     }
@@ -326,17 +408,17 @@ public class ImmuClient {
         kList.add(((String)key).getBytes(Charsets.UTF_8));
       }
 
-      return getAllFrom(kList);
+      return rawGetAllFrom(kList);
     }
 
     if (keyList.get(0) instanceof byte[]) {
-      return getAllFrom((List<byte[]>)keyList);
+      return rawGetAllFrom((List<byte[]>)keyList);
     }
 
     throw new RuntimeException("Illegal argument");
   }
 
-  private List<KV> getAllFrom(List<byte[]> keyList) {
+  private List<KV> rawGetAllFrom(List<byte[]> keyList) {
 
     ImmudbProto.KeyList.Builder builder = ImmudbProto.KeyList.newBuilder();
 
