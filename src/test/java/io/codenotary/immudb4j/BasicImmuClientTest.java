@@ -21,6 +21,7 @@ import org.testng.Assert;
 import org.testng.annotations.Test;
 
 import java.util.ArrayList;
+import java.util.LinkedList;
 import java.util.List;
 
 public class BasicImmuClientTest extends ImmuClientIntegrationTest {
@@ -58,6 +59,38 @@ public class BasicImmuClientTest extends ImmuClientIntegrationTest {
   }
 
   @Test
+  public void testRawGetAndSet() throws VerificationException {
+    immuClient.login("immudb", "immudb");
+    immuClient.useDatabase("defaultdb");
+
+    byte[] v0 = new byte[] {0, 1, 2, 3};
+    byte[] v1 = new byte[] {3, 2, 1, 0};
+
+    immuClient.rawSet("rawk0", v0);
+    immuClient.rawSet("rawk1", v1);
+
+    byte[] rv0 = immuClient.rawGet("rawk0");
+    byte[] rv1 = immuClient.rawGet("rawk1");
+
+    Assert.assertEquals(v0, rv0);
+    Assert.assertEquals(v1, rv1);
+
+    byte[] sv0 = immuClient.safeRawGet("rawk0");
+    byte[] sv1 = immuClient.safeRawGet("rawk1");
+
+    Assert.assertEquals(sv0, v0);
+    Assert.assertEquals(sv1, v1);
+
+    byte[] v2 = new byte[] {0, 1, 2, 3};
+
+    immuClient.safeRawSet("rawk2", v2);
+    byte[] sv2 = immuClient.safeRawGet("rawk2");
+    Assert.assertEquals(v2, sv2);
+
+    immuClient.logout();
+  }
+
+  @Test
   public void testGetAllAndSetAll() {
     immuClient.login("immudb", "immudb");
 
@@ -75,7 +108,7 @@ public class BasicImmuClientTest extends ImmuClientIntegrationTest {
       kvListBuilder.add(keys.get(i), values.get(i));
     }
 
-    KVList kvList = kvListBuilder.build();
+    KVList kvList = kvListBuilder.addAll(new LinkedList<>()).build();
 
     immuClient.setAll(kvList);
 
