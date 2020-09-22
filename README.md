@@ -6,7 +6,7 @@
 
 ### Official [immudb] client for Java 1.8 and above.
 
-[immudb]: https://grpc.io/
+[immudb]: https://immudb.io/
 
 
 ## Contents
