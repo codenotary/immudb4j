@@ -41,7 +41,7 @@ please read [immudb research paper] for details of how immutability is ensured b
 ## Prerequisites
 
 immudb4j assumes an already running immudb server. Running `immudb` is quite simple, please refer to the
-following link for downloading and running it: https://immudb.io/docs/quickstart.html
+following link for downloading and running it: https://docs.immudb.io/quickstart.html
 
 ## Installation
 
