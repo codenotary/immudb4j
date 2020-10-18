@@ -35,6 +35,8 @@ apply plugin: 'java'
 apply plugin: 'com.google.protobuf'
 apply plugin: 'idea'
 apply plugin: 'maven-publish'
+apply plugin: 'maven'
+apply plugin: 'signing'
 
 group = 'io.codenotary'
 archivesBaseName = 'immudb4j'
@@ -64,12 +66,17 @@ protobuf {
                     option 'annotate_code'
                 }
             }
-      	}
+        }
         all()*.plugins {
             grpc {}
         }
     }
     generatedFilesBaseDir = "$projectDir/src/generated"
+}
+
+java {
+    withJavadocJar()
+    withSourcesJar()
 }
 
 repositories {
@@ -107,8 +114,8 @@ dependencies {
 task immudbStart {
     ProcessBuilder pb = new ProcessBuilder("./start.sh")
     pb.directory(new File("immudb"))
-    Process proc = pb.start();
-    proc.waitFor();
+    Process proc = pb.start()
+    proc.waitFor()
     println "immudb is running... " + proc.exitValue()
 }
 
@@ -119,8 +126,8 @@ task immudbStop(type: Exec) {
 
 idea {
     module {
-        sourceDirs += file("${projectDir}/src/generated/main/java");
-        sourceDirs += file("${projectDir}/src/generated/main/grpc");
+        sourceDirs += file("${projectDir}/src/generated/main/java")
+        sourceDirs += file("${projectDir}/src/generated/main/grpc")
     }
 }
 
@@ -151,11 +158,20 @@ jacocoTestReport {
 }
 
 coveralls {
-        jacocoReportPath 'build/reports/jacoco/test/jacocoTestReport.xml'
+    jacocoReportPath 'build/reports/jacoco/test/jacocoTestReport.xml'
 }
 
 publishing {
     repositories {
+        maven {
+            name = "OSSRH"
+            url = uri("https://oss.sonatype.org/service/local/staging/deploy/maven2/")
+            credentials {
+                username = project.findProperty("ossrhUsername") ?: System.getenv("MAVEN_USERNAME")
+                password = project.findProperty("ossrhPassword") ?: System.getenv("MAVEN_PASSWORD")
+            }
+        }
+
         maven {
             name = "GitHubPackages"
             url = uri("https://maven.pkg.github.com/codenotary/immudb4j")
@@ -168,6 +184,41 @@ publishing {
     publications {
         gpr(MavenPublication) {
             from(components.java)
+
+            pom {
+                name = 'immudb4j'
+                description = 'Java SDK for immudb'
+                url = 'https://github.com/codenotary/immudb4j'
+
+                licenses {
+                    license {
+                        name = 'The Apache License, Version 2.0'
+                        url = 'http://www.apache.org/licenses/LICENSE-2.0.txt'
+                    }
+                }
+                developers {
+                    developer {
+                        id = 'jeroiraz'
+                        name = 'Jerónimo Irazábal'
+                        email = 'jeronimo@vchain.us'
+                    }
+
+                    developer {
+                        id = 'giako'
+                        name = 'Giacomo Russo'
+                        email = 'giacomo@vchain.us'
+                    }
+                }
+                scm {
+                    url = 'https://github.com/codenotary/immudb4j'
+                    connection = 'scm:https://github.com/codenotary/immudb4j.git'
+                    developerConnection = 'scm:https://github.com/codenotary/immudb4j.git'
+                }
+            }
         }
+    }
+
+    signing {
+        sign publishing.publications.gpr
     }
 }

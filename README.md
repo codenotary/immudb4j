@@ -61,11 +61,14 @@ if using `Gradle`:
     compile 'io.codenotary:immudb4j:0.1.8'
 ```
 
-Note: immudb4j is currently hosted in [Github Packages].
+immudb4j is currently hosted on both [Maven Central] and [Github Packages].
 
 [Github Packages]: https://docs.github.com/en/packages
+[Maven Central]: https://search.maven.org/artifact/io.codenotary/immudb4j
 
-Thus `immudb4j Github Package repository` needs to be included with authentication.
+### How to use immudb4j packages from Github Packages
+
+In this case, `immudb4j Github Package repository` needs to be included with authentication.
 When using maven it means to include immudb4j Github Package in your `~/.m2/settings.xml`
 file. See "Configuring Apache Maven for use with GitHub Packages" 
 and "Configuring Gradle for use with GitHub Packages" at [Github Packages].
