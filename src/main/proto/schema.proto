@@ -249,6 +249,7 @@ message ZAddOptions {
 	bytes set = 1;
 	double score = 2;
 	bytes key = 3;
+	Index index = 4;
 }
 
 message ZScanOptions {
@@ -361,6 +362,8 @@ service ImmuService {
 	rpc Count(KeyPrefix) returns (ItemsCount){}
 
 	rpc CurrentRoot(google.protobuf.Empty) returns (Root) {}
+
+	rpc CountAll(google.protobuf.Empty) returns (ItemsCount) {}
 
 	rpc Inclusion(Index) returns (InclusionProof){}
 
