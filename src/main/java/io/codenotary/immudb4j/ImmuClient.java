@@ -30,6 +30,8 @@ import io.grpc.ManagedChannelBuilder;
 import io.grpc.Metadata;
 import io.grpc.stub.MetadataUtils;
 
+import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
@@ -379,15 +381,11 @@ public class ImmuClient {
     }
 
     public List<KV> history(String key) {
-        return convertToStructuredKVList(rawHistory(key));
+        return history(key.getBytes(StandardCharsets.UTF_8));
     }
 
     public List<KV> history(byte[] key) {
         return convertToStructuredKVList(rawHistory(key));
-    }
-
-    public List<KV> rawHistory(String key) {
-        return rawHistory(key.getBytes(StandardCharsets.UTF_8));
     }
 
     public List<KV> rawHistory(byte[] key) {
@@ -434,15 +432,11 @@ public class ImmuClient {
     }
 
     public List<KV> zScan(String set, String offset, long limit, boolean reverse) {
-        return convertToStructuredKVList(rawZScan(set, offset, limit, reverse));
+        return zScan(set.getBytes(StandardCharsets.UTF_8), offset.getBytes(StandardCharsets.UTF_8), limit, reverse);
     }
 
     public List<KV> zScan(byte[] set, byte[] offset, long limit, boolean reverse) {
         return convertToStructuredKVList(rawZScan(set, offset, limit, reverse));
-    }
-
-    public List<KV> rawZScan(String set, String offset, long limit, boolean reverse) {
-        return rawZScan(set.getBytes(StandardCharsets.UTF_8), offset.getBytes(StandardCharsets.UTF_8), limit, reverse);
     }
 
     public List<KV> rawZScan(byte[] set, byte[] offset, long limit, boolean reverse) {
@@ -494,7 +488,7 @@ public class ImmuClient {
         return result;
     }
 
-    public long zAdd(String set, long score, String key) {
+    public void zAdd(String set, String key, long score) {
         ImmudbProto.ZAddOptions options = ImmudbProto.ZAddOptions.newBuilder()
                 .setSet(ByteString.copyFrom(set, StandardCharsets.UTF_8))
                 .setScore(score)
@@ -503,11 +497,11 @@ public class ImmuClient {
                         .setIndex(root().getIndex())
                         .build())
                 .build();
-        ImmudbProto.Index result = getStub().zAdd(options);
-        return result.getIndex();
+        //noinspection ResultOfMethodCallIgnored
+        getStub().zAdd(options);
     }
 
-    public void safeZAdd(String set, long score, String key) throws VerificationException {
+    public void safeZAdd(String set, String key, long score) throws VerificationException {
         safeZAdd(set.getBytes(StandardCharsets.UTF_8), key.getBytes(StandardCharsets.UTF_8), score);
     }
 
@@ -530,11 +524,20 @@ public class ImmuClient {
         ImmudbProto.Item item =
                 ImmudbProto.Item.newBuilder()
                         .setIndex(proof.getIndex())
-                        .setKey(ByteString.copyFrom(set))
+                        .setKey(ByteString.copyFrom(buildKeySet(key, set, score)))
                         .setValue(ByteString.copyFrom(key))
                         .build();
 
         CryptoUtils.verify(proof, item, root());
+    }
+
+    private byte[] buildKeySet(byte[] key, byte[] set, long score) {
+        ByteBuffer buffer = ByteBuffer.allocate(set.length + key.length + 8);
+        buffer.order(ByteOrder.BIG_ENDIAN);
+        buffer.put(set);
+        buffer.putLong(score);
+        buffer.put(key);
+        return buffer.array();
     }
 
     public List<User> listUsers() {

@@ -20,11 +20,12 @@ import org.testng.Assert;
 import org.testng.annotations.Test;
 
 import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
 import java.util.List;
 
 public class ScanHistoryTest extends ImmuClientIntegrationTest {
 
-    @Test
+    @Test(priority = 2)
     public void testHistory() {
         immuClient.login("immudb", "immudb");
         immuClient.useDatabase("defaultdb");
@@ -44,23 +45,23 @@ public class ScanHistoryTest extends ImmuClientIntegrationTest {
         Assert.assertEquals(historyResponse1.size(), 2);
 
         Assert.assertEquals(historyResponse1.get(0).getKey(), "history1".getBytes(StandardCharsets.UTF_8));
-        Assert.assertEquals(historyResponse1.get(0).getValue(), value1);
+        Assert.assertEquals(historyResponse1.get(0).getValue(), value2);
 
         Assert.assertEquals(historyResponse1.get(1).getKey(), "history1".getBytes(StandardCharsets.UTF_8));
-        Assert.assertEquals(historyResponse1.get(1).getValue(), value2);
+        Assert.assertEquals(historyResponse1.get(1).getValue(), value1);
 
         List<KV> historyResponse2 = immuClient.history("history2");
 
         Assert.assertEquals(historyResponse2.size(), 3);
 
         Assert.assertEquals(historyResponse2.get(0).getKey(), "history2".getBytes(StandardCharsets.UTF_8));
-        Assert.assertEquals(historyResponse2.get(0).getValue(), value1);
+        Assert.assertEquals(historyResponse2.get(0).getValue(), value3);
 
         Assert.assertEquals(historyResponse2.get(1).getKey(), "history2".getBytes(StandardCharsets.UTF_8));
         Assert.assertEquals(historyResponse2.get(1).getValue(), value2);
 
         Assert.assertEquals(historyResponse2.get(2).getKey(), "history2".getBytes(StandardCharsets.UTF_8));
-        Assert.assertEquals(historyResponse2.get(2).getValue(), value3);
+        Assert.assertEquals(historyResponse2.get(2).getValue(), value1);
 
         List<KV> nonExisting = immuClient.history("nonExisting");
         Assert.assertTrue(nonExisting.isEmpty());
@@ -68,68 +69,80 @@ public class ScanHistoryTest extends ImmuClientIntegrationTest {
         immuClient.logout();
     }
 
-    @Test
+    @Test(priority = 2)
     public void testScan() {
         immuClient.login("immudb", "immudb");
         immuClient.useDatabase("defaultdb");
         byte[] value1 = {0, 1, 2, 3};
         byte[] value2 = {4, 5, 6, 7};
 
-        immuClient.set("history1", value1);
-        immuClient.set("history2", value2);
+        immuClient.set("scan1", value1);
+        immuClient.set("scan2", value2);
 
-        // TODO COMPLETE
-        String offset = null;
-        long limit = 0;
-        boolean reverse = false;
-        boolean deep = false;
-        List<KV> scan = immuClient.scan("history", offset, limit, reverse, deep);
+        List<KV> scan = immuClient.scan("scan", "", 5, false, false);
 
+        Assert.assertEquals(scan.size(), 2);
+        Assert.assertEquals(scan.get(0).getKey(), "scan1".getBytes(StandardCharsets.UTF_8));
+        Assert.assertEquals(scan.get(0).getValue(), value1);
+        Assert.assertEquals(scan.get(1).getKey(), "scan2".getBytes(StandardCharsets.UTF_8));
+        Assert.assertEquals(scan.get(1).getValue(), value2);
 
         immuClient.logout();
     }
 
-    @Test
+    @Test(priority = 1)
     public void testIScan() {
         immuClient.login("immudb", "immudb");
         immuClient.useDatabase("defaultdb");
         byte[] value1 = {0, 1, 2, 3};
         byte[] value2 = {4, 5, 6, 7};
 
-        immuClient.set("history1", value1);
-        immuClient.set("history2", value2);
+        immuClient.set("iscan1", value1);
+        immuClient.set("iscan2", value2);
 
-        // TODO COMPLETE
-        String offset = null;
-        long limit = 0;
-        boolean reverse = false;
-        boolean deep = false;
         KVPage kvPage = immuClient.iScan(1, 20);
+
+        Assert.assertFalse(kvPage.isMore());
+        Assert.assertEquals(kvPage.getKvList().entries().size(), 2);
+        Assert.assertTrue(kvPage.getKvList().entries().stream().anyMatch(kv -> Arrays.equals(kv.getKey(),
+                "iscan1".getBytes(StandardCharsets.UTF_8)) && Arrays.equals(kv.getValue(), value1)));
+        Assert.assertTrue(kvPage.getKvList().entries().stream().anyMatch(kv -> Arrays.equals(kv.getKey(),
+                "iscan2".getBytes(StandardCharsets.UTF_8)) && Arrays.equals(kv.getValue(), value2)));
 
         immuClient.logout();
     }
 
-    @Test
+    @Test(priority = 2)
     public void testZScan() throws VerificationException {
         immuClient.login("immudb", "immudb");
         immuClient.useDatabase("defaultdb");
         byte[] value1 = {0, 1, 2, 3};
         byte[] value2 = {4, 5, 6, 7};
 
-        immuClient.set("history1", value1);
-        immuClient.set("history2", value2);
+        immuClient.set("zadd1", value1);
+        immuClient.set("zadd2", value2);
 
-        immuClient.zAdd("set", 1, "history1");
-        immuClient.zAdd("set", 2, "history2");
-        immuClient.safeZAdd("safeSet", 2, "history1");
-        immuClient.safeZAdd("safeSet", 1, "history2");
+        immuClient.zAdd("set", "zadd1", 1);
+        immuClient.zAdd("set", "zadd2", 2);
 
-        // TODO COMPLETE
-        String offset = null;
-        long limit = 0;
-        boolean reverse = false;
-        List<KV> zScan1 = immuClient.zScan("set", offset, limit, reverse);
-        List<KV> zScan2 = immuClient.zScan("safeSet", offset, limit, reverse);
+        immuClient.safeZAdd("safeSet", "zadd1", 2);
+        immuClient.safeZAdd("safeSet", "zadd2", 1);
+
+        List<KV> zScan1 = immuClient.zScan("set", "", 5, false);
+
+        Assert.assertEquals(zScan1.size(), 2);
+        Assert.assertEquals(zScan1.get(0).getKey(), "zadd1".getBytes(StandardCharsets.UTF_8));
+        Assert.assertEquals(zScan1.get(0).getValue(), value1);
+        Assert.assertEquals(zScan1.get(1).getKey(), "zadd2".getBytes(StandardCharsets.UTF_8));
+        Assert.assertEquals(zScan1.get(1).getValue(), value2);
+
+        List<KV> zScan2 = immuClient.zScan("safeSet", "", 5, false);
+
+        Assert.assertEquals(zScan2.size(), 2);
+        Assert.assertEquals(zScan2.get(0).getKey(), "zadd2".getBytes(StandardCharsets.UTF_8));
+        Assert.assertEquals(zScan2.get(0).getValue(), value2);
+        Assert.assertEquals(zScan2.get(1).getKey(), "zadd1".getBytes(StandardCharsets.UTF_8));
+        Assert.assertEquals(zScan2.get(1).getValue(), value1);
 
         immuClient.logout();
     }
