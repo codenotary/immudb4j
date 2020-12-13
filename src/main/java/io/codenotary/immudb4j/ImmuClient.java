@@ -378,17 +378,22 @@ public class ImmuClient {
         return buildKVList(res);
     }
 
-    public List<KV> history(String key) {
-        return history(key.getBytes(StandardCharsets.UTF_8));
+    public List<KV> history(String key, long limit, long offset, boolean reverse) {
+        return history(key.getBytes(StandardCharsets.UTF_8), limit, offset, reverse);
     }
 
-    public List<KV> history(byte[] key) {
-        return convertToStructuredKVList(rawHistory(key));
+    public List<KV> history(byte[] key, long limit, long offset, boolean reverse) {
+        return convertToStructuredKVList(rawHistory(key, limit, offset, reverse));
     }
 
-    public List<KV> rawHistory(byte[] key) {
-        ImmudbProto.Key k = ImmudbProto.Key.newBuilder().setKey(ByteString.copyFrom(key)).build();
-        ImmudbProto.ItemList res = getStub().history(k);
+    public List<KV> rawHistory(byte[] key, long limit, long offset, boolean reverse) {
+        ImmudbProto.HistoryOptions h = ImmudbProto.HistoryOptions.newBuilder()
+                .setKey(ByteString.copyFrom(key))
+                .setLimit(limit)
+                .setOffset(offset)
+                .setReverse(reverse)
+                .build();
+        ImmudbProto.ItemList res = getStub().history(h);
 
         return buildKVList(res);
     }
@@ -445,9 +450,20 @@ public class ImmuClient {
                 .setReverse(reverse)
                 .build();
 
-        ImmudbProto.ItemList res = getStub().zScan(request);
+        ImmudbProto.ZItemList res = getStub().zScan(request);
 
         return buildKVList(res);
+    }
+
+    private List<KV> buildKVList(ImmudbProto.ZItemList zItemList) {
+        List<KV> result = new ArrayList<>(zItemList.getItemsCount());
+
+        for (ImmudbProto.ZItem zItem : zItemList.getItemsList()) {
+            KV kv = new KVPair(zItem.getItem().getKey().toByteArray(), zItem.getItem().getValue().toByteArray());
+            result.add(kv);
+        }
+
+        return result;
     }
 
     public KVPage iScan(long pageNumber, long pageSize) {
@@ -486,10 +502,14 @@ public class ImmuClient {
         return result;
     }
 
-    public void zAdd(String set, String key, long score) {
+    public void zAdd(String set, String key, double score) {
+        ImmudbProto.Score scoreObject = ImmudbProto.Score.newBuilder()
+                .setScore(score)
+                .build();
+
         ImmudbProto.ZAddOptions options = ImmudbProto.ZAddOptions.newBuilder()
                 .setSet(ByteString.copyFrom(set, StandardCharsets.UTF_8))
-                .setScore(score)
+                .setScore(scoreObject)
                 .setKey(ByteString.copyFrom(key, StandardCharsets.UTF_8))
                 .setIndex(ImmudbProto.Index.newBuilder()
                         .setIndex(root().getIndex())

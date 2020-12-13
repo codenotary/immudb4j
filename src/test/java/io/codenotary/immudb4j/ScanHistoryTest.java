@@ -15,7 +15,6 @@ limitations under the License.
 */
 package io.codenotary.immudb4j;
 
-import io.codenotary.immudb4j.crypto.VerificationException;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
@@ -40,7 +39,7 @@ public class ScanHistoryTest extends ImmuClientIntegrationTest {
         immuClient.set("history2", value2);
         immuClient.set("history2", value3);
 
-        List<KV> historyResponse1 = immuClient.history("history1");
+        List<KV> historyResponse1 = immuClient.history("history1", 10, 0, false);
 
         Assert.assertEquals(historyResponse1.size(), 2);
 
@@ -50,7 +49,7 @@ public class ScanHistoryTest extends ImmuClientIntegrationTest {
         Assert.assertEquals(historyResponse1.get(1).getKey(), "history1".getBytes(StandardCharsets.UTF_8));
         Assert.assertEquals(historyResponse1.get(1).getValue(), value1);
 
-        List<KV> historyResponse2 = immuClient.history("history2");
+        List<KV> historyResponse2 = immuClient.history("history2", 10, 0, false);
 
         Assert.assertEquals(historyResponse2.size(), 3);
 
@@ -63,7 +62,7 @@ public class ScanHistoryTest extends ImmuClientIntegrationTest {
         Assert.assertEquals(historyResponse2.get(2).getKey(), "history2".getBytes(StandardCharsets.UTF_8));
         Assert.assertEquals(historyResponse2.get(2).getValue(), value1);
 
-        List<KV> nonExisting = immuClient.history("nonExisting");
+        List<KV> nonExisting = immuClient.history("nonExisting", 10, 0, false);
         Assert.assertTrue(nonExisting.isEmpty());
 
         immuClient.logout();
