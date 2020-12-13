@@ -21,13 +21,12 @@ import io.grpc.StatusRuntimeException;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
-import javax.annotation.Priority;
 import java.util.List;
 import java.util.Optional;
 
 public class UserMgmtClientTest extends ImmuClientIntegrationTest {
 
-    @Test(priority = 1)
+    @Test(priority = 100)
     public void testCreateAndListUser() {
         immuClient.login("immudb", "immudb");
         immuClient.useDatabase("defaultdb");
@@ -52,7 +51,7 @@ public class UserMgmtClientTest extends ImmuClientIntegrationTest {
 
     }
 
-    @Test(priority = 2)
+    @Test(priority = 101)
     public void testChangePassword() {
         immuClient.login("immudb", "immudb");
         immuClient.useDatabase("defaultdb");

@@ -93,7 +93,8 @@ public class ScanHistoryTest extends ImmuClientIntegrationTest {
     @Test(priority = 1)
     public void testIScan() {
         immuClient.login("immudb", "immudb");
-        immuClient.useDatabase("defaultdb");
+        immuClient.createDatabase("iscandb");
+        immuClient.useDatabase("iscandb");
         byte[] value1 = {0, 1, 2, 3};
         byte[] value2 = {4, 5, 6, 7};
 
@@ -113,7 +114,7 @@ public class ScanHistoryTest extends ImmuClientIntegrationTest {
     }
 
     @Test(priority = 2)
-    public void testZScan() throws VerificationException {
+    public void testZScan() {
         immuClient.login("immudb", "immudb");
         immuClient.useDatabase("defaultdb");
         byte[] value1 = {0, 1, 2, 3};
@@ -122,13 +123,13 @@ public class ScanHistoryTest extends ImmuClientIntegrationTest {
         immuClient.set("zadd1", value1);
         immuClient.set("zadd2", value2);
 
-        immuClient.zAdd("set", "zadd1", 1);
-        immuClient.zAdd("set", "zadd2", 2);
+        immuClient.zAdd("set1", "zadd1", 1);
+        immuClient.zAdd("set1", "zadd2", 2);
 
-        immuClient.safeZAdd("safeSet", "zadd1", 2);
-        immuClient.safeZAdd("safeSet", "zadd2", 1);
+        immuClient.zAdd("set2", "zadd1", 2);
+        immuClient.zAdd("set2", "zadd2", 1);
 
-        List<KV> zScan1 = immuClient.zScan("set", "", 5, false);
+        List<KV> zScan1 = immuClient.zScan("set1", "", 5, false);
 
         Assert.assertEquals(zScan1.size(), 2);
         Assert.assertEquals(zScan1.get(0).getKey(), "zadd1".getBytes(StandardCharsets.UTF_8));
@@ -136,7 +137,7 @@ public class ScanHistoryTest extends ImmuClientIntegrationTest {
         Assert.assertEquals(zScan1.get(1).getKey(), "zadd2".getBytes(StandardCharsets.UTF_8));
         Assert.assertEquals(zScan1.get(1).getValue(), value2);
 
-        List<KV> zScan2 = immuClient.zScan("safeSet", "", 5, false);
+        List<KV> zScan2 = immuClient.zScan("set2", "", 5, false);
 
         Assert.assertEquals(zScan2.size(), 2);
         Assert.assertEquals(zScan2.get(0).getKey(), "zadd2".getBytes(StandardCharsets.UTF_8));
