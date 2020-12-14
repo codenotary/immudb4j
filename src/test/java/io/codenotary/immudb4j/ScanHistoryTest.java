@@ -114,7 +114,7 @@ public class ScanHistoryTest extends ImmuClientIntegrationTest {
     }
 
     @Test(priority = 2)
-    public void testZScan() {
+    public void testZScan() throws VerificationException {
         immuClient.login("immudb", "immudb");
         immuClient.useDatabase("defaultdb");
         byte[] value1 = {0, 1, 2, 3};
@@ -123,8 +123,8 @@ public class ScanHistoryTest extends ImmuClientIntegrationTest {
         immuClient.set("zadd1", value1);
         immuClient.set("zadd2", value2);
 
-        immuClient.zAdd("set1", "zadd1", 1);
-        immuClient.zAdd("set1", "zadd2", 2);
+        immuClient.safeZAdd("set1", "zadd1", 1);
+        immuClient.safeZAdd("set1", "zadd2", 2);
 
         immuClient.zAdd("set2", "zadd1", 2);
         immuClient.zAdd("set2", "zadd2", 1);
