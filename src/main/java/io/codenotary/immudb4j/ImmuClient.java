@@ -511,8 +511,22 @@ public class ImmuClient {
                 .setSet(ByteString.copyFrom(set, StandardCharsets.UTF_8))
                 .setScore(scoreObject)
                 .setKey(ByteString.copyFrom(key, StandardCharsets.UTF_8))
+                .build();
+        //noinspection ResultOfMethodCallIgnored
+        getStub().zAdd(options);
+    }
+
+    public void zAdd(String set, String key, double score, long index) {
+        ImmudbProto.Score scoreObject = ImmudbProto.Score.newBuilder()
+                .setScore(score)
+                .build();
+
+        ImmudbProto.ZAddOptions options = ImmudbProto.ZAddOptions.newBuilder()
+                .setSet(ByteString.copyFrom(set, StandardCharsets.UTF_8))
+                .setScore(scoreObject)
+                .setKey(ByteString.copyFrom(key, StandardCharsets.UTF_8))
                 .setIndex(ImmudbProto.Index.newBuilder()
-                        .setIndex(root().getIndex())
+                        .setIndex(index)
                         .build())
                 .build();
         //noinspection ResultOfMethodCallIgnored
