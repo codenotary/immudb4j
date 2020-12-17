@@ -505,6 +505,10 @@ public class ImmuClient {
         safeZAdd(set.getBytes(StandardCharsets.UTF_8), key.getBytes(StandardCharsets.UTF_8), score);
     }
 
+    public void safeZAdd(String set, String key, long score, long index) throws VerificationException {
+        safeZAdd(set.getBytes(StandardCharsets.UTF_8), key.getBytes(StandardCharsets.UTF_8), score, index);
+    }
+
     public void safeZAdd(byte[] set, byte[] key, long score) throws VerificationException {
         ImmudbProto.SafeZAddOptions options = ImmudbProto.SafeZAddOptions.newBuilder()
                 .setRootIndex(ImmudbProto.Index.newBuilder()
@@ -514,8 +518,31 @@ public class ImmuClient {
                         .setSet(ByteString.copyFrom(set))
                         .setScore(score)
                         .setKey(ByteString.copyFrom(key))
+                        .build())
+                .build();
+        ImmudbProto.Proof proof = getStub().safeZAdd(options);
+
+        ImmudbProto.Item item =
+                ImmudbProto.Item.newBuilder()
+                        .setIndex(proof.getIndex())
+                        .setKey(ByteString.copyFrom(buildKeySet(key, set, score)))
+                        .setValue(ByteString.copyFrom(key))
+                        .build();
+
+        CryptoUtils.verify(proof, item, root());
+    }
+
+    public void safeZAdd(byte[] set, byte[] key, long score, long index) throws VerificationException {
+        ImmudbProto.SafeZAddOptions options = ImmudbProto.SafeZAddOptions.newBuilder()
+                .setRootIndex(ImmudbProto.Index.newBuilder()
+                        .setIndex(root().getIndex())
+                        .build())
+                .setZopts(ImmudbProto.ZAddOptions.newBuilder()
+                        .setSet(ByteString.copyFrom(set))
+                        .setScore(score)
+                        .setKey(ByteString.copyFrom(key))
                         .setIndex(ImmudbProto.Index.newBuilder()
-                                .setIndex(root().getIndex())
+                                .setIndex(index)
                                 .build())
                         .build())
                 .build();
