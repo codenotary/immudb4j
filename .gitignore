@@ -7,6 +7,7 @@ build/
 bin/
 src/generated/**
 /immudb/**
+!immudb/immudb
 !immudb/start.sh
 !immudb/stop.sh
 **/.DS_Store
