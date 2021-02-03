@@ -15,8 +15,6 @@ limitations under the License.
 */
 package io.codenotary.immudb4j;
 
-import io.codenotary.immudb4j.FileRootHolder;
-import io.codenotary.immudb4j.ImmuClient;
 import org.testng.annotations.BeforeClass;
 
 import java.io.IOException;

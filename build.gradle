@@ -16,12 +16,10 @@ limitations under the License.
 
 buildscript {
     repositories {
-        maven {
-            url "https://plugins.gradle.org/m2/"
-        }
+        mavenCentral()
     }
     dependencies {
-        classpath 'com.google.protobuf:protobuf-gradle-plugin:0.8.12'
+        classpath 'com.google.protobuf:protobuf-gradle-plugin:0.8.14'
     }
 }
 
@@ -51,7 +49,7 @@ protobuf {
         // The version of protoc must match protobuf-java. If you don't depend on
         // protobuf-java directly, you will be transitively depending on the
         // protobuf-java version that grpc depends on.
-        artifact = "com.google.protobuf:protoc:3.2.0"
+        artifact = "com.google.protobuf:protoc:3.8.0"
     }
     plugins {
         grpc {
