@@ -25,13 +25,16 @@ public abstract class ImmuClientIntegrationTest {
 
   @BeforeClass
   public static void beforeClass() throws IOException {
-    FileRootHolder rootHolder = FileRootHolder.newBuilder().setRootsFolder("immudb/roots").build();
+    FileImmutableStateHolder stateHolder = FileImmutableStateHolder.newBuilder()
+            .setRootsFolder("immudb/roots")
+            .build();
 
     immuClient = ImmuClient.newBuilder()
-            .setRootHolder(rootHolder)
+            .setStateHolder(stateHolder)
             .setServerUrl("localhost")
             .setServerPort(3322)
             .setWithAuthToken(true)
             .build();
   }
+
 }

@@ -21,7 +21,7 @@ import com.google.protobuf.InvalidProtocolBufferException;
 import io.codenotary.immudb.ImmuServiceGrpc;
 import io.codenotary.immudb.ImmudbProto;
 import io.codenotary.immudb4j.crypto.CryptoUtils;
-import io.codenotary.immudb4j.crypto.Root;
+import io.codenotary.immudb4j.crypto.ImmutableState;
 import io.codenotary.immudb4j.crypto.VerificationException;
 import io.codenotary.immudb4j.user.Permission;
 import io.codenotary.immudb4j.user.User;
@@ -45,23 +45,23 @@ public class ImmuClient {
     private static final String AUTH_HEADER = "authorization";
     private final ImmuServiceGrpc.ImmuServiceBlockingStub stub;
     private final boolean withAuthToken;
-    private final RootHolder rootHolder;
+    private final ImmutableStateHolder stateHolder;
     private ManagedChannel channel;
     private String authToken;
     private String activeDatabase = "defaultdb";
 
 
-    public ImmuClient(ImmuClientBuilder builder) {
+    public ImmuClient(Builder builder) {
         this.stub = createStubFrom(builder);
         this.withAuthToken = builder.isWithAuthToken();
-        this.rootHolder = builder.getRootHolder();
+        this.stateHolder = builder.getStateHolder();
     }
 
-    public static ImmuClientBuilder newBuilder() {
-        return new ImmuClientBuilder();
+    public static Builder newBuilder() {
+        return new Builder();
     }
 
-    private ImmuServiceGrpc.ImmuServiceBlockingStub createStubFrom(ImmuClientBuilder builder) {
+    private ImmuServiceGrpc.ImmuServiceBlockingStub createStubFrom(Builder builder) {
         channel =
                 ManagedChannelBuilder.forAddress(builder.getServerUrl(), builder.getServerPort())
                         .usePlaintext()
@@ -84,8 +84,7 @@ public class ImmuClient {
         }
 
         Metadata metadata = new Metadata();
-        metadata.put(
-                Metadata.Key.of(AUTH_HEADER, Metadata.ASCII_STRING_MARSHALLER), "Bearer " + authToken);
+        metadata.put(Metadata.Key.of(AUTH_HEADER, Metadata.ASCII_STRING_MARSHALLER), "Bearer " + authToken);
 
         return MetadataUtils.attachHeaders(stub, metadata);
     }
@@ -107,14 +106,14 @@ public class ImmuClient {
         authToken = null;
     }
 
-    public Root root() {
-        if (rootHolder.getRoot(activeDatabase) == null) {
+    public ImmutableState state() {
+        if (stateHolder.getState(activeDatabase) == null) {
             Empty empty = com.google.protobuf.Empty.getDefaultInstance();
             ImmudbProto.ImmutableState state = getStub().currentState(empty);
-            Root root = new Root(activeDatabase, state.getTxId(), state.getTxHash().toByteArray());
-            rootHolder.setRoot(root);
+            ImmutableState currState = new ImmutableState(activeDatabase, state.getTxId(), state.getTxHash().toByteArray());
+            stateHolder.setState(currState);
         }
-        return rootHolder.getRoot(activeDatabase);
+        return stateHolder.getState(activeDatabase);
     }
 
     public void createDatabase(String database) {
@@ -150,11 +149,13 @@ public class ImmuClient {
     }
 
     public void set(byte[] key, byte[] value) {
-        ImmudbProto.Content content = ImmudbProto.Content.newBuilder()
-                .setTimestamp(System.currentTimeMillis() / 1000L)
-                .setPayload(ByteString.copyFrom(value))
+        ImmudbProto.Entry entry = ImmudbProto.Entry.newBuilder()
+                .setKey(ByteString.copyFrom(key))
+                .setValue(ByteString.copyFrom(value))
+                // TODO
+                // .setTx(...)
                 .build();
-        this.rawSet(key, content.toByteArray());
+        rawSet(key, entry.toByteArray());
     }
 
     public byte[] get(String key) {
@@ -163,8 +164,8 @@ public class ImmuClient {
 
     public byte[] get(byte[] key) {
         try {
-            ImmudbProto.Content content = ImmudbProto.Content.parseFrom(rawGet(key));
-            return content.getPayload().toByteArray();
+            ImmudbProto.Entry entry = ImmudbProto.Entry.parseFrom(rawGet(key));
+            return entry.toByteArray();
         } catch (InvalidProtocolBufferException e) {
             throw new RuntimeException(e);
         }
@@ -176,8 +177,8 @@ public class ImmuClient {
 
     public byte[] safeGet(byte[] key) throws VerificationException {
         try {
-            ImmudbProto.Content content = ImmudbProto.Content.parseFrom(safeRawGet(key, this.root()));
-            return content.getPayload().toByteArray();
+            ImmudbProto.Entry entry = ImmudbProto.Entry.parseFrom(safeRawGet(key, this.state()));
+            return entry.toByteArray();
         } catch (InvalidProtocolBufferException e) {
             throw new RuntimeException(e);
         }
@@ -188,12 +189,11 @@ public class ImmuClient {
     }
 
     public void safeSet(byte[] key, byte[] value) throws VerificationException {
-        ImmudbProto.Content content = ImmudbProto.Content.newBuilder()
-                .setTimestamp(System.currentTimeMillis() / 1000L)
-                .setPayload(ByteString.copyFrom(value))
+        ImmudbProto.Entry entry = ImmudbProto.Entry.newBuilder()
+                .setKey(ByteString.copyFrom(key))
+                .setValue(ByteString.copyFrom(value))
                 .build();
-
-        safeRawSet(key, content.toByteArray(), this.root());
+        safeRawSet(key, entry.toByteArray(), this.state());
     }
 
     public void rawSet(String key, byte[] value) {
@@ -201,14 +201,13 @@ public class ImmuClient {
     }
 
     public void rawSet(byte[] key, byte[] value) {
-        ImmudbProto.KeyValue kv =
-                ImmudbProto.KeyValue.newBuilder()
-                        .setKey(ByteString.copyFrom(key))
-                        .setValue(ByteString.copyFrom(value))
-                        .build();
-
+        ImmudbProto.KeyValue kv = ImmudbProto.KeyValue.newBuilder()
+                .setKey(ByteString.copyFrom(key))
+                .setValue(ByteString.copyFrom(value))
+                .build();
+        ImmudbProto.SetRequest req = ImmudbProto.SetRequest.newBuilder().addKVs(kv).build();
         //noinspection ResultOfMethodCallIgnored
-        getStub().set(kv);
+        getStub().set(req);
     }
 
     public byte[] rawGet(String key) {
@@ -216,10 +215,11 @@ public class ImmuClient {
     }
 
     public byte[] rawGet(byte[] key) {
-        ImmudbProto.Key k = ImmudbProto.Key.newBuilder().setKey(ByteString.copyFrom(key)).build();
-
-        ImmudbProto.Item item = getStub().get(k);
-        return item.getValue().toByteArray();
+        ImmudbProto.KeyRequest req = ImmudbProto.KeyRequest.newBuilder()
+                .setKey(ByteString.copyFrom(key))
+                .build();
+        ImmudbProto.Entry entry = getStub().get(req);
+        return entry.getValue().toByteArray();
     }
 
     public byte[] safeRawGet(String key) throws VerificationException {
@@ -227,27 +227,46 @@ public class ImmuClient {
     }
 
     public byte[] safeRawGet(byte[] key) throws VerificationException {
-        return safeRawGet(key, this.root());
+        return safeRawGet(key, this.state());
     }
 
-    public byte[] safeRawGet(byte[] key, Root root) throws VerificationException {
-        ImmudbProto.Index index = ImmudbProto.Index.newBuilder().setIndex(root.getIndex()).build();
+    public byte[] safeRawGet(byte[] key, ImmutableState state) throws VerificationException {
 
-        ImmudbProto.SafeGetOptions sOpts =
-                ImmudbProto.SafeGetOptions.newBuilder()
-                        .setKey(ByteString.copyFrom(key))
-                        .setRootIndex(index)
-                        .build();
+//        ImmudbProto.Index index = ImmudbProto.Index.newBuilder().setIndex(state.getIndex()).build();
+//
+//        ImmudbProto.SafeGetOptions sOpts =
+//                ImmudbProto.SafeGetOptions.newBuilder()
+//                        .setKey(ByteString.copyFrom(key))
+//                        .setRootIndex(index)
+//                        .build();
+//
+//        ImmudbProto.SafeItem safeItem = getStub().safeGet(sOpts);
+//
+//        ImmudbProto.Proof proof = safeItem.getProof();
+//
+//        CryptoUtils.verify(proof, safeItem.getItem(), state);
+//
+//        stateHolder.setRoot(new Root(activeDatabase, proof.getAt(), proof.getRoot().toByteArray()));
+//
+//        return safeItem.getItem().getValue().toByteArray();
 
-        ImmudbProto.SafeItem safeItem = getStub().safeGet(sOpts);
+        ImmudbProto.KeyRequest keyReq = ImmudbProto.KeyRequest.newBuilder()
+                .setKey(ByteString.copyFrom(key))
+                .setSinceTx(state.getTxId())
+                .build();
+        ImmudbProto.VerifiableGetRequest verifGetReq = ImmudbProto.VerifiableGetRequest.newBuilder()
+                .setKeyRequest(keyReq)
+                .setProveSinceTx(state.getTxId())
+                .build();
+        ImmudbProto.VerifiableEntry verifEntry = getStub().verifiableGet(verifGetReq);
 
-        ImmudbProto.Proof proof = safeItem.getProof();
+        ImmudbProto.InclusionProof inclProof = verifEntry.getInclusionProof();
 
-        CryptoUtils.verify(proof, safeItem.getItem(), root);
+        // TODO:
+        // CryptoUtils.verify(inclProof, verifEntry.getEntry(), state);
+        // stateHolder.setState(new ImmutableState(activeDatabase, inclProof.getLeaf(), inclProof...));
 
-        rootHolder.setRoot(new Root(activeDatabase, proof.getAt(), proof.getRoot().toByteArray()));
-
-        return safeItem.getItem().getValue().toByteArray();
+        return verifEntry.getEntry().getValue().toByteArray();
     }
 
     public void safeRawSet(String key, byte[] value) throws VerificationException {
@@ -255,10 +274,10 @@ public class ImmuClient {
     }
 
     public void safeRawSet(byte[] key, byte[] value) throws VerificationException {
-        safeRawSet(key, value, this.root());
+        safeRawSet(key, value, this.state());
     }
 
-    public void safeRawSet(byte[] key, byte[] value, Root root) throws VerificationException {
+    public void safeRawSet(byte[] key, byte[] value, ImmutableState state) throws VerificationException {
         ImmudbProto.KeyValue kv =
                 ImmudbProto.KeyValue.newBuilder()
                         .setKey(ByteString.copyFrom(key))
@@ -268,7 +287,7 @@ public class ImmuClient {
         ImmudbProto.SafeSetOptions sOpts =
                 ImmudbProto.SafeSetOptions.newBuilder()
                         .setKv(kv)
-                        .setRootIndex(ImmudbProto.Index.newBuilder().setIndex(root.getIndex()).build())
+                        .setRootIndex(ImmudbProto.Index.newBuilder().setIndex(state.getIndex()).build())
                         .build();
 
         ImmudbProto.Proof proof = getStub().safeSet(sOpts);
@@ -280,9 +299,9 @@ public class ImmuClient {
                         .setValue(ByteString.copyFrom(value))
                         .build();
 
-        CryptoUtils.verify(proof, item, root);
+        CryptoUtils.verify(proof, item, state);
 
-        rootHolder.setRoot(new Root(activeDatabase, proof.getAt(), proof.getRoot().toByteArray()));
+        stateHolder.setRoot(new Root(activeDatabase, proof.getAt(), proof.getRoot().toByteArray()));
     }
 
     public void setAll(KVList kvList) {
@@ -294,6 +313,9 @@ public class ImmuClient {
                     .setPayload(ByteString.copyFrom(kv.getValue()))
                     .build();
             svListBuilder.add(kv.getKey(), content.toByteArray());
+
+            ImmudbProto.Entry entry = ImmudbProto.Entry.newBuilder()
+                    .setKey()
         }
 
         rawSetAll(svListBuilder.build());
@@ -575,7 +597,7 @@ public class ImmuClient {
         getStub().changePassword(changePasswordRequest);
     }
 
-    public static class ImmuClientBuilder {
+    public static class Builder {
 
         private String serverUrl;
 
@@ -583,12 +605,12 @@ public class ImmuClient {
 
         private boolean withAuthToken;
 
-        private RootHolder rootHolder;
+        private ImmutableStateHolder stateHolder;
 
-        private ImmuClientBuilder() {
+        private Builder() {
             this.serverUrl = "localhost";
             this.serverPort = 3322;
-            this.rootHolder = new SerializableRootHolder();
+            this.stateHolder = new SerializableImmutableStateHolder();
             this.withAuthToken = true;
         }
 
@@ -600,7 +622,7 @@ public class ImmuClient {
             return this.serverUrl;
         }
 
-        public ImmuClientBuilder setServerUrl(String serverUrl) {
+        public Builder setServerUrl(String serverUrl) {
             this.serverUrl = serverUrl;
             return this;
         }
@@ -609,7 +631,7 @@ public class ImmuClient {
             return serverPort;
         }
 
-        public ImmuClientBuilder setServerPort(int serverPort) {
+        public Builder setServerPort(int serverPort) {
             this.serverPort = serverPort;
             return this;
         }
@@ -618,17 +640,17 @@ public class ImmuClient {
             return withAuthToken;
         }
 
-        public ImmuClientBuilder setWithAuthToken(boolean withAuthToken) {
+        public Builder setWithAuthToken(boolean withAuthToken) {
             this.withAuthToken = withAuthToken;
             return this;
         }
 
-        public RootHolder getRootHolder() {
-            return rootHolder;
+        public ImmutableStateHolder getStateHolder() {
+            return stateHolder;
         }
 
-        public ImmuClientBuilder setRootHolder(RootHolder rootHolder) {
-            this.rootHolder = rootHolder;
+        public Builder setStateHolder(ImmutableStateHolder stateHolder) {
+            this.stateHolder = stateHolder;
             return this;
         }
 

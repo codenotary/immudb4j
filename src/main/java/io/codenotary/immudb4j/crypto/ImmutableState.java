@@ -15,29 +15,32 @@ limitations under the License.
 */
 package io.codenotary.immudb4j.crypto;
 
-public class Root {
+/**
+ * ImmutableState represents the root of the Merkle Tree that links
+ * all the database
+ */
+public class ImmutableState {
 
-  private String database;
-  private long index;
-  private byte[] digest;
+    private final String database;
+    private final long txId;
+    private final byte[] txHash;
 
-  public Root(String database, long index, byte[] digest) {
-    this.database = database;
-    this.index = index;
-    this.digest = digest;
-  }
+    public ImmutableState(String database, long txId, byte[] txHash) {
+        this.database = database;
+        this.txId = txId;
+        this.txHash = txHash;
+    }
 
-  public String getDatabase() {
-    return this.database;
-  }
+    public String getDatabase() {
+        return this.database;
+    }
 
-  public long getIndex() {
-    return this.index;
-  }
+    public long getTxId() {
+        return this.txId;
+    }
 
-  public byte[] getDigest() {
-    return this.digest;
-  }
-
+    public byte[] getTxHash() {
+        return this.txHash;
+    }
 
 }

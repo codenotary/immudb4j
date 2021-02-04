@@ -1,5 +1,5 @@
 /*
-Copyright 2019-2020 vChain, Inc.
+Copyright 2019-2021 vChain, Inc.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -15,12 +15,13 @@ limitations under the License.
 */
 package io.codenotary.immudb4j;
 
-import io.codenotary.immudb4j.crypto.Root;
 
-public interface RootHolder {
+import io.codenotary.immudb4j.crypto.ImmutableState;
 
-  Root getRoot(String database);
+public interface ImmutableStateHolder {
 
-  void setRoot(Root root);
+    ImmutableState getState(String database);
+
+    void setState(ImmutableState state);
 
 }
