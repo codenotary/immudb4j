@@ -23,6 +23,7 @@ import io.codenotary.immudb.ImmudbProto;
 import io.codenotary.immudb4j.crypto.CryptoUtils;
 import io.codenotary.immudb4j.crypto.ImmutableState;
 import io.codenotary.immudb4j.crypto.VerificationException;
+import io.codenotary.immudb4j.exceptions.CorruptedDataException;
 import io.codenotary.immudb4j.user.Permission;
 import io.codenotary.immudb4j.user.User;
 import io.grpc.ManagedChannel;
@@ -62,10 +63,9 @@ public class ImmuClient {
     }
 
     private ImmuServiceGrpc.ImmuServiceBlockingStub createStubFrom(Builder builder) {
-        channel =
-                ManagedChannelBuilder.forAddress(builder.getServerUrl(), builder.getServerPort())
-                        .usePlaintext()
-                        .build();
+        channel = ManagedChannelBuilder.forAddress(builder.getServerUrl(), builder.getServerPort())
+                .usePlaintext()
+                .build();
         return ImmuServiceGrpc.newBlockingStub(channel);
     }
 
@@ -106,6 +106,7 @@ public class ImmuClient {
         authToken = null;
     }
 
+
     public ImmutableState state() {
         if (stateHolder.getState(activeDatabase) == null) {
             Empty empty = com.google.protobuf.Empty.getDefaultInstance();
@@ -115,6 +116,10 @@ public class ImmuClient {
         }
         return stateHolder.getState(activeDatabase);
     }
+
+
+    // ========== DB ==========
+
 
     public void createDatabase(String database) {
         ImmudbProto.Database db = ImmudbProto.Database.newBuilder()
@@ -144,77 +149,15 @@ public class ImmuClient {
         return list;
     }
 
-    public void set(String key, byte[] value) {
-        set(key.getBytes(StandardCharsets.UTF_8), value);
-    }
 
-    public void set(byte[] key, byte[] value) {
-        ImmudbProto.Entry entry = ImmudbProto.Entry.newBuilder()
-                .setKey(ByteString.copyFrom(key))
-                .setValue(ByteString.copyFrom(value))
-                // TODO
-                // .setTx(...)
-                .build();
-        rawSet(key, entry.toByteArray());
-    }
+    // ========== GET ==========
+
 
     public byte[] get(String key) {
         return get(key.getBytes(StandardCharsets.UTF_8));
     }
 
     public byte[] get(byte[] key) {
-        try {
-            ImmudbProto.Entry entry = ImmudbProto.Entry.parseFrom(rawGet(key));
-            return entry.toByteArray();
-        } catch (InvalidProtocolBufferException e) {
-            throw new RuntimeException(e);
-        }
-    }
-
-    public byte[] safeGet(String key) throws VerificationException {
-        return safeGet(key.getBytes(StandardCharsets.UTF_8));
-    }
-
-    public byte[] safeGet(byte[] key) throws VerificationException {
-        try {
-            ImmudbProto.Entry entry = ImmudbProto.Entry.parseFrom(safeRawGet(key, this.state()));
-            return entry.toByteArray();
-        } catch (InvalidProtocolBufferException e) {
-            throw new RuntimeException(e);
-        }
-    }
-
-    public void safeSet(String key, byte[] value) throws VerificationException {
-        safeSet(key.getBytes(StandardCharsets.UTF_8), value);
-    }
-
-    public void safeSet(byte[] key, byte[] value) throws VerificationException {
-        ImmudbProto.Entry entry = ImmudbProto.Entry.newBuilder()
-                .setKey(ByteString.copyFrom(key))
-                .setValue(ByteString.copyFrom(value))
-                .build();
-        safeRawSet(key, entry.toByteArray(), this.state());
-    }
-
-    public void rawSet(String key, byte[] value) {
-        rawSet(key.getBytes(StandardCharsets.UTF_8), value);
-    }
-
-    public void rawSet(byte[] key, byte[] value) {
-        ImmudbProto.KeyValue kv = ImmudbProto.KeyValue.newBuilder()
-                .setKey(ByteString.copyFrom(key))
-                .setValue(ByteString.copyFrom(value))
-                .build();
-        ImmudbProto.SetRequest req = ImmudbProto.SetRequest.newBuilder().addKVs(kv).build();
-        //noinspection ResultOfMethodCallIgnored
-        getStub().set(req);
-    }
-
-    public byte[] rawGet(String key) {
-        return rawGet(key.getBytes(StandardCharsets.UTF_8));
-    }
-
-    public byte[] rawGet(byte[] key) {
         ImmudbProto.KeyRequest req = ImmudbProto.KeyRequest.newBuilder()
                 .setKey(ByteString.copyFrom(key))
                 .build();
@@ -222,15 +165,72 @@ public class ImmuClient {
         return entry.getValue().toByteArray();
     }
 
-    public byte[] safeRawGet(String key) throws VerificationException {
-        return safeRawGet(key.getBytes(StandardCharsets.UTF_8));
+    public List<KV> getAll(List<String> keys) {
+        List<ByteString> keysBS = new ArrayList<>(keys.size());
+        for (String key : keys) {
+            keysBS.add(ByteString.copyFrom(key, StandardCharsets.UTF_8));
+        }
+        return getAllBS(keysBS);
     }
 
-    public byte[] safeRawGet(byte[] key) throws VerificationException {
-        return safeRawGet(key, this.state());
+    public List<KV> getAllBytes(List<byte[]> keys) {
+        List<ByteString> keysBS = new ArrayList<>(keys.size());
+        return getAllBS(keysBS);
     }
 
-    public byte[] safeRawGet(byte[] key, ImmutableState state) throws VerificationException {
+    private List<KV> getAllBS(List<ByteString> keys) {
+        ImmudbProto.KeyListRequest req = ImmudbProto.KeyListRequest.newBuilder()
+                .addAllKeys(keys)
+                .build();
+        ImmudbProto.Entries entries = getStub().getAll(req);
+        List<KV> result = new ArrayList<>(entries.getEntriesCount());
+        for (ImmudbProto.Entry entry : entries.getEntriesList()) {
+            result.add(KVPair.from(entry));
+        }
+        return result;
+    }
+
+    public KV getAt(byte[] key, int txId) {
+        ImmudbProto.Entry entry = getStub().get(
+                ImmudbProto.KeyRequest.newBuilder()
+                        .setKey(ByteString.copyFrom(key))
+                        .setAtTx(txId)
+                        .build()
+        );
+        return KVPair.from(entry);
+    }
+
+    public KV getSince(byte[] key, int txId) {
+        ImmudbProto.Entry entry = getStub().get(
+                ImmudbProto.KeyRequest.newBuilder()
+                        .setKey(ByteString.copyFrom(key))
+                        .setSinceTx(txId)
+                        .build()
+        );
+        return KVPair.from(entry);
+    }
+
+    public byte[] safeGet(String key) throws VerificationException {
+        return safeGet(key.getBytes(StandardCharsets.UTF_8));
+    }
+
+    public byte[] safeGet(byte[] key) throws VerificationException {
+//        try {
+//            ImmudbProto.Entry entry = ImmudbProto.Entry.parseFrom(safeRawGet(key, this.state()));
+//            return entry.toByteArray();
+//        } catch (InvalidProtocolBufferException e) {
+//            throw new RuntimeException(e);
+//        }
+        return Empty.getDefaultInstance().toByteArray();
+    }
+
+
+//    public byte[] rawGet(String key) {
+//        return rawGet(key.getBytes(StandardCharsets.UTF_8));
+//    }
+
+
+    public byte[] verifiedGet(byte[] key, ImmutableState state) throws VerificationException, InvalidProtocolBufferException {
 
 //        ImmudbProto.Index index = ImmudbProto.Index.newBuilder().setIndex(state.getIndex()).build();
 //
@@ -241,9 +241,7 @@ public class ImmuClient {
 //                        .build();
 //
 //        ImmudbProto.SafeItem safeItem = getStub().safeGet(sOpts);
-//
 //        ImmudbProto.Proof proof = safeItem.getProof();
-//
 //        CryptoUtils.verify(proof, safeItem.getItem(), state);
 //
 //        stateHolder.setRoot(new Root(activeDatabase, proof.getAt(), proof.getRoot().toByteArray()));
@@ -258,302 +256,181 @@ public class ImmuClient {
                 .setKeyRequest(keyReq)
                 .setProveSinceTx(state.getTxId())
                 .build();
-        ImmudbProto.VerifiableEntry verifEntry = getStub().verifiableGet(verifGetReq);
+        ImmudbProto.VerifiableEntry vEntry = getStub().verifiableGet(verifGetReq);
 
-        ImmudbProto.InclusionProof inclProof = verifEntry.getInclusionProof();
+        ImmudbProto.InclusionProof inclProof = vEntry.getInclusionProof();
+
+//        Schema.InclusionProof schInclProof = Schema.InclusionProof.parseFrom(inclProof.toByteArray());
+//        Schema.DualProof dualProof = Schema.DualProof.parseFrom(vEntry.getVerifiableTx().getDualProof().toByteArray());
 
         // TODO:
         // CryptoUtils.verify(inclProof, verifEntry.getEntry(), state);
         // stateHolder.setState(new ImmutableState(activeDatabase, inclProof.getLeaf(), inclProof...));
 
-        return verifEntry.getEntry().getValue().toByteArray();
+        return vEntry.getEntry().getValue().toByteArray();
     }
 
-    public void safeRawSet(String key, byte[] value) throws VerificationException {
-        safeRawSet(key.getBytes(StandardCharsets.UTF_8), value);
-    }
 
-    public void safeRawSet(byte[] key, byte[] value) throws VerificationException {
-        safeRawSet(key, value, this.state());
-    }
+    // ========== HISTORY ==========
 
-    public void safeRawSet(byte[] key, byte[] value, ImmutableState state) throws VerificationException {
-        ImmudbProto.KeyValue kv =
-                ImmudbProto.KeyValue.newBuilder()
-                        .setKey(ByteString.copyFrom(key))
-                        .setValue(ByteString.copyFrom(value))
-                        .build();
 
-        ImmudbProto.SafeSetOptions sOpts =
-                ImmudbProto.SafeSetOptions.newBuilder()
-                        .setKv(kv)
-                        .setRootIndex(ImmudbProto.Index.newBuilder().setIndex(state.getIndex()).build())
-                        .build();
-
-        ImmudbProto.Proof proof = getStub().safeSet(sOpts);
-
-        ImmudbProto.Item item =
-                ImmudbProto.Item.newBuilder()
-                        .setIndex(proof.getIndex())
-                        .setKey(ByteString.copyFrom(key))
-                        .setValue(ByteString.copyFrom(value))
-                        .build();
-
-        CryptoUtils.verify(proof, item, state);
-
-        stateHolder.setRoot(new Root(activeDatabase, proof.getAt(), proof.getRoot().toByteArray()));
-    }
-
-    public void setAll(KVList kvList) {
-        KVList.KVListBuilder svListBuilder = KVList.newBuilder();
-
-        for (KV kv : kvList.entries()) {
-            ImmudbProto.Content content = ImmudbProto.Content.newBuilder()
-                    .setTimestamp(System.currentTimeMillis() / 1000L)
-                    .setPayload(ByteString.copyFrom(kv.getValue()))
-                    .build();
-            svListBuilder.add(kv.getKey(), content.toByteArray());
-
-            ImmudbProto.Entry entry = ImmudbProto.Entry.newBuilder()
-                    .setKey()
-        }
-
-        rawSetAll(svListBuilder.build());
-    }
-
-    public void rawSetAll(KVList kvList) {
-        ImmudbProto.KVList.Builder builder = ImmudbProto.KVList.newBuilder();
-
-        for (KV kv : kvList.entries()) {
-            ImmudbProto.KeyValue skv =
-                    ImmudbProto.KeyValue.newBuilder()
-                            .setKey(ByteString.copyFrom(kv.getKey()))
-                            .setValue(ByteString.copyFrom(kv.getValue()))
-                            .build();
-
-            builder.addKVs(skv);
-        }
-
-        //noinspection ResultOfMethodCallIgnored
-        getStub().setBatch(builder.build());
-    }
-
-    public List<KV> getAll(List<?> keyList) {
-        List<KV> rawKVs = rawGetAll(keyList);
-
-        return convertToStructuredKVList(rawKVs);
-    }
-
-    private List<KV> convertToStructuredKVList(List<KV> rawKVs) {
-        assert rawKVs != null;
-        List<KV> kvs = new ArrayList<>(rawKVs.size());
-
-        for (KV rawKV : rawKVs) {
-            try {
-                ImmudbProto.Content content = ImmudbProto.Content.parseFrom(rawKV.getValue());
-                kvs.add(new KVPair(rawKV.getKey(), content.getPayload().toByteArray()));
-            } catch (InvalidProtocolBufferException e) {
-                throw new RuntimeException(e);
-            }
-        }
-        return kvs;
-    }
-
-    public List<KV> rawGetAll(List<?> keyList) {
-        if (keyList == null) {
-            throw new RuntimeException("Illegal argument");
-        }
-
-        if (keyList.isEmpty()) {
-            return new ArrayList<>();
-        }
-
-        if (keyList.get(0) instanceof String) {
-            List<byte[]> kList = new ArrayList<>(keyList.size());
-
-            for (Object key : keyList) {
-                kList.add(((String) key).getBytes(StandardCharsets.UTF_8));
-            }
-
-            return rawGetAllFrom(kList);
-        }
-
-        if (keyList.get(0) instanceof byte[]) {
-            //noinspection unchecked
-            return rawGetAllFrom((List<byte[]>) keyList);
-        }
-
-        throw new RuntimeException("Illegal argument");
-    }
-
-    private List<KV> rawGetAllFrom(List<byte[]> keyList) {
-
-        ImmudbProto.KeyList.Builder builder = ImmudbProto.KeyList.newBuilder();
-
-        for (byte[] key : keyList) {
-            ImmudbProto.Key k = ImmudbProto.Key.newBuilder().setKey(ByteString.copyFrom(key)).build();
-            builder.addKeys(k);
-        }
-
-        ImmudbProto.ItemList res = getStub().getBatch(builder.build());
-
-        return buildKVList(res);
-    }
-
-    public List<KV> history(String key, long limit, long offset, boolean reverse) {
+    public List<KV> history(String key, int limit, long offset, boolean reverse) {
         return history(key.getBytes(StandardCharsets.UTF_8), limit, offset, reverse);
     }
 
-    public List<KV> history(byte[] key, long limit, long offset, boolean reverse) {
-        return convertToStructuredKVList(rawHistory(key, limit, offset, reverse));
+    public List<KV> history(byte[] key, int limit, long offset, boolean reverse) {
+        ImmudbProto.Entries entries = getStub().history(
+                ImmudbProto.HistoryRequest.newBuilder()
+                        .setKey(ByteString.copyFrom(key))
+                        .setLimit(limit)
+                        .setOffset(offset)
+                        .setDesc(reverse)
+                        .build()
+        );
+        return buildListKV(entries);
     }
 
-    public List<KV> rawHistory(byte[] key, long limit, long offset, boolean reverse) {
-        ImmudbProto.HistoryOptions h = ImmudbProto.HistoryOptions.newBuilder()
+
+    // ========== SET ==========
+
+
+    public void set(String key, byte[] value) {
+        set(key.getBytes(StandardCharsets.UTF_8), value);
+    }
+
+    public void set(byte[] key, byte[] value) {
+        ImmudbProto.KeyValue kv = ImmudbProto.KeyValue.newBuilder()
                 .setKey(ByteString.copyFrom(key))
-                .setLimit(limit)
-                .setOffset(offset)
-                .setReverse(reverse)
+                .setValue(ByteString.copyFrom(value))
                 .build();
-        ImmudbProto.ItemList res = getStub().history(h);
-
-        return buildKVList(res);
+        ImmudbProto.SetRequest req = ImmudbProto.SetRequest.newBuilder().addKVs(kv).build();
+        //noinspection ResultOfMethodCallIgnored
+        getStub().set(req);
     }
 
-    private List<KV> buildKVList(ImmudbProto.ItemList itemList) {
-        List<KV> result = new ArrayList<>(itemList.getItemsCount());
+    public void setAll(KVList kvList) {
 
-        for (ImmudbProto.Item item : itemList.getItemsList()) {
-            KV kv = new KVPair(item.getKey().toByteArray(), item.getValue().toByteArray());
-            result.add(kv);
+        ImmudbProto.SetRequest.Builder reqBuilder = ImmudbProto.SetRequest.newBuilder();
+        for (KV kv : kvList.entries()) {
+            ImmudbProto.KeyValue schemaKV = ImmudbProto.KeyValue.newBuilder()
+                    .setKey(ByteString.copyFrom(kv.getKey()))
+                    .setValue(ByteString.copyFrom(kv.getValue()))
+                    .build();
+            reqBuilder.addKVs(schemaKV);
         }
+        //noinspection ResultOfMethodCallIgnored
+        getStub().set(reqBuilder.build());
+    }
 
+
+    public void safeSet(String key, byte[] value) throws VerificationException {
+        safeSet(key.getBytes(StandardCharsets.UTF_8), value);
+    }
+
+    public void safeSet(byte[] key, byte[] value) throws VerificationException {
+        ImmudbProto.Entry entry = ImmudbProto.Entry.newBuilder()
+                .setKey(ByteString.copyFrom(key))
+                .setValue(ByteString.copyFrom(value))
+                .build();
+//        safeRawSet(key, entry.toByteArray(), this.state());
+    }
+
+
+    // ========== ZADD ==========
+
+
+    public ImmudbProto.TxMetadata zAdd(String set, String key, double score) throws CorruptedDataException {
+        return zAddAt(set, key, score, 0);
+    }
+
+    public ImmudbProto.TxMetadata zAddAt(String set, String key, double score, long atTxId) throws CorruptedDataException {
+
+        ImmudbProto.TxMetadata txMd = getStub().zAdd(
+                ImmudbProto.ZAddRequest.newBuilder()
+                        .setSet(ByteString.copyFrom(set, StandardCharsets.UTF_8))
+                        .setKey(ByteString.copyFrom(key, StandardCharsets.UTF_8))
+                        .setScore(score)
+                        .setAtTx(atTxId)
+                        .setBoundRef(atTxId > 0)
+                        .build()
+        );
+        if (txMd.getNentries() != 1) {
+            throw new CorruptedDataException();
+        }
+        return txMd;
+    }
+
+    public List<KV> zScan(String set, long atTxId, long limit, boolean reverse) {
+        return zScan(set.getBytes(StandardCharsets.UTF_8), atTxId, limit, reverse);
+    }
+
+    public List<KV> zScan(byte[] set, long atTxId, long limit, boolean reverse) {
+        ImmudbProto.ZEntries zEntries = getStub().zScan(
+                ImmudbProto.ZScanRequest.newBuilder()
+                        .setSet(ByteString.copyFrom(set))
+                        .setLimit(limit)
+                        .setSeekAtTx(atTxId)
+                        .setDesc(reverse)
+                        .build()
+        );
+        return buildListKV(zEntries);
+    }
+
+
+    // ========== INTERNAL UTILS ==========
+
+
+    private List<KV> buildListKV(ImmudbProto.Entries entries) {
+        List<KV> result = new ArrayList<>(entries.getEntriesCount());
+        entries.getEntriesList().forEach(entry -> {
+            result.add(KVPair.from(entry));
+        });
         return result;
     }
 
-    public List<KV> scan(String prefix, String offset, long limit, boolean reverse, boolean deep) {
-        return convertToStructuredKVList(rawScan(prefix, offset, limit, reverse, deep));
+    private List<KV> buildListKV(ImmudbProto.ZEntries entries) {
+        List<KV> result = new ArrayList<>(entries.getEntriesCount());
+        entries.getEntriesList().forEach(entry -> {
+            result.add(KVPair.from(entry));
+        });
+        return result;
     }
 
-    public List<KV> scan(byte[] prefix, byte[] offset, long limit, boolean reverse, boolean deep) {
-        return convertToStructuredKVList(rawScan(prefix, offset, limit, reverse, deep));
+
+    // ========== COUNT ==========
+
+
+    public long count(String prefix) {
+        return count(prefix.getBytes(StandardCharsets.UTF_8));
     }
 
-    public List<KV> rawScan(String prefix, String offset, long limit, boolean reverse, boolean deep) {
-        return rawScan(prefix.getBytes(StandardCharsets.UTF_8), offset.getBytes(StandardCharsets.UTF_8), limit, reverse, deep);
-    }
-
-    public List<KV> rawScan(byte[] prefix, byte[] offset, long limit, boolean reverse, boolean deep) {
-        ImmudbProto.ScanOptions request = ImmudbProto.ScanOptions.newBuilder()
+    public long count(byte[] prefix) {
+        return getStub().count(ImmudbProto.KeyPrefix.newBuilder()
                 .setPrefix(ByteString.copyFrom(prefix))
-                .setOffset(ByteString.copyFrom(offset))
-                .setLimit(limit)
-                .setReverse(reverse)
-                .setDeep(deep)
-                .build();
-
-        ImmudbProto.ItemList res = getStub().scan(request);
-        return buildKVList(res);
+                .build()
+        ).getCount();
     }
 
-    public List<KV> zScan(String set, String offset, long limit, boolean reverse) {
-        return zScan(set.getBytes(StandardCharsets.UTF_8), offset.getBytes(StandardCharsets.UTF_8), limit, reverse);
+    public long countAll() {
+        return getStub().countAll(Empty.getDefaultInstance()).getCount();
     }
 
-    public List<KV> zScan(byte[] set, byte[] offset, long limit, boolean reverse) {
-        return convertToStructuredKVList(rawZScan(set, offset, limit, reverse));
+
+    // ========== HEALTH ==========
+
+
+    public boolean healthCheck() {
+        return getStub().health(Empty.getDefaultInstance()).getStatus();
     }
 
-    public List<KV> rawZScan(byte[] set, byte[] offset, long limit, boolean reverse) {
-        ImmudbProto.ZScanOptions request = ImmudbProto.ZScanOptions.newBuilder()
-                .setSet(ByteString.copyFrom(set))
-                .setOffset(ByteString.copyFrom(offset))
-                .setLimit(limit)
-                .setReverse(reverse)
-                .build();
 
-        ImmudbProto.ZItemList res = getStub().zScan(request);
-
-        return buildKVList(res);
+    public boolean isConnected() {
+        return channel != null;
     }
 
-    private List<KV> buildKVList(ImmudbProto.ZItemList zItemList) {
-        List<KV> result = new ArrayList<>(zItemList.getItemsCount());
 
-        for (ImmudbProto.ZItem zItem : zItemList.getItemsList()) {
-            KV kv = new KVPair(zItem.getItem().getKey().toByteArray(), zItem.getItem().getValue().toByteArray());
-            result.add(kv);
-        }
+    // ========== USER MGMT ==========
 
-        return result;
-    }
-
-    public KVPage iScan(long pageNumber, long pageSize) {
-        KVPage kvPage = rawIScan(pageNumber, pageSize);
-        KVList structuredKvList = KVList.newBuilder()
-                .addAll(convertToStructuredKVList(kvPage.getKvList().entries()))
-                .build();
-
-        return KVPage.newBuilder()
-                .setKvList(structuredKvList)
-                .setMore(kvPage.isMore())
-                .build();
-    }
-
-    public KVPage rawIScan(long pageNumber, long pageSize) {
-        ImmudbProto.IScanOptions request = ImmudbProto.IScanOptions.newBuilder()
-                .setPageNumber(pageNumber)
-                .setPageSize(pageSize)
-                .build();
-
-        ImmudbProto.Page page = getStub().iScan(request);
-        return KVPage.newBuilder()
-                .setKvList(buildKVList(page.getItemsList()))
-                .setMore(page.getMore())
-                .build();
-    }
-
-    private KVList buildKVList(List<ImmudbProto.Item> itemsList) {
-        KVList result = KVList.newBuilder().build();
-
-        for (ImmudbProto.Item item : itemsList) {
-            KV kv = new KVPair(item.getKey().toByteArray(), item.getValue().toByteArray());
-            result.entries().add(kv);
-        }
-
-        return result;
-    }
-
-    public void zAdd(String set, String key, double score) {
-        ImmudbProto.Score scoreObject = ImmudbProto.Score.newBuilder()
-                .setScore(score)
-                .build();
-
-        ImmudbProto.ZAddOptions options = ImmudbProto.ZAddOptions.newBuilder()
-                .setSet(ByteString.copyFrom(set, StandardCharsets.UTF_8))
-                .setScore(scoreObject)
-                .setKey(ByteString.copyFrom(key, StandardCharsets.UTF_8))
-                .build();
-        //noinspection ResultOfMethodCallIgnored
-        getStub().zAdd(options);
-    }
-
-    public void zAdd(String set, String key, double score, long index) {
-        ImmudbProto.Score scoreObject = ImmudbProto.Score.newBuilder()
-                .setScore(score)
-                .build();
-
-        ImmudbProto.ZAddOptions options = ImmudbProto.ZAddOptions.newBuilder()
-                .setSet(ByteString.copyFrom(set, StandardCharsets.UTF_8))
-                .setScore(scoreObject)
-                .setKey(ByteString.copyFrom(key, StandardCharsets.UTF_8))
-                .setIndex(ImmudbProto.Index.newBuilder()
-                        .setIndex(index)
-                        .build())
-                .build();
-        //noinspection ResultOfMethodCallIgnored
-        getStub().zAdd(options);
-    }
 
     public List<User> listUsers() {
         ImmudbProto.UserList userList = getStub().listUsers(Empty.getDefaultInstance());
@@ -596,6 +473,8 @@ public class ImmuClient {
         //noinspection ResultOfMethodCallIgnored
         getStub().changePassword(changePasswordRequest);
     }
+
+    // ========== BUILDER ==========
 
     public static class Builder {
 
@@ -655,4 +534,5 @@ public class ImmuClient {
         }
 
     }
+
 }

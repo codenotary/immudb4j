@@ -17,6 +17,7 @@ package io.codenotary.immudb4j.crypto;
 
 import com.google.protobuf.ByteString;
 import io.codenotary.immudb.ImmudbProto;
+
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.security.MessageDigest;
@@ -29,171 +30,22 @@ import java.util.List;
  * immudb client using grpc.
  *
  * @author Jeronimo Irazabal
- *     <p>Java port of proof verification algortihms implemented in github.com/codenotary/merkletree
+ * <p>Java port of proof verification algortihms implemented in github.com/codenotary/merkletree
  */
 public class CryptoUtils {
 
-  private static final byte LEAF_PREFIX = 0;
-  private static final byte NODE_PREFIX = 1;
-  private static final int DIGEST_LENGTH = 32;
+    private static final byte LEAF_PREFIX = 0;
+    private static final byte NODE_PREFIX = 1;
+    private static final int DIGEST_LENGTH = 32;
 
-  public static void verify(ImmudbProto.Proof proof, ImmudbProto.Item item, Root root)
-      throws VerificationException {
-    byte[] h = entryDigest(item);
 
-    if (!Arrays.equals(proof.getLeaf().toByteArray(), h)) {
-      throw new VerificationException("Proof does not verify!");
-    }
 
-    verifyInclusion(proof);
-
-    if (root != null && root.getIndex() > 0) {
-      verifyConsistency(proof, root);
-    }
-  }
-
-  public static void verifyInclusion(ImmudbProto.Proof proof) throws VerificationException {
-    long at = proof.getAt();
-    long i = proof.getIndex();
-
-    if (i > at || (at > 0 && proof.getInclusionPathCount() == 0)) {
-      throw new VerificationException("Inclusion proof does not verify!");
-    }
-
-    byte[] h = proof.getLeaf().toByteArray();
-
-    for (ByteString v : proof.getInclusionPathList()) {
-      ByteBuffer buffer = ByteBuffer.allocate(DIGEST_LENGTH * 2 + 1);
-
-      buffer.put(NODE_PREFIX);
-
-      if (i % 2 == 0 && i != at) {
-        buffer.put(h);
-        buffer.put(v.toByteArray());
-      } else {
-        buffer.put(v.toByteArray());
-        buffer.put(h);
-      }
-
-      h = digest(buffer.array());
-      i /= 2;
-      at /= 2;
-    }
-
-    if (at != i || !Arrays.equals(h, proof.getRoot().toByteArray())) {
-      throw new VerificationException("Inclusion proof does not verify!");
-    }
-  }
-
-  public static void verifyConsistency(ImmudbProto.Proof proof, Root root)
-      throws VerificationException {
-    long second = proof.getAt();
-    long first = root.getIndex();
-    byte[] secondHash = proof.getRoot().toByteArray();
-    byte[] firstHash = root.getDigest();
-
-    int l = proof.getConsistencyPathCount();
-
-    if (first == second && Arrays.equals(firstHash, secondHash) && l == 0) {
-      return;
-    }
-
-    if (!(first < second) || l == 0) {
-      throw new VerificationException("Consistency proof does not verify!");
-    }
-
-    List<byte[]> pp = new LinkedList<>();
-
-    if (isPowerOfTwo(first + 1)) {
-      pp.add(firstHash);
-    }
-
-    for (ByteString n : proof.getConsistencyPathList()) {
-      pp.add(n.toByteArray());
-    }
-
-    long fn = first;
-    long sn = second;
-
-    while (fn % 2 == 1) {
-      fn >>= 1;
-      sn >>= 1;
-    }
-
-    byte[] fr = pp.get(0);
-    byte[] sr = pp.get(0);
-
-    for (int step = 0; step < pp.size(); step++) {
-      if (step == 0) {
-        continue;
-      }
-
-      if (sn == 0) {
-        throw new VerificationException("Consistency proof does not verify!");
-      }
-
-      ByteBuffer bufferSr = ByteBuffer.allocate(DIGEST_LENGTH * 2 + 1);
-      bufferSr.order(ByteOrder.BIG_ENDIAN);
-      bufferSr.put(NODE_PREFIX);
-
-      byte[] c = pp.get(step);
-
-      if (fn % 2 == 1 || fn == sn) {
-        ByteBuffer bufferFn = ByteBuffer.allocate(DIGEST_LENGTH * 2 + 1);
-        bufferFn.order(ByteOrder.BIG_ENDIAN);
-        bufferFn.put(NODE_PREFIX);
-        bufferFn.put(c);
-        bufferFn.put(fr);
-        fr = digest(bufferFn.array());
-
-        bufferSr.put(c);
-        bufferSr.put(sr);
-        sr = digest(bufferSr.array());
-
-        while (fn % 2 == 0 && fn != 0) {
-          fn >>= 1;
-          sn >>= 1;
+    private static byte[] digest(byte[] data) {
+        try {
+            MessageDigest sha256 = MessageDigest.getInstance("SHA-256");
+            return sha256.digest(data);
+        } catch (NoSuchAlgorithmException e) {
+            throw new RuntimeException(e);
         }
-      } else {
-        bufferSr.put(sr);
-        bufferSr.put(c);
-        sr = digest(bufferSr.array());
-      }
-
-      fn >>= 1;
-      sn >>= 1;
     }
-
-    if (!Arrays.equals(fr, firstHash) || !Arrays.equals(sr, secondHash) || sn != 0) {
-      throw new VerificationException("Consistency proof does not verify!");
-    }
-  }
-
-  public static boolean isPowerOfTwo(long n) {
-    return (n != 0) && ((n & (n - 1)) == 0);
-  }
-
-  public static byte[] entryDigest(ImmudbProto.Item item) {
-    int kl = item.getKey().size();
-    int vl = item.getValue().size();
-
-    ByteBuffer buffer = ByteBuffer.allocate(1 + 8 + 8 + kl + vl);
-    buffer.order(ByteOrder.BIG_ENDIAN);
-    buffer.put(LEAF_PREFIX);
-    buffer.putLong(item.getIndex());
-    buffer.putLong(kl);
-    buffer.put(item.getKey().toByteArray());
-    buffer.put(item.getValue().toByteArray());
-
-    return digest(buffer.array());
-  }
-
-  private static byte[] digest(byte[] data) {
-    try {
-      MessageDigest sha256 = MessageDigest.getInstance("SHA-256");
-      return sha256.digest(data);
-    } catch (NoSuchAlgorithmException e) {
-      throw new RuntimeException(e);
-    }
-  }
 }

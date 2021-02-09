@@ -56,6 +56,11 @@ public class User {
         return permissions;
     }
 
+    @Override
+    public String toString() {
+        return String.format("User{user='%s', createdAt='%s', createdBy='%s', active=%s, permissions=%s}",
+                user, createdAt, createdBy, active, permissions);
+    }
 
     public static class UserBuilder {
         private String user;

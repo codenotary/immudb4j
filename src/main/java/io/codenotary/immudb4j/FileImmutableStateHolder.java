@@ -26,20 +26,20 @@ import java.nio.file.StandardOpenOption;
 
 public class FileImmutableStateHolder implements ImmutableStateHolder {
 
-    private Path statesFolder;
-    private Path currentStateFile;
+    private final Path statesFolder;
+    private final Path currentStateFile;
     private Path stateHolderFile;
 
     private final SerializableImmutableStateHolder stateHolder;
 
     private FileImmutableStateHolder(Builder builder) throws IOException {
-        statesFolder = Paths.get(builder.getRootsFolder());
+        statesFolder = Paths.get(builder.getStatesFolder());
 
         if (Files.notExists(statesFolder)) {
             Files.createDirectory(statesFolder);
         }
 
-        currentStateFile = statesFolder.resolve("current_root");
+        currentStateFile = statesFolder.resolve("current_state");
 
         if (Files.notExists(currentStateFile)) {
             Files.createFile(currentStateFile);
@@ -75,18 +75,18 @@ public class FileImmutableStateHolder implements ImmutableStateHolder {
 
         stateHolder.setState(state);
 
-        Path newRootHolderFile = statesFolder.resolve("root_" + System.nanoTime());
+        Path newStateHolderFile = statesFolder.resolve("state_" + System.nanoTime());
 
-        if (Files.exists(newRootHolderFile)) {
-            throw new RuntimeException("Attempt to create fresh root file failed. Please retry");
+        if (Files.exists(newStateHolderFile)) {
+            throw new RuntimeException("Failed attempting to create fresh state file. Please retry.");
         }
 
         try {
-            Files.createFile(newRootHolderFile);
-            stateHolder.writeTo(Files.newOutputStream(newRootHolderFile));
+            Files.createFile(newStateHolderFile);
+            stateHolder.writeTo(Files.newOutputStream(newStateHolderFile));
 
             BufferedWriter bufferedWriter = Files.newBufferedWriter(currentStateFile, StandardOpenOption.TRUNCATE_EXISTING);
-            bufferedWriter.write(newRootHolderFile.getFileName().toString());
+            bufferedWriter.write(newStateHolderFile.getFileName().toString());
             bufferedWriter.flush();
             bufferedWriter.close();
 
@@ -94,7 +94,7 @@ public class FileImmutableStateHolder implements ImmutableStateHolder {
                 Files.delete(stateHolderFile);
             }
 
-            stateHolderFile = newRootHolderFile;
+            stateHolderFile = newStateHolderFile;
         } catch (IOException e) {
             e.printStackTrace();
             throw new RuntimeException("Unexpected error " + e);
@@ -107,23 +107,23 @@ public class FileImmutableStateHolder implements ImmutableStateHolder {
 
     public static class Builder {
 
-        private String rootsFolder;
+        private String statesFolder;
 
         private Builder() {
-            rootsFolder = "roots";
+            statesFolder = "states";
         }
 
         public FileImmutableStateHolder build() throws IOException {
             return new FileImmutableStateHolder(this);
         }
 
-        public Builder setRootsFolder(String rootsFolder) {
-            this.rootsFolder = rootsFolder;
+        public Builder setStatesFolder(String statesFolder) {
+            this.statesFolder = statesFolder;
             return this;
         }
 
-        public String getRootsFolder() {
-            return this.rootsFolder;
+        public String getStatesFolder() {
+            return this.statesFolder;
         }
     }
 

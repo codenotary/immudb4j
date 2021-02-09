@@ -26,7 +26,7 @@ public abstract class ImmuClientIntegrationTest {
   @BeforeClass
   public static void beforeClass() throws IOException {
     FileImmutableStateHolder stateHolder = FileImmutableStateHolder.newBuilder()
-            .setRootsFolder("immudb/roots")
+            .setStatesFolder("immudb/states")
             .build();
 
     immuClient = ImmuClient.newBuilder()
