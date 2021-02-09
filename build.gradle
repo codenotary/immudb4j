@@ -81,8 +81,13 @@ repositories {
     mavenCentral()
 }
 
-// configurations for the integration test
+
 sourceSets {
+
+    main {
+        java.srcDirs += [ 'src/generated/main/grpc/', 'src/generated/main/java/' ]
+    }
+
     integrationTest {
         java {
             compileClasspath += main.output + test.output
@@ -96,6 +101,7 @@ sourceSets {
 configurations {
     integrationTestCompile.extendsFrom testCompile
     integrationTestRuntime.extendsFrom testRuntime
+
 }
 
 dependencies {
