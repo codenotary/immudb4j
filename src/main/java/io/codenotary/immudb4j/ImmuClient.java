@@ -15,26 +15,26 @@ limitations under the License.
 */
 package io.codenotary.immudb4j;
 
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.stream.Collectors;
+
 import com.google.protobuf.ByteString;
 import com.google.protobuf.Empty;
 import com.google.protobuf.InvalidProtocolBufferException;
+
 import io.codenotary.immudb.ImmuServiceGrpc;
 import io.codenotary.immudb.ImmudbProto;
-import io.codenotary.immudb4j.crypto.CryptoUtils;
 import io.codenotary.immudb4j.crypto.ImmutableState;
-import io.codenotary.immudb4j.crypto.VerificationException;
 import io.codenotary.immudb4j.exceptions.CorruptedDataException;
+import io.codenotary.immudb4j.exceptions.VerificationException;
 import io.codenotary.immudb4j.user.Permission;
 import io.codenotary.immudb4j.user.User;
 import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
 import io.grpc.Metadata;
 import io.grpc.stub.MetadataUtils;
-
-import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.stream.Collectors;
 
 /**
  * immudb client using grpc.
@@ -51,7 +51,6 @@ public class ImmuClient {
     private String authToken;
     private String activeDatabase = "defaultdb";
 
-
     public ImmuClient(Builder builder) {
         this.stub = createStubFrom(builder);
         this.withAuthToken = builder.isWithAuthToken();
@@ -63,8 +62,7 @@ public class ImmuClient {
     }
 
     private ImmuServiceGrpc.ImmuServiceBlockingStub createStubFrom(Builder builder) {
-        channel = ManagedChannelBuilder.forAddress(builder.getServerUrl(), builder.getServerPort())
-                .usePlaintext()
+        channel = ManagedChannelBuilder.forAddress(builder.getServerUrl(), builder.getServerPort()).usePlaintext()
                 .build();
         return ImmuServiceGrpc.newBlockingStub(channel);
     }
@@ -90,47 +88,41 @@ public class ImmuClient {
     }
 
     public synchronized void login(String username, String password) {
-        ImmudbProto.LoginRequest loginRequest =
-                ImmudbProto.LoginRequest.newBuilder()
-                        .setUser(ByteString.copyFrom(username, StandardCharsets.UTF_8))
-                        .setPassword(ByteString.copyFrom(password, StandardCharsets.UTF_8))
-                        .build();
+        ImmudbProto.LoginRequest loginRequest = ImmudbProto.LoginRequest.newBuilder()
+                .setUser(ByteString.copyFrom(username, StandardCharsets.UTF_8))
+                .setPassword(ByteString.copyFrom(password, StandardCharsets.UTF_8)).build();
 
         ImmudbProto.LoginResponse loginResponse = getStub().login(loginRequest);
         authToken = loginResponse.getToken();
     }
 
     public synchronized void logout() {
-        //noinspection ResultOfMethodCallIgnored
+        // noinspection ResultOfMethodCallIgnored
         getStub().logout(com.google.protobuf.Empty.getDefaultInstance());
         authToken = null;
     }
-
 
     public ImmutableState state() {
         if (stateHolder.getState(activeDatabase) == null) {
             Empty empty = com.google.protobuf.Empty.getDefaultInstance();
             ImmudbProto.ImmutableState state = getStub().currentState(empty);
-            ImmutableState currState = new ImmutableState(activeDatabase, state.getTxId(), state.getTxHash().toByteArray());
+            ImmutableState currState = new ImmutableState(activeDatabase, state.getTxId(),
+                    state.getTxHash().toByteArray());
             stateHolder.setState(currState);
         }
         return stateHolder.getState(activeDatabase);
     }
 
-
     // ========== DB ==========
 
-
     public void createDatabase(String database) {
-        ImmudbProto.Database db = ImmudbProto.Database.newBuilder()
-                .setDatabasename(database).build();
-        //noinspection ResultOfMethodCallIgnored
+        ImmudbProto.Database db = ImmudbProto.Database.newBuilder().setDatabasename(database).build();
+        // noinspection ResultOfMethodCallIgnored
         getStub().createDatabase(db);
     }
 
     public synchronized void useDatabase(String database) {
-        ImmudbProto.Database db = ImmudbProto.Database.newBuilder()
-                .setDatabasename(database).build();
+        ImmudbProto.Database db = ImmudbProto.Database.newBuilder().setDatabasename(database).build();
         ImmudbProto.UseDatabaseReply response = getStub().useDatabase(db);
         authToken = response.getToken();
         activeDatabase = database;
@@ -149,18 +141,14 @@ public class ImmuClient {
         return list;
     }
 
-
     // ========== GET ==========
-
 
     public byte[] get(String key) {
         return get(key.getBytes(StandardCharsets.UTF_8));
     }
 
     public byte[] get(byte[] key) {
-        ImmudbProto.KeyRequest req = ImmudbProto.KeyRequest.newBuilder()
-                .setKey(ByteString.copyFrom(key))
-                .build();
+        ImmudbProto.KeyRequest req = ImmudbProto.KeyRequest.newBuilder().setKey(ByteString.copyFrom(key)).build();
         ImmudbProto.Entry entry = getStub().get(req);
         return entry.getValue().toByteArray();
     }
@@ -179,9 +167,7 @@ public class ImmuClient {
     }
 
     private List<KV> getAllBS(List<ByteString> keys) {
-        ImmudbProto.KeyListRequest req = ImmudbProto.KeyListRequest.newBuilder()
-                .addAllKeys(keys)
-                .build();
+        ImmudbProto.KeyListRequest req = ImmudbProto.KeyListRequest.newBuilder().addAllKeys(keys).build();
         ImmudbProto.Entries entries = getStub().getAll(req);
         List<KV> result = new ArrayList<>(entries.getEntriesCount());
         for (ImmudbProto.Entry entry : entries.getEntriesList()) {
@@ -191,22 +177,14 @@ public class ImmuClient {
     }
 
     public KV getAt(byte[] key, int txId) {
-        ImmudbProto.Entry entry = getStub().get(
-                ImmudbProto.KeyRequest.newBuilder()
-                        .setKey(ByteString.copyFrom(key))
-                        .setAtTx(txId)
-                        .build()
-        );
+        ImmudbProto.Entry entry = getStub()
+                .get(ImmudbProto.KeyRequest.newBuilder().setKey(ByteString.copyFrom(key)).setAtTx(txId).build());
         return KVPair.from(entry);
     }
 
     public KV getSince(byte[] key, int txId) {
-        ImmudbProto.Entry entry = getStub().get(
-                ImmudbProto.KeyRequest.newBuilder()
-                        .setKey(ByteString.copyFrom(key))
-                        .setSinceTx(txId)
-                        .build()
-        );
+        ImmudbProto.Entry entry = getStub()
+                .get(ImmudbProto.KeyRequest.newBuilder().setKey(ByteString.copyFrom(key)).setSinceTx(txId).build());
         return KVPair.from(entry);
     }
 
@@ -215,96 +193,85 @@ public class ImmuClient {
     }
 
     public byte[] safeGet(byte[] key) throws VerificationException {
-//        try {
-//            ImmudbProto.Entry entry = ImmudbProto.Entry.parseFrom(safeRawGet(key, this.state()));
-//            return entry.toByteArray();
-//        } catch (InvalidProtocolBufferException e) {
-//            throw new RuntimeException(e);
-//        }
+        // try {
+        // ImmudbProto.Entry entry = ImmudbProto.Entry.parseFrom(safeRawGet(key,
+        // this.state()));
+        // return entry.toByteArray();
+        // } catch (InvalidProtocolBufferException e) {
+        // throw new RuntimeException(e);
+        // }
         return Empty.getDefaultInstance().toByteArray();
     }
 
+    // public byte[] rawGet(String key) {
+    // return rawGet(key.getBytes(StandardCharsets.UTF_8));
+    // }
 
-//    public byte[] rawGet(String key) {
-//        return rawGet(key.getBytes(StandardCharsets.UTF_8));
-//    }
+    public byte[] verifiedGet(byte[] key, ImmutableState state)
+            throws VerificationException, InvalidProtocolBufferException {
 
+        // ImmudbProto.Index index =
+        // ImmudbProto.Index.newBuilder().setIndex(state.getIndex()).build();
+        //
+        // ImmudbProto.SafeGetOptions sOpts =
+        // ImmudbProto.SafeGetOptions.newBuilder()
+        // .setKey(ByteString.copyFrom(key))
+        // .setRootIndex(index)
+        // .build();
+        //
+        // ImmudbProto.SafeItem safeItem = getStub().safeGet(sOpts);
+        // ImmudbProto.Proof proof = safeItem.getProof();
+        // CryptoUtils.verify(proof, safeItem.getItem(), state);
+        //
+        // stateHolder.setRoot(new Root(activeDatabase, proof.getAt(),
+        // proof.getRoot().toByteArray()));
+        //
+        // return safeItem.getItem().getValue().toByteArray();
 
-    public byte[] verifiedGet(byte[] key, ImmutableState state) throws VerificationException, InvalidProtocolBufferException {
-
-//        ImmudbProto.Index index = ImmudbProto.Index.newBuilder().setIndex(state.getIndex()).build();
-//
-//        ImmudbProto.SafeGetOptions sOpts =
-//                ImmudbProto.SafeGetOptions.newBuilder()
-//                        .setKey(ByteString.copyFrom(key))
-//                        .setRootIndex(index)
-//                        .build();
-//
-//        ImmudbProto.SafeItem safeItem = getStub().safeGet(sOpts);
-//        ImmudbProto.Proof proof = safeItem.getProof();
-//        CryptoUtils.verify(proof, safeItem.getItem(), state);
-//
-//        stateHolder.setRoot(new Root(activeDatabase, proof.getAt(), proof.getRoot().toByteArray()));
-//
-//        return safeItem.getItem().getValue().toByteArray();
-
-        ImmudbProto.KeyRequest keyReq = ImmudbProto.KeyRequest.newBuilder()
-                .setKey(ByteString.copyFrom(key))
-                .setSinceTx(state.getTxId())
-                .build();
+        ImmudbProto.KeyRequest keyReq = ImmudbProto.KeyRequest.newBuilder().setKey(ByteString.copyFrom(key))
+                .setSinceTx(state.getTxId()).build();
         ImmudbProto.VerifiableGetRequest verifGetReq = ImmudbProto.VerifiableGetRequest.newBuilder()
-                .setKeyRequest(keyReq)
-                .setProveSinceTx(state.getTxId())
-                .build();
+                .setKeyRequest(keyReq).setProveSinceTx(state.getTxId()).build();
         ImmudbProto.VerifiableEntry vEntry = getStub().verifiableGet(verifGetReq);
 
         ImmudbProto.InclusionProof inclProof = vEntry.getInclusionProof();
 
-//        Schema.InclusionProof schInclProof = Schema.InclusionProof.parseFrom(inclProof.toByteArray());
-//        Schema.DualProof dualProof = Schema.DualProof.parseFrom(vEntry.getVerifiableTx().getDualProof().toByteArray());
+        // Schema.InclusionProof schInclProof =
+        // Schema.InclusionProof.parseFrom(inclProof.toByteArray());
+        // Schema.DualProof dualProof =
+        // Schema.DualProof.parseFrom(vEntry.getVerifiableTx().getDualProof().toByteArray());
 
         // TODO:
         // CryptoUtils.verify(inclProof, verifEntry.getEntry(), state);
-        // stateHolder.setState(new ImmutableState(activeDatabase, inclProof.getLeaf(), inclProof...));
+        // stateHolder.setState(new ImmutableState(activeDatabase, inclProof.getLeaf(),
+        // inclProof...));
 
         return vEntry.getEntry().getValue().toByteArray();
     }
 
-
     // ========== HISTORY ==========
-
 
     public List<KV> history(String key, int limit, long offset, boolean reverse) {
         return history(key.getBytes(StandardCharsets.UTF_8), limit, offset, reverse);
     }
 
     public List<KV> history(byte[] key, int limit, long offset, boolean reverse) {
-        ImmudbProto.Entries entries = getStub().history(
-                ImmudbProto.HistoryRequest.newBuilder()
-                        .setKey(ByteString.copyFrom(key))
-                        .setLimit(limit)
-                        .setOffset(offset)
-                        .setDesc(reverse)
-                        .build()
-        );
+        ImmudbProto.Entries entries = getStub().history(ImmudbProto.HistoryRequest.newBuilder()
+                .setKey(ByteString.copyFrom(key)).setLimit(limit).setOffset(offset).setDesc(reverse).build());
         return buildListKV(entries);
     }
 
-
     // ========== SET ==========
-
 
     public void set(String key, byte[] value) {
         set(key.getBytes(StandardCharsets.UTF_8), value);
     }
 
     public void set(byte[] key, byte[] value) {
-        ImmudbProto.KeyValue kv = ImmudbProto.KeyValue.newBuilder()
-                .setKey(ByteString.copyFrom(key))
-                .setValue(ByteString.copyFrom(value))
-                .build();
+        ImmudbProto.KeyValue kv = ImmudbProto.KeyValue.newBuilder().setKey(ByteString.copyFrom(key))
+                .setValue(ByteString.copyFrom(value)).build();
         ImmudbProto.SetRequest req = ImmudbProto.SetRequest.newBuilder().addKVs(kv).build();
-        //noinspection ResultOfMethodCallIgnored
+        // noinspection ResultOfMethodCallIgnored
         getStub().set(req);
     }
 
@@ -312,48 +279,37 @@ public class ImmuClient {
 
         ImmudbProto.SetRequest.Builder reqBuilder = ImmudbProto.SetRequest.newBuilder();
         for (KV kv : kvList.entries()) {
-            ImmudbProto.KeyValue schemaKV = ImmudbProto.KeyValue.newBuilder()
-                    .setKey(ByteString.copyFrom(kv.getKey()))
-                    .setValue(ByteString.copyFrom(kv.getValue()))
-                    .build();
+            ImmudbProto.KeyValue schemaKV = ImmudbProto.KeyValue.newBuilder().setKey(ByteString.copyFrom(kv.getKey()))
+                    .setValue(ByteString.copyFrom(kv.getValue())).build();
             reqBuilder.addKVs(schemaKV);
         }
-        //noinspection ResultOfMethodCallIgnored
+        // noinspection ResultOfMethodCallIgnored
         getStub().set(reqBuilder.build());
     }
-
 
     public void safeSet(String key, byte[] value) throws VerificationException {
         safeSet(key.getBytes(StandardCharsets.UTF_8), value);
     }
 
     public void safeSet(byte[] key, byte[] value) throws VerificationException {
-        ImmudbProto.Entry entry = ImmudbProto.Entry.newBuilder()
-                .setKey(ByteString.copyFrom(key))
-                .setValue(ByteString.copyFrom(value))
-                .build();
-//        safeRawSet(key, entry.toByteArray(), this.state());
+        ImmudbProto.Entry entry = ImmudbProto.Entry.newBuilder().setKey(ByteString.copyFrom(key))
+                .setValue(ByteString.copyFrom(value)).build();
+        // safeRawSet(key, entry.toByteArray(), this.state());
     }
 
-
     // ========== ZADD ==========
-
 
     public ImmudbProto.TxMetadata zAdd(String set, String key, double score) throws CorruptedDataException {
         return zAddAt(set, key, score, 0);
     }
 
-    public ImmudbProto.TxMetadata zAddAt(String set, String key, double score, long atTxId) throws CorruptedDataException {
+    public ImmudbProto.TxMetadata zAddAt(String set, String key, double score, long atTxId)
+            throws CorruptedDataException {
 
-        ImmudbProto.TxMetadata txMd = getStub().zAdd(
-                ImmudbProto.ZAddRequest.newBuilder()
-                        .setSet(ByteString.copyFrom(set, StandardCharsets.UTF_8))
-                        .setKey(ByteString.copyFrom(key, StandardCharsets.UTF_8))
-                        .setScore(score)
-                        .setAtTx(atTxId)
-                        .setBoundRef(atTxId > 0)
-                        .build()
-        );
+        ImmudbProto.TxMetadata txMd = getStub()
+                .zAdd(ImmudbProto.ZAddRequest.newBuilder().setSet(ByteString.copyFrom(set, StandardCharsets.UTF_8))
+                        .setKey(ByteString.copyFrom(key, StandardCharsets.UTF_8)).setScore(score).setAtTx(atTxId)
+                        .setBoundRef(atTxId > 0).build());
         if (txMd.getNentries() != 1) {
             throw new CorruptedDataException();
         }
@@ -365,20 +321,12 @@ public class ImmuClient {
     }
 
     public List<KV> zScan(byte[] set, long atTxId, long limit, boolean reverse) {
-        ImmudbProto.ZEntries zEntries = getStub().zScan(
-                ImmudbProto.ZScanRequest.newBuilder()
-                        .setSet(ByteString.copyFrom(set))
-                        .setLimit(limit)
-                        .setSeekAtTx(atTxId)
-                        .setDesc(reverse)
-                        .build()
-        );
+        ImmudbProto.ZEntries zEntries = getStub().zScan(ImmudbProto.ZScanRequest.newBuilder()
+                .setSet(ByteString.copyFrom(set)).setLimit(limit).setSeekAtTx(atTxId).setDesc(reverse).build());
         return buildListKV(zEntries);
     }
 
-
     // ========== INTERNAL UTILS ==========
-
 
     private List<KV> buildListKV(ImmudbProto.Entries entries) {
         List<KV> result = new ArrayList<>(entries.getEntriesCount());
@@ -396,70 +344,55 @@ public class ImmuClient {
         return result;
     }
 
-
     // ========== COUNT ==========
-
 
     public long count(String prefix) {
         return count(prefix.getBytes(StandardCharsets.UTF_8));
     }
 
     public long count(byte[] prefix) {
-        return getStub().count(ImmudbProto.KeyPrefix.newBuilder()
-                .setPrefix(ByteString.copyFrom(prefix))
-                .build()
-        ).getCount();
+        return getStub().count(ImmudbProto.KeyPrefix.newBuilder().setPrefix(ByteString.copyFrom(prefix)).build())
+                .getCount();
     }
 
     public long countAll() {
         return getStub().countAll(Empty.getDefaultInstance()).getCount();
     }
 
-
     // ========== HEALTH ==========
-
 
     public boolean healthCheck() {
         return getStub().health(Empty.getDefaultInstance()).getStatus();
     }
 
-
     public boolean isConnected() {
         return channel != null;
     }
 
-
     // ========== USER MGMT ==========
-
 
     public List<User> listUsers() {
         ImmudbProto.UserList userList = getStub().listUsers(Empty.getDefaultInstance());
 
-        return userList.getUsersList().stream().map(u -> User.getBuilder()
-                .setUser(u.getUser().toString(StandardCharsets.UTF_8))
-                .setActive(u.getActive())
-                .setCreatedAt(u.getCreatedat())
-                .setCreatedBy(u.getCreatedby())
-                .setPermissions(buildPermissions(u.getPermissionsList()))
-                .build())
+        return userList.getUsersList().stream()
+                .map(u -> User.getBuilder().setUser(u.getUser().toString(StandardCharsets.UTF_8))
+                        .setActive(u.getActive()).setCreatedAt(u.getCreatedat()).setCreatedBy(u.getCreatedby())
+                        .setPermissions(buildPermissions(u.getPermissionsList())).build())
                 .collect(Collectors.toList());
     }
 
     private List<Permission> buildPermissions(List<ImmudbProto.Permission> permissionsList) {
-        return permissionsList.stream().map(
-                p -> Permission.valueOfPermissionCode(p.getPermission())
-        ).collect(Collectors.toList());
+        return permissionsList.stream().map(p -> Permission.valueOfPermissionCode(p.getPermission()))
+                .collect(Collectors.toList());
     }
 
     public void createUser(String user, String password, Permission permission, String database) {
         ImmudbProto.CreateUserRequest createUserRequest = ImmudbProto.CreateUserRequest.newBuilder()
                 .setUser(ByteString.copyFrom(user, StandardCharsets.UTF_8))
                 .setPassword(ByteString.copyFrom(password, StandardCharsets.UTF_8))
-                .setPermission(permission.permissionCode)
-                .setDatabase(database)
-                .build();
+                .setPermission(permission.permissionCode).setDatabase(database).build();
 
-        //noinspection ResultOfMethodCallIgnored
+        // noinspection ResultOfMethodCallIgnored
         getStub().createUser(createUserRequest);
     }
 
@@ -467,10 +400,9 @@ public class ImmuClient {
         ImmudbProto.ChangePasswordRequest changePasswordRequest = ImmudbProto.ChangePasswordRequest.newBuilder()
                 .setUser(ByteString.copyFrom(user, StandardCharsets.UTF_8))
                 .setOldPassword(ByteString.copyFrom(oldPassword, StandardCharsets.UTF_8))
-                .setNewPassword(ByteString.copyFrom(newPassword, StandardCharsets.UTF_8))
-                .build();
+                .setNewPassword(ByteString.copyFrom(newPassword, StandardCharsets.UTF_8)).build();
 
-        //noinspection ResultOfMethodCallIgnored
+        // noinspection ResultOfMethodCallIgnored
         getStub().changePassword(changePasswordRequest);
     }
 

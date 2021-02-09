@@ -15,14 +15,15 @@ limitations under the License.
 */
 package io.codenotary.immudb4j;
 
-import io.codenotary.immudb4j.crypto.VerificationException;
-import org.testng.Assert;
-import org.testng.annotations.Test;
-
 import java.util.Random;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
+
+import org.testng.Assert;
+import org.testng.annotations.Test;
+
+import io.codenotary.immudb4j.exceptions.VerificationException;
 
 public class MultithreadTest extends ImmuClientIntegrationTest {
 
@@ -59,8 +60,8 @@ public class MultithreadTest extends ImmuClientIntegrationTest {
       latch.countDown();
     };
 
-    for(int i=0;i<threadCount;i++) {
-      Thread t = new Thread(workerFactory.apply("t"+i));
+    for (int i = 0; i < threadCount; i++) {
+      Thread t = new Thread(workerFactory.apply("t" + i));
       t.start();
     }
 
@@ -68,7 +69,7 @@ public class MultithreadTest extends ImmuClientIntegrationTest {
 
     Assert.assertEquals(succeeded.get(), threadCount);
 
-    for(int i=0;i<threadCount;i++) {
+    for (int i = 0; i < threadCount; i++) {
       for (int k = 0; k < keyCount; k++) {
         immuClient.safeGet("t" + i + "k" + i);
       }
@@ -109,7 +110,7 @@ public class MultithreadTest extends ImmuClientIntegrationTest {
       latch.countDown();
     };
 
-    for(int i=0;i<threadCount;i++) {
+    for (int i = 0; i < threadCount; i++) {
       Thread t = new Thread(runnable);
       t.start();
     }
@@ -118,7 +119,7 @@ public class MultithreadTest extends ImmuClientIntegrationTest {
 
     Assert.assertEquals(succeeded.get(), threadCount);
 
-    for(int i=0;i<threadCount;i++) {
+    for (int i = 0; i < threadCount; i++) {
       for (int k = 0; k < keyCount; k++) {
         immuClient.safeGet("k" + i);
       }

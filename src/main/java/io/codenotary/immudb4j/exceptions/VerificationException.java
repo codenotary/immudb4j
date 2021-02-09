@@ -13,13 +13,14 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
-package io.codenotary.immudb4j.crypto;
+package io.codenotary.immudb4j.exceptions;
 
 public class VerificationException extends Exception {
 
-  private String message;
+  private static final long serialVersionUID = 1L;
 
   public VerificationException(String message) {
-    this.message = message;
+    super(message);
   }
+
 }
