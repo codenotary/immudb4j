@@ -1,3 +1,18 @@
+/*
+Copyright 2019-2021 vChain, Inc.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+	http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
 package io.codenotary.immudb4j.crypto;
 
 import java.math.BigInteger;
@@ -9,11 +24,12 @@ import io.codenotary.immudb4j.Utils;
 /**
  * This is a hash tree implementation.<br/>
  * It is closely based on the Go version that is part of immudb 0.9 Go SDK.
+ * @author devisions
  */
 public class HTree {
 
-    private byte[][][] levels;
-    private int maxWidth;
+    private final byte[][][] levels;
+    private final int maxWidth;
     private int width;
     private byte[] root;
 
@@ -85,8 +101,7 @@ public class HTree {
      * Get the root of the tree.
      * 
      * @return A 32-long array of bytes.
-     * @throws IllegalStateException when internal state (width) is not ready to
-     *                               report it.
+     * @throws IllegalStateException when internal state (width) is zero.
      */
     public byte[] root() throws IllegalStateException {
         if (width == 0) {
@@ -109,7 +124,8 @@ public class HTree {
         }
         int m = i;
         int n = width;
-        int offset = 0, l = 0, r = 0;
+        int offset = 0;
+        int l, r;
 
         if (width == 1) {
             return new InclusionProof(i, width, null);
@@ -180,8 +196,8 @@ public class HTree {
 
     @Override
     public String toString() {
-        StringBuffer sb = new StringBuffer();
-        String tab = "";
+        StringBuilder sb = new StringBuilder();
+        String tab;
         for (int i = levels.length - 1; i >= 0; i--) {
             sb.append(Strings.repeat("  ", (1 << i) - 1));
             tab = Strings.repeat("  ", (1 << (i + 1)) - 1);
