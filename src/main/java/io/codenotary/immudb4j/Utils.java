@@ -17,7 +17,6 @@ package io.codenotary.immudb4j;
 
 public class Utils {
 
-
     public static int countBits(int number) {
 
         if (number == 0) {
@@ -40,8 +39,8 @@ public class Utils {
         return true;
     }
 
-    private final static char[] HEX = new char[] {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9',
-            'A', 'B', 'C', 'D', 'E', 'F'};
+    private final static char[] HEX = new char[] { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D',
+            'E', 'F' };
 
     /** Convert the bytes to a base 16 string. */
     public static String convertBase16(byte[] byteArray) {
@@ -50,6 +49,18 @@ public class Utils {
             for (int j = 1; j >= 0; j--)
                 hexBuffer.append(HEX[(b >> (j * 4)) & 0xF]);
         return hexBuffer.toString();
+    }
+
+    public static String toString(byte[] data) {
+        StringBuilder sb = new StringBuilder("{");
+        for (int i = 0; i < data.length; i++) {
+            sb.append(data[i]);
+            if (i < data.length - 1) {
+                sb.append(", ");
+            }
+        }
+        sb.append("}");
+        return sb.toString();
     }
 
 }
