@@ -15,6 +15,10 @@ limitations under the License.
 */
 package io.codenotary.immudb4j;
 
+import com.google.protobuf.ByteString;
+
+import java.util.List;
+
 public class Utils {
 
     public static int countBits(int number) {
@@ -44,6 +48,7 @@ public class Utils {
 
     /** Convert the bytes to a base 16 string. */
     public static String convertBase16(byte[] byteArray) {
+
         StringBuilder hexBuffer = new StringBuilder(byteArray.length * 2);
         for (byte b : byteArray)
             for (int j = 1; j >= 0; j--)
@@ -52,6 +57,7 @@ public class Utils {
     }
 
     public static String toString(byte[] data) {
+
         StringBuilder sb = new StringBuilder("{");
         for (int i = 0; i < data.length; i++) {
             sb.append(data[i]);
@@ -61,6 +67,21 @@ public class Utils {
         }
         sb.append("}");
         return sb.toString();
+    }
+
+    /** Convert the list of SHA256 (32-length) bytes to a primitive byte[][]. */
+    public static byte[][] convertSha256ListToBytesArray(List<ByteString> data) {
+
+        if (data == null) {
+            return null;
+        }
+        int size = data.size();
+        byte[][] result = new byte[size][32];
+        for (int i = 0; i < size; i++) {
+            byte[] item = data.get(i).toByteArray();
+            System.arraycopy(item, 0, result[i], 0, item.length);
+        }
+        return result;
     }
 
 }

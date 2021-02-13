@@ -15,6 +15,7 @@ limitations under the License.
 */
 package io.codenotary.immudb4j.crypto;
 
+import io.codenotary.immudb.ImmudbProto;
 import io.codenotary.immudb4j.Utils;
 
 public class InclusionProof {
@@ -46,6 +47,10 @@ public class InclusionProof {
         }
         sb.append("]");
         return sb.toString();
+    }
+
+    public static InclusionProof valueOf(ImmudbProto.InclusionProof proof) {
+        return new InclusionProof(proof.getLeaf(), proof.getWidth(), CryptoUtils.digestsFrom(proof.getTermsList()));
     }
 
 }
