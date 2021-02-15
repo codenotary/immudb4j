@@ -15,26 +15,21 @@ limitations under the License.
 */
 package io.codenotary.immudb4j;
 
-import org.testng.annotations.BeforeClass;
+public class Constants {
 
-import java.io.IOException;
+    /**
+     * HTree's byte prefix of a leaf's digest.
+     */
+    public static final byte LEAF_PREFIX = 0;
 
-public abstract class ImmuClientIntegrationTest {
+    /**
+     * HTree's byte prefix of a node (non-leaf)'s digest.
+     */
+    public static final byte NODE_PREFIX = 1;
 
-  protected static ImmuClient immuClient;
-
-  @BeforeClass
-  public static void beforeClass() throws IOException {
-    FileImmuStateHolder stateHolder = FileImmuStateHolder.newBuilder()
-            .setStatesFolder("immudb/states")
-            .build();
-
-    immuClient = ImmuClient.newBuilder()
-            .setStateHolder(stateHolder)
-            .setServerUrl("localhost")
-            .setServerPort(3322)
-            .setWithAuthToken(true)
-            .build();
-  }
+    /**
+     * The size (in bytes) of the transaction ID data type.
+     */
+    public static final int TX_ID_SIZE = 8;
 
 }

@@ -21,10 +21,7 @@ import com.google.protobuf.InvalidProtocolBufferException;
 import io.codenotary.immudb.ImmuServiceGrpc;
 import io.codenotary.immudb.ImmudbProto;
 import io.codenotary.immudb.ImmudbProto.ScanRequest;
-import io.codenotary.immudb4j.crypto.CryptoUtils;
-import io.codenotary.immudb4j.crypto.DualProof;
-import io.codenotary.immudb4j.crypto.ImmutableState;
-import io.codenotary.immudb4j.crypto.InclusionProof;
+import io.codenotary.immudb4j.crypto.*;
 import io.codenotary.immudb4j.exceptions.CorruptedDataException;
 import io.codenotary.immudb4j.exceptions.VerificationException;
 import io.codenotary.immudb4j.user.Permission;
@@ -50,10 +47,10 @@ public class ImmuClient {
     private static final String AUTH_HEADER = "authorization";
     private final ImmuServiceGrpc.ImmuServiceBlockingStub stub;
     private final boolean withAuthToken;
-    private final ImmutableStateHolder stateHolder;
+    private final ImmuStateHolder stateHolder;
     private ManagedChannel channel;
     private String authToken;
-    private String activeDatabase = "defaultdb";
+    private String currentDb = "defaultdb";
 
     public ImmuClient(Builder builder) {
         this.stub = createStubFrom(builder);
@@ -113,24 +110,23 @@ public class ImmuClient {
      * Get the locally saved state of the active database.
      * If nothing exists already, it fetches from the server and save it locally.
      */
-    public ImmutableState state() {
-        if (stateHolder.getState(activeDatabase) == null) {
-            Empty empty = com.google.protobuf.Empty.getDefaultInstance();
-            ImmudbProto.ImmutableState state = getStub().currentState(empty);
-            ImmutableState currState = new ImmutableState(
-                    activeDatabase,
-                    state.getTxId(),
-                    state.getTxHash().toByteArray()
-            );
+    public ImmuState state() {
+        if (stateHolder.getState(currentDb) == null) {
+            ImmuState currState = remoteState();
             stateHolder.setState(currState);
         }
-        return stateHolder.getState(activeDatabase);
+        return stateHolder.getState(currentDb);
     }
 
-    public ImmutableState remoteState() {
+    public ImmuState remoteState() {
         Empty empty = com.google.protobuf.Empty.getDefaultInstance();
         ImmudbProto.ImmutableState state = getStub().currentState(empty);
-        return new ImmutableState(activeDatabase, state.getTxId(), state.getTxHash().toByteArray());
+        return new ImmuState(
+                currentDb,
+                state.getTxId(),
+                state.getTxHash().toByteArray(),
+                state.getSignature().toByteArray()
+        );
     }
 
     // ========== DATABASE ==========
@@ -145,7 +141,7 @@ public class ImmuClient {
         ImmudbProto.Database db = ImmudbProto.Database.newBuilder().setDatabasename(database).build();
         ImmudbProto.UseDatabaseReply response = getStub().useDatabase(db);
         authToken = response.getToken();
-        activeDatabase = database;
+        currentDb = database;
     }
 
     public List<String> databases() {
@@ -228,7 +224,7 @@ public class ImmuClient {
     // return rawGet(key.getBytes(StandardCharsets.UTF_8));
     // }
 
-    public byte[] verifiedGet(byte[] key, ImmutableState state)
+    public byte[] verifiedGet(byte[] key, ImmuState state)
             throws VerificationException, InvalidProtocolBufferException {
         // ImmudbProto.Index index =
         // ImmudbProto.Index.newBuilder().setIndex(state.getIndex()).build();
@@ -251,12 +247,12 @@ public class ImmuClient {
         ImmudbProto.KeyRequest keyReq = ImmudbProto.KeyRequest
                 .newBuilder()
                 .setKey(ByteString.copyFrom(key))
-                .setSinceTx(state.getTxId())
+                .setSinceTx(state.txId)
                 .build();
         ImmudbProto.VerifiableGetRequest verifGetReq = ImmudbProto.VerifiableGetRequest
                 .newBuilder()
                 .setKeyRequest(keyReq)
-                .setProveSinceTx(state.getTxId())
+                .setProveSinceTx(state.txId)
                 .build();
         ImmudbProto.VerifiableEntry vEntry = getStub().verifiableGet(verifGetReq);
 
@@ -275,17 +271,17 @@ public class ImmuClient {
         return vEntry.getEntry().getValue().toByteArray();
     }
 
-    public void verifiedGet(byte[] key) {
-        // TODO stateService.cacheLock()
+    public Entry verifiedGet(byte[] key) throws CorruptedDataException {
+        // TBD Anything like a Go's stateService.cacheLock() ?
 
-        ImmutableState state = stateHolder.getState(activeDatabase);
+        ImmuState state = stateHolder.getState(currentDb);
 
         ImmudbProto.KeyRequest keyReq = ImmudbProto.KeyRequest.newBuilder()
                 .setKey(ByteString.copyFrom(key))
                 .build();
         ImmudbProto.VerifiableGetRequest vGetReq = ImmudbProto.VerifiableGetRequest.newBuilder()
                 .setKeyRequest(keyReq)
-                .setProveSinceTx(state.getTxId())
+                .setProveSinceTx(state.txId)
                 .build();
         ImmudbProto.VerifiableEntry vEntry = getStub().verifiableGet(vGetReq);
         InclusionProof inclusionProof = InclusionProof.valueOf(vEntry.getInclusionProof());
@@ -308,18 +304,43 @@ public class ImmuClient {
             kv = CryptoUtils.encodeReference(entryRefBy.getKey().toByteArray(), entry.getKey().toByteArray(), entryRefBy.getAtTx());
         }
 
-        if (state.getTxId() <= vTx) {
+        if (state.txId <= vTx) {
             eh = CryptoUtils.digestFrom(vEntry.getVerifiableTx().getDualProof().getTargetTxMetadata().getEH().toByteArray());
 
-            sourceId = state.getTxId();
-            sourceAlh = CryptoUtils.digestFrom(state.getTxHash());
+            sourceId = state.txId;
+            sourceAlh = CryptoUtils.digestFrom(state.txHash);
             targetId = vTx;
-            targetAlh = dualProof.targetTxMetadata.alh;
+            targetAlh = dualProof.targetTxMetadata.alh();
         } else {
-            // to be cont'd
-            // (pkg/client/client.go line 584)
+            eh = CryptoUtils.digestFrom(vEntry.getVerifiableTx().getDualProof().getSourceTxMetadata().getEH().toByteArray());
+
+            sourceId = vTx;
+            sourceAlh = dualProof.sourceTxMetadata.alh();
+            targetId = state.txId;
+            targetAlh = CryptoUtils.digestFrom(state.txHash);
         }
 
+        boolean verifies = CryptoUtils.verifyInclusion(inclusionProof, kv.digest(), eh);
+        if (!verifies) {
+            throw new CorruptedDataException();
+        }
+
+        if (state.txId > 0) {
+            if (!CryptoUtils.verifyDualProof(
+                    dualProof,
+                    sourceId,
+                    targetId,
+                    sourceAlh,
+                    targetAlh
+            )) {
+                throw new CorruptedDataException();
+            }
+        }
+        byte[] signature = vEntry.getVerifiableTx().getSignature().toByteArray();
+        // TODO pkg/client/client.go:614
+        ImmuState newState = new ImmuState(currentDb, targetId, targetAlh, signature);
+
+        return null;
     }
 
     // ========== HISTORY ==========
@@ -331,17 +352,14 @@ public class ImmuClient {
     public List<KV> history(byte[] key, int limit, long offset, boolean reverse) {
         ImmudbProto.Entries entries;
         try {
-            entries =
-                    getStub()
-                            .history(
-                                    ImmudbProto.HistoryRequest
-                                            .newBuilder()
-                                            .setKey(ByteString.copyFrom(key))
-                                            .setLimit(limit)
-                                            .setOffset(offset)
-                                            .setDesc(reverse)
-                                            .build()
-                            );
+            entries = getStub().history(ImmudbProto.HistoryRequest
+                    .newBuilder()
+                    .setKey(ByteString.copyFrom(key))
+                    .setLimit(limit)
+                    .setOffset(offset)
+                    .setDesc(reverse)
+                    .build()
+            );
         } catch (StatusRuntimeException e) {
             return new ArrayList<KV>(0);
         }
@@ -454,7 +472,7 @@ public class ImmuClient {
     }
 
     public List<KV> zScan(byte[] set, long limit, boolean reverse) {
-        return zScan(set, limit, reverse);
+        return zScan(set, 1, limit, reverse);
     }
 
     public List<KV> zScan(byte[] set, long sinceTxId, long limit, boolean reverse) {
@@ -615,12 +633,12 @@ public class ImmuClient {
 
         private boolean withAuthToken;
 
-        private ImmutableStateHolder stateHolder;
+        private ImmuStateHolder stateHolder;
 
         private Builder() {
             this.serverUrl = "localhost";
             this.serverPort = 3322;
-            this.stateHolder = new SerializableImmutableStateHolder();
+            this.stateHolder = new SerializableImmuStateHolder();
             this.withAuthToken = true;
         }
 
@@ -655,11 +673,11 @@ public class ImmuClient {
             return this;
         }
 
-        public ImmutableStateHolder getStateHolder() {
+        public ImmuStateHolder getStateHolder() {
             return stateHolder;
         }
 
-        public Builder setStateHolder(ImmutableStateHolder stateHolder) {
+        public Builder setStateHolder(ImmuStateHolder stateHolder) {
             this.stateHolder = stateHolder;
             return this;
         }

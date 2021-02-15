@@ -18,6 +18,7 @@ package io.codenotary.immudb4j;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.security.NoSuchAlgorithmException;
+
 import org.testng.Assert;
 import org.testng.annotations.Test;
 import io.codenotary.immudb4j.crypto.CryptoUtils;
@@ -27,118 +28,98 @@ import io.codenotary.immudb4j.exceptions.MaxWidthExceededException;
 
 public class HTreeTest {
 
-  @Test(expectedExceptions = IllegalArgumentException.class)
-  public void t1() {
+    @Test(expectedExceptions = IllegalArgumentException.class)
+    public void t1() {
 
-    new HTree(0);
-  }
-
-  @Test(expectedExceptions = IllegalStateException.class)
-  public void t2() {
-
-    final int maxWidth = 1000;
-
-    HTree tree = new HTree(maxWidth);
-    Assert.assertNotNull(tree);
-
-    tree.root();
-  }
-
-  @Test
-  public void t3() {
-
-    final int maxWidth = 1000;
-
-    HTree tree = new HTree(maxWidth);
-
-    byte[][] digests = new byte[maxWidth][32];
-
-    for (int i = 0; i < digests.length; i++) {
-      ByteBuffer bb = ByteBuffer.allocate(8).order(ByteOrder.BIG_ENDIAN).putLong(i);
-      digests[i] = CryptoUtils.digest(bb.array());
+        new HTree(0);
     }
 
-    try {
-      tree.buildWith(digests);
-    } catch (IllegalArgumentException | MaxWidthExceededException | NoSuchAlgorithmException e) {
-      Assert.fail("Got exception while building the tree.", e);
+    @Test(expectedExceptions = IllegalStateException.class)
+    public void t2() {
+
+        final int maxWidth = 1000;
+
+        HTree tree = new HTree(maxWidth);
+        Assert.assertNotNull(tree);
+
+        tree.root();
     }
 
-    byte[] root = null;
-    try {
-      root = tree.root();
-    } catch (IllegalStateException e) {
-      Assert.fail("Got exception getting the root of the tree.", e);
+    @Test
+    public void t3() {
+
+        final int maxWidth = 1000;
+
+        HTree tree = new HTree(maxWidth);
+
+        byte[][] digests = new byte[maxWidth][32];
+
+        for (int i = 0; i < digests.length; i++) {
+            ByteBuffer bb = ByteBuffer.allocate(8).order(ByteOrder.BIG_ENDIAN).putLong(i);
+            digests[i] = CryptoUtils.sha256Sum(bb.array());
+        }
+
+        try {
+            tree.buildWith(digests);
+        } catch (IllegalArgumentException | MaxWidthExceededException | NoSuchAlgorithmException e) {
+            Assert.fail("Got exception while building the tree.", e);
+        }
+
+        byte[] root = null;
+        try {
+            root = tree.root();
+        } catch (IllegalStateException e) {
+            Assert.fail("Got exception getting the root of the tree.", e);
+        }
+
+        for (int i = 0; i < digests.length; i++) {
+
+            InclusionProof proof = null;
+            try {
+                proof = tree.inclusionProof(i);
+            } catch (IllegalArgumentException e) {
+                Assert.fail(String.format("Got exception while calling inclusionProof(%d).", i), e);
+            }
+            Assert.assertNotNull(proof);
+
+            Assert.assertTrue(CryptoUtils.verifyInclusion(proof, digests[i], root));
+
+            Assert.assertFalse(CryptoUtils.verifyInclusion(proof, CryptoUtils.sha256Sum(digests[i]), root));
+
+            Assert.assertFalse(CryptoUtils.verifyInclusion(proof, digests[i], CryptoUtils.sha256Sum(root)));
+
+            InclusionProof incompleteProof = new InclusionProof(proof.leaf, proof.width, null);
+            Assert.assertFalse(CryptoUtils.verifyInclusion(incompleteProof, digests[i], root));
+
+            Assert.assertFalse(CryptoUtils.verifyInclusion(null, digests[i], root));
+
+        }
+
+        try {
+            tree.buildWith(null);
+            Assert.fail("Tree buildWith(null) did not throw an exception.");
+        } catch (IllegalArgumentException e) {
+            // all good if it got here.
+        } catch (MaxWidthExceededException | NoSuchAlgorithmException e) {
+            Assert.fail("Tree buildWith(null) threw a wrong exception.");
+        }
+
+        try {
+            tree.buildWith(new byte[maxWidth + 1][32]);
+            Assert.fail("Tree buildWith(maxWidth+1) must throw an exception.");
+        } catch (IllegalArgumentException | NoSuchAlgorithmException e) {
+            Assert.fail("Tree buildWith(maxWidth+1) threw a wrong exception.");
+        } catch (MaxWidthExceededException e) {
+            // all good if it got here.
+        }
+
+        try {
+            tree.inclusionProof(maxWidth);
+            Assert.fail("Tree inclusionProof(maxWidth) did not throw an exception.");
+        } catch (IllegalArgumentException e) {
+            // all good if it got here.
+        }
+
     }
-
-    for (int i = 0; i < digests.length; i++) {
-
-      InclusionProof proof = null;
-      try {
-        proof = tree.inclusionProof(i);
-      } catch (IllegalArgumentException e) {
-        Assert.fail(String.format("Got exception while calling inclusionProof(%d).", i), e);
-      }
-      Assert.assertNotNull(proof);
-
-      try {
-        Assert.assertTrue(tree.verifyInclusion(proof, digests[i], root));
-      } catch (NoSuchAlgorithmException e) {
-        Assert.fail("Got exception while calling verifyInclusion on 1st test.", e);
-      }
-
-      try {
-        Assert.assertFalse(tree.verifyInclusion(proof, CryptoUtils.digest(digests[i]), root));
-      } catch (NoSuchAlgorithmException e) {
-        Assert.fail("Got exception while calling verifyInclusion on 2nd test.", e);
-      }
-
-      try {
-        Assert.assertFalse(tree.verifyInclusion(proof, digests[i], CryptoUtils.digest(root)));
-      } catch (NoSuchAlgorithmException e) {
-        Assert.fail("Got exception while calling verifyInclusion on 3rd test.", e);
-      }
-
-      try {
-        InclusionProof incompleteProof = new InclusionProof(proof.leaf, proof.width, null);
-        Assert.assertFalse(tree.verifyInclusion(incompleteProof, digests[i], root));
-      } catch (NoSuchAlgorithmException e) {
-        Assert.fail("Got exception while calling verifyInclusion on 4th test.", e);
-      }
-
-      try {
-        Assert.assertFalse(tree.verifyInclusion(null, digests[i], root));
-      } catch (NoSuchAlgorithmException e) {
-        Assert.fail("Got exception while calling verifyInclusion on 5th test.", e);
-      }
-
-    }
-
-    try {
-      tree.buildWith(null);
-      Assert.fail("Tree buildWith(null) did not throw an exception.");
-    } catch (IllegalArgumentException e) {
-      // all good if it got here.
-    } catch (MaxWidthExceededException | NoSuchAlgorithmException e) {
-      Assert.fail("Tree buildWith(null) threw a wrong exception.");
-    }
-
-    try {
-      tree.buildWith(new byte[maxWidth + 1][32]);
-      Assert.fail("Tree buildWith(maxWidth+1) must throw an exception.");
-    } catch (IllegalArgumentException | NoSuchAlgorithmException e) {
-      Assert.fail("Tree buildWith(maxWidth+1) threw a wrong exception.");
-    } catch (MaxWidthExceededException e) {
-      // all good if it got here.
-    }
-
-    try {
-      tree.inclusionProof(maxWidth);
-      Assert.fail("Tree inclusionProof(maxWidth) did not throw an exception.");
-    } catch (IllegalArgumentException e) {
-      // all good if it got here.
-    }
-
-  }
 
 }

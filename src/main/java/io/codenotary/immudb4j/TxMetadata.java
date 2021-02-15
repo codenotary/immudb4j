@@ -18,40 +18,45 @@ package io.codenotary.immudb4j;
 import io.codenotary.immudb.ImmudbProto;
 import io.codenotary.immudb4j.crypto.CryptoUtils;
 
-import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.List;
-
 public class TxMetadata {
-
-    private static final int TX_ID_SIZE = 8;
 
     public final long id;
     public final byte[] prevAlh;
-    public final byte[] alh;
-    public final long timestamp;
+    public final long ts;
     public final int nEntries;
     public final byte[] eh;
     public final long blTxId;
     public final byte[] blRoot;
 
-    public TxMetadata(long id, byte[] prevAlh, long timestamp, int nEntries,
+    private static final int TS_SIZE = 8;
+
+    public TxMetadata(long id, byte[] prevAlh, long ts, int nEntries,
                       byte[] eh, long blTxId, byte[] blRoot) {
         this.id = id;
         this.prevAlh = prevAlh;
-        this.timestamp = timestamp;
+        this.ts = ts;
         this.nEntries = nEntries;
         this.eh = eh;
         this.blTxId = blTxId;
         this.blRoot = blRoot;
-        this.alh = buildAlh();
     }
 
-    private byte[] buildAlh() {
-        byte[] bi = new byte[TX_ID_SIZE + 2 * CryptoUtils.SHA256_SIZE];
-        // to be cont'd
-        // (embedded/store/tx.go line 93)
-        return null;
+    public byte[] alh() {
+        byte[] bi = new byte[Constants.TX_ID_SIZE + 2 * CryptoUtils.SHA256_SIZE];
+
+        Utils.putUint64(id, bi);
+        System.arraycopy(prevAlh, 0, bi, Constants.TX_ID_SIZE, prevAlh.length);
+
+        byte[] bj = new byte[TS_SIZE + 4 + CryptoUtils.SHA256_SIZE + Constants.TX_ID_SIZE + CryptoUtils.SHA256_SIZE];
+        Utils.putUint64(ts, bj);
+        Utils.putUint32(nEntries, bj, TS_SIZE);
+        System.arraycopy(eh, 0, bj, TS_SIZE + 4, eh.length);
+        Utils.putUint64(blTxId, bj, TS_SIZE + 4 + CryptoUtils.SHA256_SIZE);
+        byte[] innerHash = CryptoUtils.sha256Sum(bj);
+
+        System.arraycopy(innerHash, 0, bi, Constants.TX_ID_SIZE + CryptoUtils.SHA256_SIZE, innerHash.length);
+
+        return CryptoUtils.sha256Sum(bi);
     }
 
     public static TxMetadata valueOf(ImmudbProto.TxMetadata txMd) {

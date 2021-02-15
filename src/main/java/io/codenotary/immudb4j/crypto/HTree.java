@@ -17,13 +17,16 @@ package io.codenotary.immudb4j.crypto;
 
 import java.math.BigInteger;
 import java.security.NoSuchAlgorithmException;
+
 import com.google.common.base.Strings;
+import io.codenotary.immudb4j.Constants;
 import io.codenotary.immudb4j.exceptions.MaxWidthExceededException;
 import io.codenotary.immudb4j.Utils;
 
 /**
  * This is a hash tree implementation.<br/>
  * It is closely based on the Go version that is part of immudb 0.9 Go SDK.
+ *
  * @author devisions
  */
 public class HTree {
@@ -32,9 +35,6 @@ public class HTree {
     private final int maxWidth;
     private int width;
     private byte[] root;
-
-    public static final byte LeafPrefix = 0;
-    public static final byte NodePrefix = 1;
 
     public HTree(int maxWidth) throws IllegalArgumentException {
 
@@ -68,9 +68,9 @@ public class HTree {
 
         for (int i = 0; i < digests.length; i++) {
             byte[] leaf = new byte[33]; // 33 = 32 (sha256.Size) + 1
-            leaf[0] = LeafPrefix;
+            leaf[0] = Constants.LEAF_PREFIX;
             System.arraycopy(digests[i], 0, leaf, 1, digests[i].length);
-            levels[0][i] = CryptoUtils.digest(leaf);
+            levels[0][i] = CryptoUtils.sha256Sum(leaf);
         }
 
         int l = 0;
@@ -78,12 +78,12 @@ public class HTree {
 
         while (w > 1) {
             byte[] b = new byte[65]; // 65 = 2 x 32 (sha256.Size) + 1
-            b[0] = NodePrefix;
+            b[0] = Constants.NODE_PREFIX;
             int wn = 0;
             for (int i = 0; i + 1 < w; i += 2) {
                 System.arraycopy(levels[l][i], 0, b, 1, levels[l][i].length);
                 System.arraycopy(levels[l][i + 1], 0, b, 33, levels[l][i].length);
-                levels[l + 1][wn] = CryptoUtils.digest(b);
+                levels[l + 1][wn] = CryptoUtils.sha256Sum(b);
                 wn++;
             }
             if (w % 2 == 1) {
@@ -99,7 +99,7 @@ public class HTree {
 
     /**
      * Get the root of the tree.
-     * 
+     *
      * @return A 32-long array of bytes.
      * @throws IllegalStateException when internal state (width) is zero.
      */
@@ -114,10 +114,11 @@ public class HTree {
      * InclusionProof returns the shortest list of additional nodes required to
      * compute the root. It's an adaption of the algorithm for proof construction
      * that exists at github.com/codenotary/merkletree.
-     * 
+     *
      * @param i Index of the node from which the inclusion proof will be provided.
      */
     public InclusionProof inclusionProof(int i) throws IllegalArgumentException {
+
         if (i >= width) {
             throw new IllegalArgumentException(String
                     .format("Provided index (%d) is higher then the tree's width (%d).", i, width));
@@ -160,39 +161,7 @@ public class HTree {
         }
     }
 
-    public boolean verifyInclusion(InclusionProof proof, byte[] digest, byte[] root)
-            throws NoSuchAlgorithmException {
 
-        if ((proof == null) || (proof.terms == null)) {
-            return false;
-        }
-
-        byte[] leaf = new byte[33];
-        leaf[0] = LeafPrefix;
-        System.arraycopy(digest, 0, leaf, 1, digest.length);
-        byte[] calcRoot = CryptoUtils.digest(leaf);
-        int i = proof.leaf;
-        int r = proof.width - 1;
-
-        for (int j = 0; j < proof.terms.length; j++) {
-            byte[] b = new byte[65]; // 65 = 1 + 2*32
-            b[0] = NodePrefix;
-
-            if (i % 2 == 0 && i != r) {
-                System.arraycopy(calcRoot, 0, b, 1, 32);
-                System.arraycopy(proof.terms[j], 0, b, 33, 32);
-            } else {
-                System.arraycopy(proof.terms[j], 0, b, 1, 32);
-                System.arraycopy(calcRoot, 0, b, 33, 32);
-            }
-
-            calcRoot = CryptoUtils.digest(b);
-            i /= 2;
-            r /= 2;
-        }
-
-        return i == r && Utils.haveSameEntries(root, calcRoot);
-    }
 
     @Override
     public String toString() {

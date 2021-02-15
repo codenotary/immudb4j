@@ -16,12 +16,10 @@ limitations under the License.
 package io.codenotary.immudb4j;
 
 
-import io.codenotary.immudb4j.crypto.ImmutableState;
+public interface ImmuStateHolder {
 
-public interface ImmutableStateHolder {
+    ImmuState getState(String database);
 
-    ImmutableState getState(String database);
-
-    void setState(ImmutableState state);
+    void setState(ImmuState state);
 
 }

@@ -17,7 +17,6 @@ package io.codenotary.immudb4j;
 
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
-import io.codenotary.immudb4j.crypto.ImmutableState;
 
 import java.io.*;
 import java.lang.reflect.Type;
@@ -25,15 +24,15 @@ import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
 
-public class SerializableImmutableStateHolder implements ImmutableStateHolder {
+public class SerializableImmuStateHolder implements ImmuStateHolder {
 
-    private Map<String, ImmutableState> statesMap = new HashMap<>();
+    private Map<String, ImmuState> statesMap = new HashMap<>();
 
     public void readFrom(InputStream is) {
         Gson gson = new Gson();
         Reader reader = new InputStreamReader(is, StandardCharsets.UTF_8);
 
-        Type type = new TypeToken<HashMap<String, ImmutableState>>() {
+        Type type = new TypeToken<HashMap<String, ImmuState>>() {
         }.getType();
         statesMap = gson.fromJson(reader, type);
     }
@@ -44,13 +43,13 @@ public class SerializableImmutableStateHolder implements ImmutableStateHolder {
     }
 
     @Override
-    public ImmutableState getState(String database) {
+    public ImmuState getState(String database) {
         return this.statesMap.get(database);
     }
 
     @Override
-    public void setState(ImmutableState state) {
-        this.statesMap.put(state.getDatabase(), state);
+    public void setState(ImmuState state) {
+        this.statesMap.put(state.database, state);
     }
 
 }

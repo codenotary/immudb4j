@@ -17,6 +17,8 @@ package io.codenotary.immudb4j;
 
 import com.google.protobuf.ByteString;
 
+import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
 import java.util.List;
 
 public class Utils {
@@ -30,23 +32,12 @@ public class Utils {
         return (int) (Math.log(number) / Math.log(2) + 1);
     }
 
-    public static boolean haveSameEntries(byte[] a, byte[] b) {
+    private final static char[] HEX = new char[]{'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D',
+            'E', 'F'};
 
-        if (a == null || b == null || a.length != b.length) {
-            return false;
-        }
-        for (int i = 0; i < a.length; i++) {
-            if (a[i] != b[i]) {
-                return false;
-            }
-        }
-        return true;
-    }
-
-    private final static char[] HEX = new char[] { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D',
-            'E', 'F' };
-
-    /** Convert the bytes to a base 16 string. */
+    /**
+     * Convert the bytes to a base 16 string.
+     */
     public static String convertBase16(byte[] byteArray) {
 
         StringBuilder hexBuffer = new StringBuilder(byteArray.length * 2);
@@ -69,7 +60,9 @@ public class Utils {
         return sb.toString();
     }
 
-    /** Convert the list of SHA256 (32-length) bytes to a primitive byte[][]. */
+    /**
+     * Convert the list of SHA256 (32-length) bytes to a primitive byte[][].
+     */
     public static byte[][] convertSha256ListToBytesArray(List<ByteString> data) {
 
         if (data == null) {
@@ -82,6 +75,27 @@ public class Utils {
             System.arraycopy(item, 0, result[i], 0, item.length);
         }
         return result;
+    }
+
+
+    public static void putUint32(int value, byte[] target, int targetIdx) {
+        // Considering gRPC's generated code that maps Go's uint32 and int32 to Java's int,
+        // this is basically the Java version of this Go code:
+        // binary.BigEndian.PutUint32(target[targetIdx:], value)
+        byte[] valueBytes = ByteBuffer.allocate(4).order(ByteOrder.BIG_ENDIAN).putInt(value).array();
+        System.arraycopy(valueBytes, 0, target, targetIdx, valueBytes.length);
+    }
+
+    public static void putUint64(long value, byte[] target) {
+        putUint64(value, target, 0);
+    }
+
+    public static void putUint64(long value, byte[] target, int targetIdx) {
+        // Considering gRPC's generated code that maps Go's uint64 and int64 to Java's long,
+        // this is basically the Java version of this Go code:
+        // binary.BigEndian.PutUint64(target[targetIdx:], value)
+        byte[] valueBytes = ByteBuffer.allocate(8).order(ByteOrder.BIG_ENDIAN).putLong(value).array();
+        System.arraycopy(valueBytes, 0, target, targetIdx, valueBytes.length);
     }
 
 }

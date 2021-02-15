@@ -15,8 +15,6 @@ limitations under the License.
 */
 package io.codenotary.immudb4j;
 
-import io.codenotary.immudb4j.crypto.ImmutableState;
-
 import java.io.BufferedWriter;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -24,15 +22,15 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 
-public class FileImmutableStateHolder implements ImmutableStateHolder {
+public class FileImmuStateHolder implements ImmuStateHolder {
 
     private final Path statesFolder;
     private final Path currentStateFile;
     private Path stateHolderFile;
 
-    private final SerializableImmutableStateHolder stateHolder;
+    private final SerializableImmuStateHolder stateHolder;
 
-    private FileImmutableStateHolder(Builder builder) throws IOException {
+    private FileImmuStateHolder(Builder builder) throws IOException {
         statesFolder = Paths.get(builder.getStatesFolder());
 
         if (Files.notExists(statesFolder)) {
@@ -45,7 +43,7 @@ public class FileImmutableStateHolder implements ImmutableStateHolder {
             Files.createFile(currentStateFile);
         }
 
-        stateHolder = new SerializableImmutableStateHolder();
+        stateHolder = new SerializableImmuStateHolder();
 
         String lastRootFilename = new String(Files.readAllBytes(currentStateFile));
 
@@ -61,15 +59,15 @@ public class FileImmutableStateHolder implements ImmutableStateHolder {
     }
 
     @Override
-    public synchronized ImmutableState getState(String database) {
+    public synchronized ImmuState getState(String database) {
         return stateHolder.getState(database);
     }
 
     @Override
-    public synchronized void setState(ImmutableState state) {
-        ImmutableState currentState = stateHolder.getState(state.getDatabase());
+    public synchronized void setState(ImmuState state) {
+        ImmuState currentState = stateHolder.getState(state.database);
 
-        if (currentState != null && currentState.getTxId() >= state.getTxId()) {
+        if (currentState != null && currentState.txId >= state.txId) {
             return;
         }
 
@@ -113,8 +111,8 @@ public class FileImmutableStateHolder implements ImmutableStateHolder {
             statesFolder = "states";
         }
 
-        public FileImmutableStateHolder build() throws IOException {
-            return new FileImmutableStateHolder(this);
+        public FileImmuStateHolder build() throws IOException {
+            return new FileImmuStateHolder(this);
         }
 
         public Builder setStatesFolder(String statesFolder) {

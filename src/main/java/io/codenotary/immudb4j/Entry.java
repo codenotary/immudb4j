@@ -15,26 +15,16 @@ limitations under the License.
 */
 package io.codenotary.immudb4j;
 
-import org.testng.annotations.BeforeClass;
+public class Entry {
 
-import java.io.IOException;
+    public final Tx tx;
+    public final KV kv;
+    public final Reference referencedBy;
 
-public abstract class ImmuClientIntegrationTest {
-
-  protected static ImmuClient immuClient;
-
-  @BeforeClass
-  public static void beforeClass() throws IOException {
-    FileImmuStateHolder stateHolder = FileImmuStateHolder.newBuilder()
-            .setStatesFolder("immudb/states")
-            .build();
-
-    immuClient = ImmuClient.newBuilder()
-            .setStateHolder(stateHolder)
-            .setServerUrl("localhost")
-            .setServerPort(3322)
-            .setWithAuthToken(true)
-            .build();
-  }
+    public Entry(Tx tx, KV kv, Reference referencedBy) {
+        this.tx = tx;
+        this.kv = kv;
+        this.referencedBy = referencedBy;
+    }
 
 }

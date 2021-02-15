@@ -16,6 +16,10 @@ limitations under the License.
 package io.codenotary.immudb4j;
 
 public interface KV {
+
     byte[] getKey();
     byte[] getValue();
+
+    byte[] digest();
+
 }

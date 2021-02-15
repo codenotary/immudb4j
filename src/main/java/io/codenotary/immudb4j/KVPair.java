@@ -16,6 +16,7 @@ limitations under the License.
 package io.codenotary.immudb4j;
 
 import io.codenotary.immudb.ImmudbProto;
+import io.codenotary.immudb4j.crypto.CryptoUtils;
 
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
@@ -54,6 +55,18 @@ public class KVPair implements KV {
     @Override
     public byte[] getValue() {
         return this.value;
+    }
+
+    @Override
+    public byte[] digest() {
+        byte[] b = new byte[key.length + CryptoUtils.SHA256_SIZE];
+
+        System.arraycopy(key, 0, b, 0, key.length);
+
+        byte[] hvalue = CryptoUtils.sha256Sum(value);
+        System.arraycopy(hvalue, 0, b, key.length, hvalue.length);
+
+        return CryptoUtils.sha256Sum(b);
     }
 
     @Override
