@@ -15,6 +15,8 @@ limitations under the License.
 */
 package io.codenotary.immudb4j;
 
+import java.security.PublicKey;
+
 /**
  * ImmuState represents the root of the Merkle Tree
  * that links all the transactions within a database.
@@ -31,6 +33,16 @@ public class ImmuState {
         this.txId = txId;
         this.txHash = txHash;
         this.signature = signature;
+    }
+
+    public boolean CheckSignature(PublicKey key) throws Exception {
+        if (signature == null) {
+            throw new Exception("ImmuState has no signature to check against");
+        }
+        // pkg/api/schema/state.go:50
+        // return signer.Verify(state.ToBytes(), state.Signature.Signature, key)
+        // TODO @dxps
+        return false;
     }
 
 }
