@@ -59,7 +59,7 @@ public class KVPair implements KV {
 
     @Override
     public byte[] digest() {
-        byte[] b = new byte[key.length + CryptoUtils.SHA256_SIZE];
+        byte[] b = new byte[key.length + Consts.SHA256_SIZE];
 
         System.arraycopy(key, 0, b, 0, key.length);
 

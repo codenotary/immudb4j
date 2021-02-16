@@ -19,7 +19,7 @@ import java.math.BigInteger;
 import java.security.NoSuchAlgorithmException;
 
 import com.google.common.base.Strings;
-import io.codenotary.immudb4j.Constants;
+import io.codenotary.immudb4j.Consts;
 import io.codenotary.immudb4j.exceptions.MaxWidthExceededException;
 import io.codenotary.immudb4j.Utils;
 
@@ -68,7 +68,7 @@ public class HTree {
 
         for (int i = 0; i < digests.length; i++) {
             byte[] leaf = new byte[33]; // 33 = 32 (sha256.Size) + 1
-            leaf[0] = Constants.LEAF_PREFIX;
+            leaf[0] = Consts.LEAF_PREFIX;
             System.arraycopy(digests[i], 0, leaf, 1, digests[i].length);
             levels[0][i] = CryptoUtils.sha256Sum(leaf);
         }
@@ -78,7 +78,7 @@ public class HTree {
 
         while (w > 1) {
             byte[] b = new byte[65]; // 65 = 2 x 32 (sha256.Size) + 1
-            b[0] = Constants.NODE_PREFIX;
+            b[0] = Consts.NODE_PREFIX;
             int wn = 0;
             for (int i = 0; i + 1 < w; i += 2) {
                 System.arraycopy(levels[l][i], 0, b, 1, levels[l][i].length);

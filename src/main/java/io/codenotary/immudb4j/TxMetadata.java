@@ -18,6 +18,8 @@ package io.codenotary.immudb4j;
 import io.codenotary.immudb.ImmudbProto;
 import io.codenotary.immudb4j.crypto.CryptoUtils;
 
+import java.util.Base64;
+
 public class TxMetadata {
 
     public final long id;
@@ -42,19 +44,20 @@ public class TxMetadata {
     }
 
     public byte[] alh() {
-        byte[] bi = new byte[Constants.TX_ID_SIZE + 2 * CryptoUtils.SHA256_SIZE];
+        byte[] bi = new byte[Consts.TX_ID_SIZE + 2 * Consts.SHA256_SIZE];
 
         Utils.putUint64(id, bi);
-        System.arraycopy(prevAlh, 0, bi, Constants.TX_ID_SIZE, prevAlh.length);
+        System.arraycopy(prevAlh, 0, bi, Consts.TX_ID_SIZE, prevAlh.length);
 
-        byte[] bj = new byte[TS_SIZE + 4 + CryptoUtils.SHA256_SIZE + Constants.TX_ID_SIZE + CryptoUtils.SHA256_SIZE];
+        byte[] bj = new byte[TS_SIZE + 4 + Consts.SHA256_SIZE + Consts.TX_ID_SIZE + Consts.SHA256_SIZE];
         Utils.putUint64(ts, bj);
         Utils.putUint32(nEntries, bj, TS_SIZE);
         System.arraycopy(eh, 0, bj, TS_SIZE + 4, eh.length);
-        Utils.putUint64(blTxId, bj, TS_SIZE + 4 + CryptoUtils.SHA256_SIZE);
+        Utils.putUint64(blTxId, bj, TS_SIZE + 4 + Consts.SHA256_SIZE);
+        System.arraycopy(blRoot, 0, bj, TS_SIZE + 4 + Consts.SHA256_SIZE + Consts.TX_ID_SIZE, blRoot.length);
         byte[] innerHash = CryptoUtils.sha256Sum(bj);
 
-        System.arraycopy(innerHash, 0, bi, Constants.TX_ID_SIZE + CryptoUtils.SHA256_SIZE, innerHash.length);
+        System.arraycopy(innerHash, 0, bi, Consts.TX_ID_SIZE + Consts.SHA256_SIZE, innerHash.length);
 
         return CryptoUtils.sha256Sum(bi);
     }
@@ -69,6 +72,26 @@ public class TxMetadata {
                 txMd.getBlTxId(),
                 txMd.getBlRoot().toByteArray()
         );
+    }
+
+    @Override
+    public String toString() {
+        Base64.Encoder enc = Base64.getEncoder();
+        byte[] alh = alh();
+        return "TxMetadata{" +
+                "id=" + id +
+                ", prevAlh=" + enc.encodeToString(prevAlh) +
+                ", prevAlh=" + Utils.toString(prevAlh) +
+                ", ts=" + ts +
+                ", nEntries=" + nEntries +
+                ", eh=" + enc.encodeToString(eh) +
+                ", eh=" + Utils.toString(eh) +
+                ", blTxId=" + blTxId +
+                ", blRoot=" + enc.encodeToString(blRoot) +
+                ", blRoot=" + Utils.toString(blRoot) +
+                ", alh=" + enc.encodeToString(alh) +
+                ", alh=" + Utils.toString(alh) +
+                '}';
     }
 
 }

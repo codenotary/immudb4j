@@ -51,7 +51,7 @@ public class FileImmuStateHolder implements ImmuStateHolder {
             stateHolderFile = statesFolder.resolve(lastRootFilename);
 
             if (Files.notExists(stateHolderFile)) {
-                throw new RuntimeException("Inconsistent current root file");
+                throw new RuntimeException("Inconsistent current state file");
             }
 
             stateHolder.readFrom(Files.newInputStream(stateHolderFile));

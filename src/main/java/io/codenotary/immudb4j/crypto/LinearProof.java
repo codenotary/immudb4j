@@ -38,4 +38,13 @@ public class LinearProof {
         );
     }
 
+    @Override
+    public String toString() {
+        return "LinearProof{" +
+                "sourceTxId=" + sourceTxId +
+                ", targetTxId=" + targetTxId +
+                ", terms=" + Utils.toStringAsBase64Values(terms) +
+                '}';
+    }
+
 }

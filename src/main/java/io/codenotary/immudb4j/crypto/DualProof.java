@@ -19,6 +19,9 @@ import io.codenotary.immudb.ImmudbProto;
 import io.codenotary.immudb4j.TxMetadata;
 import io.codenotary.immudb4j.Utils;
 
+import java.util.Arrays;
+import java.util.Base64;
+
 public class DualProof {
 
     public final TxMetadata sourceTxMetadata;
@@ -34,7 +37,8 @@ public class DualProof {
                      byte[][] inclusionProof,
                      byte[][] consistencyProof,
                      byte[] targetBlTxAlh,
-                     byte[][] lastInclusionProof, LinearProof linearProof) {
+                     byte[][] lastInclusionProof,
+                     LinearProof linearProof) {
         this.sourceTxMetadata = sourceTxMetadata;
         this.targetTxMetadata = targetTxMetadata;
         this.inclusionProof = inclusionProof;
@@ -54,6 +58,19 @@ public class DualProof {
                 Utils.convertSha256ListToBytesArray(proof.getLastInclusionProofList()),
                 LinearProof.valueOf(proof.getLinearProof())
         );
+    }
+
+    @Override
+    public String toString() {
+        return "DualProof{" +
+                "sourceTxMetadata=" + sourceTxMetadata +
+                ", targetTxMetadata=" + targetTxMetadata +
+                ", inclusionProof=" + Utils.toStringAsBase64Values(inclusionProof) +
+                ", consistencyProof=" + Utils.toStringAsBase64Values(consistencyProof) +
+                ", targetBlTxAlh=" + Utils.toStringAsBase64Value(targetBlTxAlh) +
+                ", lastInclusionProof=" + Utils.toStringAsBase64Values(lastInclusionProof) +
+                ", linearProof=" + linearProof +
+                '}';
     }
 
 }

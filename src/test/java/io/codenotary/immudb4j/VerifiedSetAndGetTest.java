@@ -15,24 +15,32 @@ limitations under the License.
 */
 package io.codenotary.immudb4j;
 
+import io.codenotary.immudb4j.exceptions.VerificationException;
 import org.testng.Assert;
 import org.testng.annotations.Test;
+
+import java.nio.charset.StandardCharsets;
 
 public class VerifiedSetAndGetTest extends ImmuClientIntegrationTest {
 
     @Test
-    public void t1_LoginWithDefaultCredentialsAndUseDefaultDB() {
+    public void t1_setAndVGet() {
         immuClient.login("immudb", "immudb");
         immuClient.useDatabase("defaultdb");
 
         String key = "vsg";
-        byte[] val = new byte[]{1, 2, 3, 4, 5};
+        byte[] val = "test-vsg".getBytes(StandardCharsets.UTF_8);
 
         immuClient.set(key, val);
 
-        byte[] got = immuClient.get(key);
+        Entry vEntry = null;
+        try {
+            vEntry = immuClient.verifiedGet(key);
+        } catch (VerificationException e) {
+            Assert.fail("Failed at verifiedGet", e);
+        }
 
-        Assert.assertEquals(val, got);
+        Assert.assertEquals(val, vEntry.kv.getValue());
 
         immuClient.logout();
     }

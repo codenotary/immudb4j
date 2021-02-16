@@ -15,19 +15,37 @@ limitations under the License.
 */
 package io.codenotary.immudb4j;
 
+import org.testng.Assert;
 import org.testng.annotations.Test;
 
 public class StateTest extends ImmuClientIntegrationTest {
 
-  @Test
-  public void t1_LoginWithDefaultCredentialsUseDefaultDBAndGetState() {
+    @Test
+    public void t1_state() {
 
-    immuClient.login("immudb", "immudb");
-    immuClient.useDatabase("defaultdb");
+        immuClient.login("immudb", "immudb");
+        immuClient.useDatabase("defaultdb");
 
-    immuClient.state();
+        ImmuState state = immuClient.state();
 
-    immuClient.logout();
-  }
+        Assert.assertNotNull(state);
+        System.out.println(">>> t1 > state: " + state.toString());
+
+        immuClient.logout();
+    }
+
+    @Test
+    public void t2_currentState() {
+
+        immuClient.login("immudb", "immudb");
+        immuClient.useDatabase("defaultdb");
+
+        ImmuState currState = immuClient.currentState();
+
+        Assert.assertNotNull(currState);
+        System.out.println(">>> t2 > currState: " + currState.toString());
+
+        immuClient.logout();
+    }
 
 }

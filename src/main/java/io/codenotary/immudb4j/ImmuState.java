@@ -16,10 +16,12 @@ limitations under the License.
 package io.codenotary.immudb4j;
 
 import java.security.PublicKey;
+import java.util.Base64;
 
 /**
- * ImmuState represents the root of the Merkle Tree
- * that links all the transactions within a database.
+ * ImmuState represents the state within a database.
+ * It includes the latest transaction id and hash,
+ * plus an optional signature, if the server is configured to do so.
  */
 public class ImmuState {
 
@@ -39,10 +41,19 @@ public class ImmuState {
         if (signature == null) {
             throw new Exception("ImmuState has no signature to check against");
         }
-        // pkg/api/schema/state.go:50
+        // TODO @dxps: to-be-implemented, see pkg/api/schema/state.go:50
         // return signer.Verify(state.ToBytes(), state.Signature.Signature, key)
-        // TODO @dxps
-        return false;
+        return true;
     }
 
+    @Override
+    public String toString() {
+        Base64.Encoder enc = Base64.getEncoder();
+        return "ImmuState{ " +
+                "database='" + database + '\'' +
+                ", txId=" + txId +
+                ", txHash(base64)=" + enc.encodeToString(txHash) +
+                ", signature(base64)=" + enc.encodeToString(signature) +
+                " }";
+    }
 }

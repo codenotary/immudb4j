@@ -15,16 +15,25 @@ limitations under the License.
 */
 package io.codenotary.immudb4j;
 
+import io.codenotary.immudb.ImmudbProto;
+
 public class Entry {
 
-    public final Tx tx;
+    public final long txId;
     public final KV kv;
     public final Reference referencedBy;
 
-    public Entry(Tx tx, KV kv, Reference referencedBy) {
-        this.tx = tx;
+    public Entry(long txId, KV kv, Reference referencedBy) {
+        this.txId = txId;
         this.kv = kv;
         this.referencedBy = referencedBy;
+    }
+
+    public static Entry valueOf(ImmudbProto.Entry entry) {
+        return new Entry(
+                entry.getTx(),
+                KVPair.from(entry),
+                Reference.valueOf(entry.getReferencedBy()));
     }
 
 }

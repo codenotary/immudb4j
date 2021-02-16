@@ -15,6 +15,8 @@ limitations under the License.
 */
 package io.codenotary.immudb4j;
 
+import io.codenotary.immudb.ImmudbProto;
+
 public class Reference {
 
     public final long tx;
@@ -25,6 +27,10 @@ public class Reference {
         this.tx = tx;
         this.key = key;
         this.atTx = atTx;
+    }
+
+    public static Reference valueOf(ImmudbProto.Reference ref) {
+        return new Reference(ref.getTx(), ref.getKey().toByteArray(), ref.getAtTx());
     }
 
 }

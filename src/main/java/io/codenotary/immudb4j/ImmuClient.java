@@ -119,8 +119,8 @@ public class ImmuClient {
     public ImmuState state() {
         ImmuState state = stateHolder.getState(currentDb);
         if (state == null) {
-            ImmuState currState = currentState();
-            stateHolder.setState(currState);
+            state = currentState();
+            stateHolder.setState(state);
         }
         return state;
     }
@@ -228,10 +228,14 @@ public class ImmuClient {
         return entry.kv.getValue();
     }
 
-    public Entry verifiedGet(byte[] key) throws VerificationException {
-        // TBD Anything like a Go's stateService.cacheLock() ?
+    public Entry verifiedGet(String key) throws VerificationException {
+        return verifiedGet(key.getBytes(StandardCharsets.UTF_8));
+    }
 
-        ImmuState state = stateHolder.getState(currentDb);
+    public Entry verifiedGet(byte[] key) throws VerificationException {
+        // TODO: TBD Anything like a Go's stateService.cacheLock()
+
+        ImmuState state = state();
 
         ImmudbProto.KeyRequest keyReq = ImmudbProto.KeyRequest.newBuilder()
                 .setKey(ByteString.copyFrom(key))
@@ -252,6 +256,7 @@ public class ImmuClient {
         KV kv;
 
         ImmudbProto.Entry entry = vEntry.getEntry();
+
         if (!entry.hasReferencedBy()) {
             vTx = entry.getTx();
             kv = CryptoUtils.encodeKV(keyReq.getKey().toByteArray(), entry.getValue().toByteArray());
@@ -277,8 +282,7 @@ public class ImmuClient {
             targetAlh = CryptoUtils.digestFrom(state.txHash);
         }
 
-        boolean verifies = CryptoUtils.verifyInclusion(inclusionProof, kv.digest(), eh);
-        if (!verifies) {
+        if (!CryptoUtils.verifyInclusion(inclusionProof, kv, eh)) {
             throw new VerificationException("inclusion verification failed");
         }
 
@@ -293,14 +297,20 @@ public class ImmuClient {
                 throw new VerificationException("dual proof verification failed");
             }
         }
-        byte[] signature = vEntry.getVerifiableTx().getSignature().toByteArray();
-        ImmuState newState = new ImmuState(currentDb, targetId, targetAlh, signature);
-        // TODO pkg/client/client.go:620
-        if (serverSigningPubKey != null) {
 
+        ImmuState newState = new ImmuState(
+                currentDb,
+                targetId,
+                targetAlh,
+                vEntry.getVerifiableTx().getSignature().toByteArray());
+
+        if (serverSigningPubKey != null) {
+            // TODO: to-be-implemented, see pkg/client/client.go:620
         }
 
-        return null;
+        stateHolder.setState(newState);
+
+        return Entry.valueOf(vEntry.getEntry());
     }
 
     // ========== HISTORY ==========

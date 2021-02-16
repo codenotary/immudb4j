@@ -19,6 +19,7 @@ import com.google.protobuf.ByteString;
 
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
+import java.util.Base64;
 import java.util.List;
 
 public class Utils {
@@ -96,6 +97,25 @@ public class Utils {
         // binary.BigEndian.PutUint64(target[targetIdx:], value)
         byte[] valueBytes = ByteBuffer.allocate(8).order(ByteOrder.BIG_ENDIAN).putLong(value).array();
         System.arraycopy(valueBytes, 0, target, targetIdx, valueBytes.length);
+    }
+
+    public static String toStringAsBase64Values(byte[][] data) {
+        if (data == null) {
+            return null;
+        }
+        StringBuilder sb = new StringBuilder("[");
+        for (int i = 0; i < data.length; i++) {
+            sb.append(Base64.getEncoder().encodeToString(data[i]));
+            if (i < data.length - 1) {
+                sb.append(", ");
+            }
+        }
+        sb.append("]");
+        return sb.toString();
+    }
+
+    public static String toStringAsBase64Value(byte[] data) {
+        return Base64.getEncoder().encodeToString(data);
     }
 
 }

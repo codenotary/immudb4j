@@ -15,7 +15,9 @@ limitations under the License.
 */
 package io.codenotary.immudb4j;
 
-public class Constants {
+public class Consts {
+
+    public static final int SHA256_SIZE = 32;
 
     /**
      * HTree's byte prefix of a leaf's digest.
