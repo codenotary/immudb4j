@@ -16,22 +16,27 @@ limitations under the License.
 package io.codenotary.immudb4j;
 
 import io.codenotary.immudb.ImmudbProto;
+import io.codenotary.immudb4j.crypto.CryptoUtils;
 import io.codenotary.immudb4j.crypto.HTree;
+import io.codenotary.immudb4j.crypto.InclusionProof;
+import io.codenotary.immudb4j.exceptions.MaxWidthExceededException;
 
 import java.nio.charset.StandardCharsets;
+import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
+import java.util.NoSuchElementException;
 
 public class Tx {
 
     private long id;
-    private long timestamp;
+    private long ts;
     private long blTxId;
     private byte[] blRoot;
-    private byte[] prefAlh;
+    private byte[] prevAlh;
 
-    private int nEntries;
-    private List<TxEntry> entries;
+    private final List<TxEntry> entries;
 
     private HTree htree;
 
@@ -39,18 +44,117 @@ public class Tx {
     private byte[] innerHash;
 
 
-    public Tx(int nEntries, int maxKeyLength) {
-        this.nEntries = nEntries;
-        // TODO: to be continued, see embedded/store/tx.go:55
+    private Tx(long id, List<TxEntry> entries, HTree htree) {
+        this.id = id;
+        this.entries = entries;
+        this.htree = htree;
     }
 
-    static Tx valueOf(ImmudbProto.Tx tx) {
+    public Tx(int nEntries, int maxKeyLength) {
+        entries = new ArrayList<>(nEntries);
+        for (int i = 0; i < nEntries; i++) {
+            entries.add(new TxEntry(new byte[maxKeyLength]));
+        }
+    }
 
-        ImmudbProto.TxMetadata txMd = tx.getMetadata();
-        List<String> keys = new ArrayList<>(tx.getEntriesCount());
-        tx.getEntriesList().forEach(txEntry -> keys.add(txEntry.getKey().toString(StandardCharsets.UTF_8)));
-        //return new Tx(txMd.getId(), txMd.getTs(), keys);
-        return null;
+    static Tx valueFrom(List<TxEntry> entries) {
+        HTree hTree = new HTree(entries.size());
+        return new Tx(0, entries, hTree);
+    }
+
+    static Tx valueOf(ImmudbProto.Tx stx) throws NoSuchAlgorithmException, MaxWidthExceededException {
+
+        List<TxEntry> entries = new ArrayList<>(stx.getEntriesCount());
+        stx.getEntriesList().forEach(txe -> entries.add(
+                new TxEntry(txe.getKey().toByteArray(), txe.getVLen(),
+                        CryptoUtils.digestFrom(txe.getHValue().toByteArray()), txe.getVOff())
+        ));
+        ImmudbProto.TxMetadata stxMd = stx.getMetadata();
+        Tx tx = valueFrom(entries);
+        tx.id = stxMd.getId();
+        tx.prevAlh = CryptoUtils.digestFrom(stxMd.getPrevAlh().toByteArray());
+        tx.ts = stxMd.getTs();
+        tx.blTxId = stxMd.getBlTxId();
+        tx.blRoot = CryptoUtils.digestFrom(stxMd.getBlRoot().toByteArray());
+
+        tx.buildHashTree();
+        tx.calcAlh();
+
+        return tx;
+    }
+
+    public long getId() {
+        return id;
+    }
+
+    public byte[] getAlh() {
+        return alh;
+    }
+
+    public byte[] eh() {
+        return htree.root();
+    }
+
+    public TxMetadata metadata() {
+        byte[] prevAlh = new byte[Consts.SHA256_SIZE];
+        byte[] blRoot = new byte[Consts.SHA256_SIZE];
+        Utils.copy(this.prevAlh, prevAlh);
+        Utils.copy(this.blRoot, blRoot);
+
+        return new TxMetadata(id, prevAlh, ts, entries.size(), eh(), blTxId, blRoot);
+    }
+
+    public void buildHashTree() throws MaxWidthExceededException, NoSuchAlgorithmException {
+        byte[][] digests = new byte[entries.size()][Consts.SHA256_SIZE];
+        for (int i = 0; i < entries.size(); i++) {
+            digests[i] = entries.get(i).digest();
+        }
+        htree.buildWith(digests);
+    }
+
+    /**
+     * Calculate the Accumulative Linear Hash (ALH) up to this transaction.
+     * Alh is calculated as hash(txID + prevAlh + hash(ts + nentries + eH + blTxID + blRoot))
+     * Inner hash is calculated so to reduce the length of linear proofs.
+     */
+    public void calcAlh() {
+        calcInnerHash();
+
+        byte[] bi = new byte[Consts.TX_ID_SIZE + 2 * Consts.SHA256_SIZE];
+        Utils.putUint64(id, bi);
+        Utils.copy(prevAlh, bi, Consts.TX_ID_SIZE);
+        Utils.copy(innerHash, bi, Consts.TX_ID_SIZE + Consts.SHA256_SIZE);
+
+        alh = CryptoUtils.sha256Sum(bi);
+    }
+
+    private void calcInnerHash() {
+        byte[] bj = new byte[Consts.TS_SIZE + 4 + Consts.SHA256_SIZE + Consts.TX_ID_SIZE + Consts.SHA256_SIZE];
+        Utils.putUint64(ts, bj);
+        Utils.putUint32(entries.size(), bj, Consts.TS_SIZE);
+        Utils.copy(eh(), bj, Consts.TS_SIZE + 4);
+        Utils.putUint64(blTxId, bj, Consts.TS_SIZE + 4 + Consts.SHA256_SIZE);
+        Utils.copy(blRoot, bj, Consts.TS_SIZE + 4 + Consts.SHA256_SIZE + Consts.TX_ID_SIZE);
+
+        innerHash = CryptoUtils.sha256Sum(bj);
+    }
+
+    public InclusionProof proof(byte[] key) throws Exception {
+        int kindex = indexOf(key);
+        if (kindex < 0) {
+            throw new NoSuchElementException();
+        }
+        return htree.inclusionProof(kindex);
+    }
+
+
+    private int indexOf(byte[] key) {
+        for (int i = 0; i < entries.size(); i++) {
+            if (Arrays.equals(entries.get(i).getKey(), key)) {
+                return i;
+            }
+        }
+        return -1;
     }
 
 }

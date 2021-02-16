@@ -16,13 +16,13 @@ limitations under the License.
 package io.codenotary.immudb4j;
 
 import com.google.protobuf.ByteString;
-import com.google.protobuf.Descriptors;
 import com.google.protobuf.Empty;
 import io.codenotary.immudb.ImmuServiceGrpc;
 import io.codenotary.immudb.ImmudbProto;
 import io.codenotary.immudb.ImmudbProto.ScanRequest;
 import io.codenotary.immudb4j.crypto.*;
 import io.codenotary.immudb4j.exceptions.CorruptedDataException;
+import io.codenotary.immudb4j.exceptions.MaxWidthExceededException;
 import io.codenotary.immudb4j.exceptions.VerificationException;
 import io.codenotary.immudb4j.user.Permission;
 import io.codenotary.immudb4j.user.User;
@@ -33,6 +33,7 @@ import io.grpc.StatusRuntimeException;
 import io.grpc.stub.MetadataUtils;
 
 import java.nio.charset.StandardCharsets;
+import java.security.NoSuchAlgorithmException;
 import java.security.PublicKey;
 import java.util.ArrayList;
 import java.util.List;
@@ -417,11 +418,11 @@ public class ImmuClient {
         // safeRawSet(key, entry.toByteArray(), this.state());
     }
 
-    public void verifiedSet(String key, byte[] value) throws VerificationException {
-        verifiedSet(key.getBytes(StandardCharsets.UTF_8), value);
+    public TxMetadata verifiedSet(String key, byte[] value) throws VerificationException {
+        return verifiedSet(key.getBytes(StandardCharsets.UTF_8), value);
     }
 
-    public void verifiedSet(byte[] key, byte[] value) throws VerificationException {
+    public TxMetadata verifiedSet(byte[] key, byte[] value) throws VerificationException {
 
         ImmuState state = state();
         ImmudbProto.KeyValue kv = ImmudbProto.KeyValue.newBuilder().setKey(ByteString.copyFrom(key)).setValue(ByteString.copyFrom(value)).build();
@@ -437,7 +438,46 @@ public class ImmuClient {
                     String.format("Got back %d entries (in tx metadata) instead of 1.", ne)
             );
         }
+        // pkg/client/client.go:757
+        Tx tx;
+        InclusionProof inclusionProof;
+        try {
+            tx = Tx.valueOf(vtx.getTx());
+            inclusionProof = tx.proof(CryptoUtils.encodeKey(key));
+        } catch (Exception e) {
+            throw new VerificationException(e.getMessage());
+        }
 
+        if (!CryptoUtils.verifyInclusion(inclusionProof, CryptoUtils.encodeKV(key, value), tx.eh())) {
+            throw new VerificationException("data is corrupted (verify inclusion failed)");
+        }
+
+        long sourceId = state.txId;
+        long targetId = tx.getId();
+        byte[] sourceAlh = CryptoUtils.digestFrom(state.txHash);
+        byte[] targetAlh = tx.getAlh();
+
+        if (state.txId > 0) {
+            if (!CryptoUtils.verifyDualProof(
+                DualProof.valueOf(vtx.getDualProof()),
+                    sourceId,
+                    targetId,
+                    sourceAlh,
+                    targetAlh
+            )) {
+                throw new VerificationException("data is corrupted (dual proof verification failed)");
+            }
+        }
+
+        ImmuState newState = new ImmuState(currentDb, targetId, targetAlh, vtx.getSignature().getSignature().toByteArray());
+
+        if (serverSigningPubKey != null) {
+            // TODO to be implemented (see pkg/client/client.go:803 newState.CheckSignature ...)
+        }
+
+        stateHolder.setState(newState);
+
+        return TxMetadata.valueOf(vtx.getTx().getMetadata());
     }
 
     // ========== Z ==========
@@ -491,7 +531,7 @@ public class ImmuClient {
 
     // ========== TX ==========
 
-    public Tx txById(long txId) {
+    public Tx txById(long txId) throws MaxWidthExceededException, NoSuchAlgorithmException {
         ImmudbProto.Tx tx = getStub().txById(ImmudbProto.TxRequest.newBuilder().setTx(txId).build());
         return Tx.valueOf(tx);
     }
@@ -611,7 +651,13 @@ public class ImmuClient {
 
     private List<Tx> buildList(ImmudbProto.TxList txList) {
         List<Tx> result = new ArrayList<>(txList.getTxsCount());
-        txList.getTxsList().forEach(tx -> result.add(Tx.valueOf(tx)));
+        txList.getTxsList().forEach(tx -> {
+            try {
+                result.add(Tx.valueOf(tx));
+            } catch (NoSuchAlgorithmException | MaxWidthExceededException e) {
+                e.printStackTrace();
+            }
+        });
         return result;
     }
 

@@ -30,8 +30,13 @@ public class Consts {
     public static final byte NODE_PREFIX = 1;
 
     /**
-     * The size (in bytes) of the transaction ID data type.
+     * The size (in bytes) of the transaction (tx) identifier (id) data type.
      */
     public static final int TX_ID_SIZE = 8;
+
+    /**
+     * The size (in bytes) of the transaction timestamp (ts) data type.
+     */
+    public static final int TS_SIZE = 8;
 
 }

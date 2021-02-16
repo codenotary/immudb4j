@@ -79,24 +79,24 @@ public class Utils {
     }
 
 
-    public static void putUint32(int value, byte[] target, int targetIdx) {
+    public static void putUint32(int value, byte[] dest, int destPos) {
         // Considering gRPC's generated code that maps Go's uint32 and int32 to Java's int,
         // this is basically the Java version of this Go code:
         // binary.BigEndian.PutUint32(target[targetIdx:], value)
         byte[] valueBytes = ByteBuffer.allocate(4).order(ByteOrder.BIG_ENDIAN).putInt(value).array();
-        System.arraycopy(valueBytes, 0, target, targetIdx, valueBytes.length);
+        System.arraycopy(valueBytes, 0, dest, destPos, valueBytes.length);
     }
 
-    public static void putUint64(long value, byte[] target) {
-        putUint64(value, target, 0);
+    public static void putUint64(long value, byte[] dest) {
+        putUint64(value, dest, 0);
     }
 
-    public static void putUint64(long value, byte[] target, int targetIdx) {
+    public static void putUint64(long value, byte[] dest, int destPos) {
         // Considering gRPC's generated code that maps Go's uint64 and int64 to Java's long,
         // this is basically the Java version of this Go code:
         // binary.BigEndian.PutUint64(target[targetIdx:], value)
         byte[] valueBytes = ByteBuffer.allocate(8).order(ByteOrder.BIG_ENDIAN).putLong(value).array();
-        System.arraycopy(valueBytes, 0, target, targetIdx, valueBytes.length);
+        System.arraycopy(valueBytes, 0, dest, destPos, valueBytes.length);
     }
 
     public static String toStringAsBase64Values(byte[][] data) {
@@ -116,6 +116,22 @@ public class Utils {
 
     public static String toStringAsBase64Value(byte[] data) {
         return Base64.getEncoder().encodeToString(data);
+    }
+
+    public static void copy(byte[] src, byte[] dest) {
+        System.arraycopy(src, 0, dest, 0, src.length);
+    }
+
+    public static void copy(byte[] src, byte[] dest, int destPos) {
+        System.arraycopy(src, 0, dest, destPos, src.length);
+    }
+
+    public static void copy(byte[] src, int srcPos, int length, byte[] dest) {
+        System.arraycopy(src, srcPos, dest, 0, length);
+    }
+
+    public static void copy(byte[] src, int srcPos, int length, byte[] dest, int destPos) {
+        System.arraycopy(src, srcPos, dest, destPos, length);
     }
 
 }

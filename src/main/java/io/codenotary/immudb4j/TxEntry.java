@@ -21,9 +21,14 @@ public class TxEntry {
 
     private byte[] k;
     private int kLength;
-    private final int vLength;
-    private final byte[] hVal;
-    private final long vOff;
+    private int vLength;
+    private byte[] hVal;
+    private long vOff;
+
+    public TxEntry(byte[] k) {
+        this.k = k;
+        this.kLength = k.length;
+    }
 
     public TxEntry(byte[] k, int vLength, byte[] hVal, long vOff) {
         this.kLength = k.length;
@@ -54,12 +59,24 @@ public class TxEntry {
         return hVal;
     }
 
+    public void setHVal(byte[] hVal) {
+        this.hVal = hVal;
+    }
+
     public int getVLength() {
         return vLength;
     }
 
+    public void setVLength(int vLength) {
+        this.vLength = vLength;
+    }
+
     public long getVOff() {
         return vOff;
+    }
+
+    public void setVOff(long vOff) {
+        this.vOff = vOff;
     }
 
     public byte[] digest() {

@@ -29,7 +29,29 @@ public class VerifiedSetAndGetTest extends ImmuClientIntegrationTest {
         immuClient.useDatabase("defaultdb");
 
         String key = "vsg";
-        byte[] val = "test-vsg".getBytes(StandardCharsets.UTF_8);
+        byte[] val = "test-set-vget".getBytes(StandardCharsets.UTF_8);
+
+        immuClient.set(key, val);
+
+        Entry vEntry = null;
+        try {
+            vEntry = immuClient.verifiedGet(key);
+        } catch (VerificationException e) {
+            Assert.fail("Failed at verifiedGet", e);
+        }
+
+        Assert.assertEquals(val, vEntry.kv.getValue());
+
+        immuClient.logout();
+    }
+
+    @Test
+    public void t1_vSetAndGet() {
+        immuClient.login("immudb", "immudb");
+        immuClient.useDatabase("defaultdb");
+
+        String key = "vsg";
+        byte[] val = "test-set-vget".getBytes(StandardCharsets.UTF_8);
 
         immuClient.set(key, val);
 

@@ -69,6 +69,10 @@ public class CryptoUtils {
         return d;
     }
 
+    public static byte[] encodeKey(byte[] key) {
+        return wrapWithPrefix(key, SET_KEY_PREFIX);
+    }
+
     public static KV encodeKV(byte[] key, byte[] value) {
         return new KVPair(
                 wrapWithPrefix(key, SET_KEY_PREFIX),
