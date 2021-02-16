@@ -16,6 +16,7 @@ limitations under the License.
 package io.codenotary.immudb4j;
 
 import com.google.protobuf.ByteString;
+import com.google.protobuf.Descriptors;
 import com.google.protobuf.Empty;
 import io.codenotary.immudb.ImmuServiceGrpc;
 import io.codenotary.immudb.ImmudbProto;
@@ -395,10 +396,18 @@ public class ImmuClient {
         getStub().set(reqBuilder.build());
     }
 
+    /**
+     * @deprecated This method is deprecated and it will be removed in the next release.
+     * Please use verifiedSet instead.
+     */
     public void safeSet(String key, byte[] value) throws VerificationException {
         safeSet(key.getBytes(StandardCharsets.UTF_8), value);
     }
 
+    /**
+     * @deprecated This method is deprecated and it will be removed in the next release.
+     * Please use verifiedSet instead.
+     */
     public void safeSet(byte[] key, byte[] value) throws VerificationException {
         ImmudbProto.Entry entry = ImmudbProto.Entry
                 .newBuilder()
@@ -406,6 +415,29 @@ public class ImmuClient {
                 .setValue(ByteString.copyFrom(value))
                 .build();
         // safeRawSet(key, entry.toByteArray(), this.state());
+    }
+
+    public void verifiedSet(String key, byte[] value) throws VerificationException {
+        verifiedSet(key.getBytes(StandardCharsets.UTF_8), value);
+    }
+
+    public void verifiedSet(byte[] key, byte[] value) throws VerificationException {
+
+        ImmuState state = state();
+        ImmudbProto.KeyValue kv = ImmudbProto.KeyValue.newBuilder().setKey(ByteString.copyFrom(key)).setValue(ByteString.copyFrom(value)).build();
+        ImmudbProto.VerifiableSetRequest vSetReq = ImmudbProto.VerifiableSetRequest.newBuilder()
+                .setSetRequest(ImmudbProto.SetRequest.newBuilder().addKVs(kv).build())
+                .setProveSinceTx(state.txId)
+                // TBD grpc.Header(&metadata.HeaderMD), grpc.Trailer(&metadata.TrailerMD),
+                .build();
+        ImmudbProto.VerifiableTx vtx = getStub().verifiableSet(vSetReq);
+        int ne = vtx.getTx().getMetadata().getNentries();
+        if (ne != 1) {
+            throw new VerificationException(
+                    String.format("Got back %d entries (in tx metadata) instead of 1.", ne)
+            );
+        }
+
     }
 
     // ========== Z ==========

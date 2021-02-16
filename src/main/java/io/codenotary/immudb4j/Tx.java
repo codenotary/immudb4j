@@ -16,6 +16,7 @@ limitations under the License.
 package io.codenotary.immudb4j;
 
 import io.codenotary.immudb.ImmudbProto;
+import io.codenotary.immudb4j.crypto.HTree;
 
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -23,14 +24,24 @@ import java.util.List;
 
 public class Tx {
 
-    public final long id;
-    public final long timestamp;
-    public final List<String> keys;
+    private long id;
+    private long timestamp;
+    private long blTxId;
+    private byte[] blRoot;
+    private byte[] prefAlh;
 
-    private Tx(long id, long timestamp, List<String> keys) {
-        this.id = id;
-        this.timestamp = timestamp;
-        this.keys = keys;
+    private int nEntries;
+    private List<TxEntry> entries;
+
+    private HTree htree;
+
+    private byte[] alh;
+    private byte[] innerHash;
+
+
+    public Tx(int nEntries, int maxKeyLength) {
+        this.nEntries = nEntries;
+        // TODO: to be continued, see embedded/store/tx.go:55
     }
 
     static Tx valueOf(ImmudbProto.Tx tx) {
@@ -38,7 +49,8 @@ public class Tx {
         ImmudbProto.TxMetadata txMd = tx.getMetadata();
         List<String> keys = new ArrayList<>(tx.getEntriesCount());
         tx.getEntriesList().forEach(txEntry -> keys.add(txEntry.getKey().toString(StandardCharsets.UTF_8)));
-        return new Tx(txMd.getId(), txMd.getTs(), keys);
+        //return new Tx(txMd.getId(), txMd.getTs(), keys);
+        return null;
     }
 
 }
