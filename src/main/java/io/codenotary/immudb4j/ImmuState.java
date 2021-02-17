@@ -41,7 +41,7 @@ public class ImmuState {
         if (signature == null) {
             throw new Exception("ImmuState has no signature to check against");
         }
-        // TODO @dxps: to-be-implemented, see pkg/api/schema/state.go:50
+        // TODO: to-be-implemented, see pkg/api/schema/state.go:50
         // return signer.Verify(state.ToBytes(), state.Signature.Signature, key)
         return true;
     }

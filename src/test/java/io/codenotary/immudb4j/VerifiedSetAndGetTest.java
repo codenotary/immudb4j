@@ -54,7 +54,8 @@ public class VerifiedSetAndGetTest extends ImmuClientIntegrationTest {
         byte[] val = "test-vset-vget".getBytes(StandardCharsets.UTF_8);
 
         try {
-            immuClient.verifiedSet(key, val);
+            TxMetadata txMd = immuClient.verifiedSet(key, val);
+            Assert.assertNotNull(txMd, "The result of verifiedSet must not be null.");
         } catch (VerificationException e) {
             Assert.fail("Failed at verifiedSet. Cause: " + e.getMessage(), e);
         }

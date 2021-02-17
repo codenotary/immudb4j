@@ -41,9 +41,7 @@ import java.util.NoSuchElementException;
 import java.util.stream.Collectors;
 
 /**
- * immudb client using grpc.
- *
- * @author Jeronimo Irazabal
+ * The official immudb Client.
  */
 public class ImmuClient {
 
@@ -203,14 +201,20 @@ public class ImmuClient {
     }
 
     public KV getAt(byte[] key, int txId) {
-        ImmudbProto.Entry entry = getStub()
-                .get(ImmudbProto.KeyRequest.newBuilder().setKey(ByteString.copyFrom(key)).setAtTx(txId).build());
+        ImmudbProto.Entry entry = getStub().get(
+                ImmudbProto.KeyRequest.newBuilder()
+                        .setKey(ByteString.copyFrom(key))
+                        .setAtTx(txId)
+                        .build());
         return KVPair.from(entry);
     }
 
     public KV getSince(byte[] key, int txId) {
-        ImmudbProto.Entry entry = getStub()
-                .get(ImmudbProto.KeyRequest.newBuilder().setKey(ByteString.copyFrom(key)).setSinceTx(txId).build());
+        ImmudbProto.Entry entry = getStub().get(
+                ImmudbProto.KeyRequest.newBuilder()
+                        .setKey(ByteString.copyFrom(key))
+                        .setSinceTx(txId)
+                        .build());
         return KVPair.from(entry);
     }
 
@@ -236,7 +240,6 @@ public class ImmuClient {
     }
 
     public Entry verifiedGet(byte[] key) throws VerificationException {
-        // TODO: TBD Anything like a Go's stateService.cacheLock()
 
         ImmuState state = state();
 
@@ -266,18 +269,23 @@ public class ImmuClient {
         } else {
             ImmudbProto.Reference entryRefBy = entry.getReferencedBy();
             vTx = entryRefBy.getTx();
-            kv = CryptoUtils.encodeReference(entryRefBy.getKey().toByteArray(), entry.getKey().toByteArray(), entryRefBy.getAtTx());
+            kv = CryptoUtils.encodeReference(
+                    entryRefBy.getKey().toByteArray(),
+                    entry.getKey().toByteArray(),
+                    entryRefBy.getAtTx());
         }
 
         if (state.txId <= vTx) {
-            eh = CryptoUtils.digestFrom(vEntry.getVerifiableTx().getDualProof().getTargetTxMetadata().getEH().toByteArray());
+            byte[] digest = vEntry.getVerifiableTx().getDualProof().getTargetTxMetadata().getEH().toByteArray();
+            eh = CryptoUtils.digestFrom(digest);
 
             sourceId = state.txId;
             sourceAlh = CryptoUtils.digestFrom(state.txHash);
             targetId = vTx;
             targetAlh = dualProof.targetTxMetadata.alh();
         } else {
-            eh = CryptoUtils.digestFrom(vEntry.getVerifiableTx().getDualProof().getSourceTxMetadata().getEH().toByteArray());
+            byte[] digest = vEntry.getVerifiableTx().getDualProof().getSourceTxMetadata().getEH().toByteArray();
+            eh = CryptoUtils.digestFrom(digest);
 
             sourceId = vTx;
             sourceAlh = dualProof.sourceTxMetadata.alh();
@@ -307,9 +315,8 @@ public class ImmuClient {
                 targetAlh,
                 vEntry.getVerifiableTx().getSignature().toByteArray());
 
-        if (serverSigningPubKey != null) {
-            // TODO: to-be-implemented, see pkg/client/client.go:620
-        }
+        // TODO: to-be-implemented (see pkg/client/client.go:620, newState.CheckSignature(c.serverSigningPubKey))
+        // if (serverSigningPubKey != null) { }
 
         stateHolder.setState(newState);
 
@@ -325,8 +332,7 @@ public class ImmuClient {
     public List<KV> history(byte[] key, int limit, long offset, boolean reverse) {
         ImmudbProto.Entries entries;
         try {
-            entries = getStub().history(ImmudbProto.HistoryRequest
-                    .newBuilder()
+            entries = getStub().history(ImmudbProto.HistoryRequest.newBuilder()
                     .setKey(ByteString.copyFrom(key))
                     .setLimit(limit)
                     .setOffset(offset)
@@ -356,8 +362,7 @@ public class ImmuClient {
     }
 
     public List<KV> scan(byte[] key, long sinceTxId, long limit, boolean reverse) {
-        ScanRequest req = ScanRequest
-                .newBuilder()
+        ScanRequest req = ScanRequest.newBuilder()
                 .setPrefix(ByteString.copyFrom(key))
                 .setLimit(limit)
                 .setSinceTx(sinceTxId)
@@ -411,12 +416,7 @@ public class ImmuClient {
      * Please use verifiedSet instead.
      */
     public void safeSet(byte[] key, byte[] value) throws VerificationException {
-        ImmudbProto.Entry entry = ImmudbProto.Entry
-                .newBuilder()
-                .setKey(ByteString.copyFrom(key))
-                .setValue(ByteString.copyFrom(value))
-                .build();
-        // safeRawSet(key, entry.toByteArray(), this.state());
+        verifiedSet(key, value);
     }
 
     public TxMetadata verifiedSet(String key, byte[] value) throws VerificationException {
@@ -430,7 +430,7 @@ public class ImmuClient {
         ImmudbProto.VerifiableSetRequest vSetReq = ImmudbProto.VerifiableSetRequest.newBuilder()
                 .setSetRequest(ImmudbProto.SetRequest.newBuilder().addKVs(kv).build())
                 .setProveSinceTx(state.txId)
-                // TBD grpc.Header(&metadata.HeaderMD), grpc.Trailer(&metadata.TrailerMD),
+                // TODO: TBD grpc.Header(&metadata.HeaderMD), grpc.Trailer(&metadata.TrailerMD),
                 .build();
         ImmudbProto.VerifiableTx vtx = getStub().verifiableSet(vSetReq);
         int ne = vtx.getTx().getMetadata().getNentries();
@@ -466,7 +466,7 @@ public class ImmuClient {
 
         if (state.txId > 0) {
             if (!CryptoUtils.verifyDualProof(
-                DualProof.valueOf(vtx.getDualProof()),
+                    DualProof.valueOf(vtx.getDualProof()),
                     sourceId,
                     targetId,
                     sourceAlh,
@@ -478,9 +478,8 @@ public class ImmuClient {
 
         ImmuState newState = new ImmuState(currentDb, targetId, targetAlh, vtx.getSignature().getSignature().toByteArray());
 
-        if (serverSigningPubKey != null) {
-            // TODO to be implemented (see pkg/client/client.go:803 newState.CheckSignature ...)
-        }
+        // TODO: to-be-implemented (see pkg/client/client.go:803 newState.CheckSignature ...)
+        // if (serverSigningPubKey != null) { ... }
 
         stateHolder.setState(newState);
 
@@ -495,17 +494,15 @@ public class ImmuClient {
 
     public ImmudbProto.TxMetadata zAddAt(String set, String key, double score, long atTxId)
             throws CorruptedDataException {
-        ImmudbProto.TxMetadata txMd = getStub()
-                .zAdd(
-                        ImmudbProto.ZAddRequest
-                                .newBuilder()
-                                .setSet(ByteString.copyFrom(set, StandardCharsets.UTF_8))
-                                .setKey(ByteString.copyFrom(key, StandardCharsets.UTF_8))
-                                .setScore(score)
-                                .setAtTx(atTxId)
-                                .setBoundRef(atTxId > 0)
-                                .build()
-                );
+        ImmudbProto.TxMetadata txMd = getStub().zAdd(
+                ImmudbProto.ZAddRequest.newBuilder()
+                        .setSet(ByteString.copyFrom(set, StandardCharsets.UTF_8))
+                        .setKey(ByteString.copyFrom(key, StandardCharsets.UTF_8))
+                        .setScore(score)
+                        .setAtTx(atTxId)
+                        .setBoundRef(atTxId > 0)
+                        .build()
+        );
         if (txMd.getNentries() != 1) {
             throw new CorruptedDataException();
         }
@@ -594,16 +591,13 @@ public class ImmuClient {
         return userList
                 .getUsersList()
                 .stream()
-                .map(
-                        u ->
-                                User
-                                        .getBuilder()
-                                        .setUser(u.getUser().toString(StandardCharsets.UTF_8))
-                                        .setActive(u.getActive())
-                                        .setCreatedAt(u.getCreatedat())
-                                        .setCreatedBy(u.getCreatedby())
-                                        .setPermissions(buildPermissions(u.getPermissionsList()))
-                                        .build()
+                .map(u -> User.getBuilder()
+                        .setUser(u.getUser().toString(StandardCharsets.UTF_8))
+                        .setActive(u.getActive())
+                        .setCreatedAt(u.getCreatedat())
+                        .setCreatedBy(u.getCreatedby())
+                        .setPermissions(buildPermissions(u.getPermissionsList()))
+                        .build()
                 )
                 .collect(Collectors.toList());
     }
@@ -616,8 +610,7 @@ public class ImmuClient {
     }
 
     public void createUser(String user, String password, Permission permission, String database) {
-        ImmudbProto.CreateUserRequest createUserRequest = ImmudbProto.CreateUserRequest
-                .newBuilder()
+        ImmudbProto.CreateUserRequest createUserRequest = ImmudbProto.CreateUserRequest.newBuilder()
                 .setUser(ByteString.copyFrom(user, StandardCharsets.UTF_8))
                 .setPassword(ByteString.copyFrom(password, StandardCharsets.UTF_8))
                 .setPermission(permission.permissionCode)
@@ -629,8 +622,7 @@ public class ImmuClient {
     }
 
     public void changePassword(String user, String oldPassword, String newPassword) {
-        ImmudbProto.ChangePasswordRequest changePasswordRequest = ImmudbProto.ChangePasswordRequest
-                .newBuilder()
+        ImmudbProto.ChangePasswordRequest changePasswordRequest = ImmudbProto.ChangePasswordRequest.newBuilder()
                 .setUser(ByteString.copyFrom(user, StandardCharsets.UTF_8))
                 .setOldPassword(ByteString.copyFrom(oldPassword, StandardCharsets.UTF_8))
                 .setNewPassword(ByteString.copyFrom(newPassword, StandardCharsets.UTF_8))
@@ -738,4 +730,5 @@ public class ImmuClient {
             return this;
         }
     }
+
 }

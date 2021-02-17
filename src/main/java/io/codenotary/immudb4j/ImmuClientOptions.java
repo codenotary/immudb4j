@@ -16,7 +16,7 @@ limitations under the License.
 package io.codenotary.immudb4j;
 
 //
-// TODO: Clarify usage, if really needed.
+// TODO: TBD usage
 //
 public class ImmuClientOptions {
 

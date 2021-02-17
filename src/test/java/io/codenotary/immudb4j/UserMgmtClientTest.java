@@ -48,7 +48,6 @@ public class UserMgmtClientTest extends ImmuClientIntegrationTest {
         Assert.assertEquals(user.getPermissions().get(0), Permission.PERMISSION_ADMIN);
 
         immuClient.logout();
-
     }
 
     @Test(priority = 101)
