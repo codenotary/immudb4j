@@ -242,10 +242,14 @@ public class ImmuClient {
     public Entry verifiedGet(byte[] key) throws VerificationException {
 
         ImmuState state = state();
-
         ImmudbProto.KeyRequest keyReq = ImmudbProto.KeyRequest.newBuilder()
                 .setKey(ByteString.copyFrom(key))
                 .build();
+        return verifiedGet(keyReq, state);
+    }
+
+    private Entry verifiedGet(ImmudbProto.KeyRequest keyReq, ImmuState state) throws VerificationException {
+
         ImmudbProto.VerifiableGetRequest vGetReq = ImmudbProto.VerifiableGetRequest.newBuilder()
                 .setKeyRequest(keyReq)
                 .setProveSinceTx(state.txId)
@@ -265,7 +269,7 @@ public class ImmuClient {
 
         if (!entry.hasReferencedBy()) {
             vTx = entry.getTx();
-            kv = CryptoUtils.encodeKV(keyReq.getKey().toByteArray(), entry.getValue().toByteArray());
+            kv = CryptoUtils.encodeKV(vGetReq.getKeyRequest().getKey().toByteArray(), entry.getValue().toByteArray());
         } else {
             ImmudbProto.Reference entryRefBy = entry.getReferencedBy();
             vTx = entryRefBy.getTx();
@@ -321,6 +325,24 @@ public class ImmuClient {
         stateHolder.setState(newState);
 
         return Entry.valueOf(vEntry.getEntry());
+    }
+
+    public Entry verifiedGetAt(byte[] key, long txId) throws VerificationException {
+        ImmuState state = state();
+        ImmudbProto.KeyRequest keyReq = ImmudbProto.KeyRequest.newBuilder()
+                .setKey(ByteString.copyFrom(key))
+                .setAtTx(txId)
+                .build();
+        return verifiedGet(keyReq, state);
+    }
+
+    public Entry verifiedGetSince(byte[] key, long txId) throws VerificationException {
+        ImmuState state = state();
+        ImmudbProto.KeyRequest keyReq = ImmudbProto.KeyRequest.newBuilder()
+                .setKey(ByteString.copyFrom(key))
+                .setSinceTx(txId)
+                .build();
+        return verifiedGet(keyReq, state);
     }
 
     // ========== HISTORY ==========
