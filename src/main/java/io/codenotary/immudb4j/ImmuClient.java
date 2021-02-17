@@ -37,6 +37,7 @@ import java.security.NoSuchAlgorithmException;
 import java.security.PublicKey;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.NoSuchElementException;
 import java.util.stream.Collectors;
 
 /**
@@ -438,18 +439,24 @@ public class ImmuClient {
                     String.format("Got back %d entries (in tx metadata) instead of 1.", ne)
             );
         }
-        // pkg/client/client.go:757
         Tx tx;
         InclusionProof inclusionProof;
         try {
             tx = Tx.valueOf(vtx.getTx());
-            inclusionProof = tx.proof(CryptoUtils.encodeKey(key));
         } catch (Exception e) {
-            throw new VerificationException(e.getMessage());
+            throw new VerificationException("Failed to extract the transaction. Cause: " + e.getMessage());
+        }
+
+        try {
+            inclusionProof = tx.proof(CryptoUtils.encodeKey(key));
+        } catch (NoSuchElementException e) {
+            throw new VerificationException("Failed to create the inclusion proof. Cause: key not found");
+        } catch (IllegalArgumentException e) {
+            throw new VerificationException("Failed to extract the transaction. Cause: " + e.getMessage());
         }
 
         if (!CryptoUtils.verifyInclusion(inclusionProof, CryptoUtils.encodeKV(key, value), tx.eh())) {
-            throw new VerificationException("data is corrupted (verify inclusion failed)");
+            throw new VerificationException("Data is corrupted (verify inclusion failed)");
         }
 
         long sourceId = state.txId;

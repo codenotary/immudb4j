@@ -32,12 +32,15 @@ public class InclusionProof {
 
     @Override
     public String toString() {
-        return String.format("InclusionProof{ leaf: %d, width: %d, terms: %s }", leaf, width,
+        return String.format("InclusionProof{ leaf: %d, width: %d, terms(b16): %s }", leaf, width,
                 termsToBase16());
     }
 
     private String termsToBase16() {
 
+        if (terms == null) {
+            return "null";
+        }
         StringBuilder sb = new StringBuilder("[");
         for (int i = 0; i < terms.length; i++) {
             sb.append(Utils.convertBase16(terms[i]));

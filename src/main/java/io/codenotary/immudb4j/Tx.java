@@ -21,7 +21,6 @@ import io.codenotary.immudb4j.crypto.HTree;
 import io.codenotary.immudb4j.crypto.InclusionProof;
 import io.codenotary.immudb4j.exceptions.MaxWidthExceededException;
 
-import java.nio.charset.StandardCharsets;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -139,7 +138,7 @@ public class Tx {
         innerHash = CryptoUtils.sha256Sum(bj);
     }
 
-    public InclusionProof proof(byte[] key) throws Exception {
+    public InclusionProof proof(byte[] key) throws NoSuchElementException, IllegalArgumentException {
         int kindex = indexOf(key);
         if (kindex < 0) {
             throw new NoSuchElementException();

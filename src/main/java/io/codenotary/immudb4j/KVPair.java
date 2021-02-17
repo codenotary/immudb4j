@@ -61,10 +61,10 @@ public class KVPair implements KV {
     public byte[] digest() {
         byte[] b = new byte[key.length + Consts.SHA256_SIZE];
 
-        System.arraycopy(key, 0, b, 0, key.length);
+        Utils.copy(key, b);
 
         byte[] hvalue = CryptoUtils.sha256Sum(value);
-        System.arraycopy(hvalue, 0, b, key.length, hvalue.length);
+        Utils.copy(hvalue, b, key.length);
 
         return CryptoUtils.sha256Sum(b);
     }

@@ -114,7 +114,7 @@ public class Utils {
         return sb.toString();
     }
 
-    public static String toStringAsBase64Value(byte[] data) {
+    public static String asBase64(byte[] data) {
         return Base64.getEncoder().encodeToString(data);
     }
 

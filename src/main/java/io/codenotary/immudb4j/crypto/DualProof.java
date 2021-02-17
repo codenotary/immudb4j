@@ -19,9 +19,6 @@ import io.codenotary.immudb.ImmudbProto;
 import io.codenotary.immudb4j.TxMetadata;
 import io.codenotary.immudb4j.Utils;
 
-import java.util.Arrays;
-import java.util.Base64;
-
 public class DualProof {
 
     public final TxMetadata sourceTxMetadata;
@@ -67,7 +64,7 @@ public class DualProof {
                 ", targetTxMetadata=" + targetTxMetadata +
                 ", inclusionProof=" + Utils.toStringAsBase64Values(inclusionProof) +
                 ", consistencyProof=" + Utils.toStringAsBase64Values(consistencyProof) +
-                ", targetBlTxAlh=" + Utils.toStringAsBase64Value(targetBlTxAlh) +
+                ", targetBlTxAlh=" + Utils.asBase64(targetBlTxAlh) +
                 ", lastInclusionProof=" + Utils.toStringAsBase64Values(lastInclusionProof) +
                 ", linearProof=" + linearProof +
                 '}';

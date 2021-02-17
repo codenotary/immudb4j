@@ -275,7 +275,7 @@ public class CryptoUtils {
 
     public static boolean verifyInclusion(InclusionProof proof, byte[] digest, byte[] root) {
 
-        if ((proof == null) || (proof.terms == null)) {
+        if (proof == null) {
             return false;
         }
 
@@ -286,21 +286,23 @@ public class CryptoUtils {
         int i = proof.leaf;
         int r = proof.width - 1;
 
-        for (int j = 0; j < proof.terms.length; j++) {
-            byte[] b = new byte[65]; // 65 = 1 + 2*32
-            b[0] = Consts.NODE_PREFIX;
+        if (proof.terms != null) {
+            for (int j = 0; j < proof.terms.length; j++) {
+                byte[] b = new byte[1 + 2 * Consts.SHA256_SIZE];
+                b[0] = Consts.NODE_PREFIX;
 
-            if (i % 2 == 0 && i != r) {
-                System.arraycopy(calcRoot, 0, b, 1, 32);
-                System.arraycopy(proof.terms[j], 0, b, 33, 32);
-            } else {
-                System.arraycopy(proof.terms[j], 0, b, 1, 32);
-                System.arraycopy(calcRoot, 0, b, 33, 32);
+                if (i % 2 == 0 && i != r) {
+                    Utils.copy(calcRoot, b, 1);
+                    Utils.copy(proof.terms[j], b, 1 + Consts.SHA256_SIZE);
+                } else {
+                    Utils.copy(proof.terms[j], b, 1);
+                    Utils.copy(calcRoot, b, 1 + Consts.SHA256_SIZE);
+                }
+
+                calcRoot = CryptoUtils.sha256Sum(b);
+                i /= 2;
+                r /= 2;
             }
-
-            calcRoot = CryptoUtils.sha256Sum(b);
-            i /= 2;
-            r /= 2;
         }
 
         return i == r && Arrays.equals(root, calcRoot);

@@ -24,7 +24,7 @@ import java.nio.charset.StandardCharsets;
 public class VerifiedSetAndGetTest extends ImmuClientIntegrationTest {
 
     @Test
-    public void t1_setAndVGet() {
+    public void t1___set_vGet() {
         immuClient.login("immudb", "immudb");
         immuClient.useDatabase("defaultdb");
 
@@ -46,20 +46,24 @@ public class VerifiedSetAndGetTest extends ImmuClientIntegrationTest {
     }
 
     @Test
-    public void t1_vSetAndGet() {
+    public void t2___vSet_vGet() {
         immuClient.login("immudb", "immudb");
         immuClient.useDatabase("defaultdb");
 
         String key = "vsg";
-        byte[] val = "test-set-vget".getBytes(StandardCharsets.UTF_8);
+        byte[] val = "test-vset-vget".getBytes(StandardCharsets.UTF_8);
 
-        immuClient.set(key, val);
+        try {
+            immuClient.verifiedSet(key, val);
+        } catch (VerificationException e) {
+            Assert.fail("Failed at verifiedSet. Cause: " + e.getMessage(), e);
+        }
 
         Entry vEntry = null;
         try {
             vEntry = immuClient.verifiedGet(key);
         } catch (VerificationException e) {
-            Assert.fail("Failed at verifiedGet", e);
+            Assert.fail("Failed at verifiedGet. Cause: " + e.getMessage(), e);
         }
 
         Assert.assertEquals(val, vEntry.kv.getValue());
