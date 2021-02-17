@@ -31,26 +31,30 @@ public class MultidatabaseTest extends ImmuClientIntegrationTest {
         immuClient.createDatabase("db2");
 
         immuClient.useDatabase("db1");
-        byte[] v0 = new byte[] { 0, 1, 2, 3 };
+        byte[] v0 = new byte[]{0, 1, 2, 3};
         immuClient.set("k0", v0);
 
         immuClient.useDatabase("db2");
-        byte[] v1 = new byte[] { 3, 2, 1, 0 };
+
+        byte[] v1 = new byte[]{3, 2, 1, 0};
         immuClient.set("k1", v1);
 
         immuClient.useDatabase("db1");
-        byte[] rv0 = immuClient.get("k0");
-        // TODO
-        // Assert.assertEquals(v0, rv0);
-        // byte[] sv0 = immuClient.safeGet("k0");
-        // Assert.assertEquals(sv0, v0);
+
+        byte[] gv0 = immuClient.get("k0");
+        Assert.assertEquals(v0, gv0);
+
+        Entry ev0 = immuClient.verifiedGet("k0");
+        Assert.assertNotNull(ev0);
+        Assert.assertEquals(ev0.kv.getValue(), v0);
 
         immuClient.useDatabase("db2");
-        byte[] rv1 = immuClient.get("k1");
-        Assert.assertEquals(v1, rv1);
-        // TODO
-        // byte[] sv1 = immuClient.safeGet("k1");
-        // Assert.assertEquals(sv1, v1);
+
+        byte[] gv1 = immuClient.get("k1");
+        Assert.assertEquals(v1, gv1);
+
+        Entry evgv1 = immuClient.verifiedGet("k1");
+        Assert.assertEquals(evgv1.kv.getValue(), v1);
 
         List<String> dbs = immuClient.databases();
         Assert.assertNotNull(dbs);

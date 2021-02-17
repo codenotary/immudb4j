@@ -6,11 +6,12 @@ if [ -e pid ]
 then
   sh ./stop.sh
 
-  # give some time to immudb to gracefully shutdown
-  sleep 1
+  # Giving some time to immudb to gracefully shutdown.
+  sleep 2
 fi
 
 rm -rf data
-rm -rf roots
+rm -rf states
 
-echo "immudb4j data and roots folders removed."
+echo "immudb4j data and states folders were removed."
+

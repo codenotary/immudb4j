@@ -17,9 +17,10 @@ package io.codenotary.immudb4j;
 
 import org.testng.annotations.Test;
 
+
 public class CountTest extends ImmuClientIntegrationTest {
 
-    @Test
+    @Test(enabled = false)
     public void t1_LoginWithDefaultCredentialsAndCount() {
 
         immuClient.login("immudb", "immudb");
@@ -31,7 +32,7 @@ public class CountTest extends ImmuClientIntegrationTest {
         immuClient.logout();
     }
 
-    @Test
+    @Test(enabled = false)
     public void t2_LoginWithDefaultCredentialsAndCountAll() {
 
         immuClient.login("immudb", "immudb");

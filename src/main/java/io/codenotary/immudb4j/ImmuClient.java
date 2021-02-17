@@ -588,8 +588,7 @@ public class ImmuClient {
     public List<User> listUsers() {
         ImmudbProto.UserList userList = getStub().listUsers(Empty.getDefaultInstance());
 
-        return userList
-                .getUsersList()
+        return userList.getUsersList()
                 .stream()
                 .map(u -> User.getBuilder()
                         .setUser(u.getUser().toString(StandardCharsets.UTF_8))
