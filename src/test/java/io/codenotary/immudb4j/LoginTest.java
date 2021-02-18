@@ -20,13 +20,17 @@ import org.testng.annotations.Test;
 
 public class LoginTest extends ImmuClientIntegrationTest {
 
-  @Test
-  public void testLoginWithDefaultCredentials() {
-    immuClient.login("immudb", "immudb");
-  }
+    @Test(testName = "login (with default credentials) & logout")
+    public void t1() {
 
-  @Test(expectedExceptions = StatusRuntimeException.class)
-  public void testLoginWithWrongCredentials() {
-    immuClient.login("immudb", "incorrect_password");
-  }
+        immuClient.login("immudb", "immudb");
+        immuClient.logout();
+    }
+
+    @Test(testName = "login (with wrong credentials)", expectedExceptions = StatusRuntimeException.class)
+    public void t2() {
+
+        immuClient.login("immudb", "incorrect_password");
+    }
+
 }

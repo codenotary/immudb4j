@@ -26,8 +26,9 @@ import java.util.Optional;
 
 public class UserMgmtClientTest extends ImmuClientIntegrationTest {
 
-    @Test(priority = 100, enabled = false)
-    public void testCreateAndListUser() {
+    @Test(testName = "createUser, listUsers", priority = 100, enabled = false)
+    public void t1() {
+
         immuClient.login("immudb", "immudb");
         immuClient.useDatabase("defaultdb");
 
@@ -60,8 +61,9 @@ public class UserMgmtClientTest extends ImmuClientIntegrationTest {
         immuClient.logout();
     }
 
-    @Test(priority = 101)
-    public void testChangePassword() {
+    @Test(testName = "createUser, changePassword",priority = 101)
+    public void t2() {
+
         immuClient.login("immudb", "immudb");
         immuClient.useDatabase("defaultdb");
 
@@ -74,10 +76,10 @@ public class UserMgmtClientTest extends ImmuClientIntegrationTest {
         immuClient.changePassword("testUser", "testTest123!", "newTestTest123!");
         immuClient.logout();
 
-        // This should fail.
+        // This must fail.
         try {
             immuClient.login("testUser", "testTest123!");
-            Assert.fail("Login should have failed");
+            Assert.fail("Login with wrong (old) password must fail.");
         } catch (StatusRuntimeException e) {
             // Login failed, everything's fine.
         }
@@ -85,4 +87,5 @@ public class UserMgmtClientTest extends ImmuClientIntegrationTest {
         immuClient.login("testUser", "newTestTest123!");
         immuClient.logout();
     }
+
 }

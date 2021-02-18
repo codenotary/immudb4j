@@ -20,8 +20,8 @@ import org.testng.annotations.Test;
 
 public class StateTest extends ImmuClientIntegrationTest {
 
-    @Test
-    public void t1_state() {
+    @Test(testName = "state")
+    public void t1() {
 
         immuClient.login("immudb", "immudb");
         immuClient.useDatabase("defaultdb");
@@ -34,8 +34,8 @@ public class StateTest extends ImmuClientIntegrationTest {
         immuClient.logout();
     }
 
-    @Test
-    public void t2_currentState() {
+    @Test(testName = "currentState")
+    public void t2() {
 
         immuClient.login("immudb", "immudb");
         immuClient.useDatabase("defaultdb");

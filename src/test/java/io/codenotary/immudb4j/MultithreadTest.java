@@ -27,8 +27,8 @@ import io.codenotary.immudb4j.exceptions.VerificationException;
 
 public class MultithreadTest extends ImmuClientIntegrationTest {
 
-    @Test
-    public void testMultithreadWithoutKeyOverlap() throws InterruptedException, VerificationException {
+    @Test(testName = "Multithread without key overlap")
+    public void t1() throws InterruptedException, VerificationException {
 
         immuClient.login("immudb", "immudb");
         immuClient.useDatabase("defaultdb");
@@ -53,7 +53,6 @@ public class MultithreadTest extends ImmuClientIntegrationTest {
                     throw new RuntimeException(e);
                 }
             }
-
             succeeded.incrementAndGet();
             latch.countDown();
         };
@@ -72,11 +71,11 @@ public class MultithreadTest extends ImmuClientIntegrationTest {
                 immuClient.safeGet("t" + i + "k" + i);
             }
         }
-
     }
 
-    @Test
-    public void testMultithreadWithKeyOverlap() throws InterruptedException, VerificationException {
+    @Test(testName = "Multithread with key overlap")
+    public void t2() throws InterruptedException, VerificationException {
+
         immuClient.login("immudb", "immudb");
         immuClient.useDatabase("defaultdb");
 
@@ -119,7 +118,6 @@ public class MultithreadTest extends ImmuClientIntegrationTest {
                 immuClient.safeGet("k" + i);
             }
         }
-
     }
 
 }

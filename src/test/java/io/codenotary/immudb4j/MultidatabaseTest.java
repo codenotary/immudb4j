@@ -15,6 +15,7 @@ limitations under the License.
 */
 package io.codenotary.immudb4j;
 
+import io.codenotary.immudb4j.exceptions.CorruptedDataException;
 import io.codenotary.immudb4j.exceptions.VerificationException;
 import org.testng.Assert;
 import org.testng.annotations.Test;
@@ -23,8 +24,9 @@ import java.util.List;
 
 public class MultidatabaseTest extends ImmuClientIntegrationTest {
 
-    @Test
-    public void testCreateDatabase() throws VerificationException {
+    @Test(testName = "Interacting with multiple databases (creating them, setting, and getting, listing)")
+    public void t1() throws VerificationException {
+
         immuClient.login("immudb", "immudb");
 
         immuClient.createDatabase("db1");
@@ -32,12 +34,20 @@ public class MultidatabaseTest extends ImmuClientIntegrationTest {
 
         immuClient.useDatabase("db1");
         byte[] v0 = new byte[]{0, 1, 2, 3};
-        immuClient.set("k0", v0);
+        try {
+            immuClient.set("k0", v0);
+        } catch (CorruptedDataException e) {
+            Assert.fail("Failed at set.", e);
+        }
 
         immuClient.useDatabase("db2");
 
         byte[] v1 = new byte[]{3, 2, 1, 0};
-        immuClient.set("k1", v1);
+        try {
+            immuClient.set("k1", v1);
+        } catch (CorruptedDataException e) {
+            Assert.fail("Failed at set.", e);
+        }
 
         immuClient.useDatabase("db1");
 
@@ -65,4 +75,5 @@ public class MultidatabaseTest extends ImmuClientIntegrationTest {
 
         immuClient.logout();
     }
+
 }

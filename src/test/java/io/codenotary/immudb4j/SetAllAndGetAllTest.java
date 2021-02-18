@@ -15,6 +15,7 @@ limitations under the License.
 */
 package io.codenotary.immudb4j;
 
+import io.codenotary.immudb4j.exceptions.CorruptedDataException;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
@@ -23,8 +24,9 @@ import java.util.List;
 
 public class SetAllAndGetAllTest extends ImmuClientIntegrationTest {
 
-    @Test
-    public void t1_LoginWithDefaultCredentialsAndUseDefaultDB() {
+    @Test(testName = "setAll & getAll")
+    public void t1() {
+
         immuClient.login("immudb", "immudb");
         immuClient.useDatabase("defaultdb");
 
@@ -38,7 +40,12 @@ public class SetAllAndGetAllTest extends ImmuClientIntegrationTest {
         List<KV> kvs = Arrays.asList(new KVPair(key1, val1), new KVPair(key2, val2), new KVPair(key3, val3));
 
         KVList kvList = KVList.newBuilder().addAll(kvs).build();
-        immuClient.setAll(kvList);
+        try {
+            TxMetadata txMd = immuClient.setAll(kvList);
+            Assert.assertNotNull(txMd);
+        } catch (CorruptedDataException e) {
+            Assert.fail("Failed at SetAll.", e);
+        }
 
         List<String> keys = Arrays.asList(key1, key2, key3);
         List<KV> got = immuClient.getAll(keys);

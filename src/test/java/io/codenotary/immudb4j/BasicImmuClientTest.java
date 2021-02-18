@@ -16,6 +16,7 @@ limitations under the License.
 package io.codenotary.immudb4j;
 
 import com.google.common.base.Charsets;
+import io.codenotary.immudb4j.exceptions.CorruptedDataException;
 import io.codenotary.immudb4j.exceptions.VerificationException;
 import org.testng.Assert;
 import org.testng.annotations.Test;
@@ -27,8 +28,8 @@ import java.util.List;
 
 public class BasicImmuClientTest extends ImmuClientIntegrationTest {
 
-    @Test
-    public void testGet() throws VerificationException {
+    @Test(testName = "set, get")
+    public void t1() throws VerificationException {
 
         immuClient.login("immudb", "immudb");
         immuClient.useDatabase("defaultdb");
@@ -36,8 +37,12 @@ public class BasicImmuClientTest extends ImmuClientIntegrationTest {
         byte[] v0 = new byte[]{0, 1, 2, 3};
         byte[] v1 = new byte[]{3, 2, 1, 0};
 
-        immuClient.set("k0", v0);
-        immuClient.set("k1", v1);
+        try {
+            immuClient.set("k0", v0);
+            immuClient.set("k1", v1);
+        } catch (CorruptedDataException e) {
+            Assert.fail("Failed at set.", e);
+        }
 
         byte[] rv0 = immuClient.get("k0");
         byte[] rv1 = immuClient.get("k1");
@@ -60,8 +65,8 @@ public class BasicImmuClientTest extends ImmuClientIntegrationTest {
         immuClient.logout();
     }
 
-    @Test
-    public void testGetAllAndSetAll() {
+    @Test(testName = "setAll, getAll")
+    public void t2() {
 
         immuClient.login("immudb", "immudb");
         immuClient.useDatabase("defaultdb");
@@ -82,7 +87,11 @@ public class BasicImmuClientTest extends ImmuClientIntegrationTest {
 
         KVList kvList = kvListBuilder.addAll(new LinkedList<>()).build();
 
-        immuClient.setAll(kvList);
+        try {
+            immuClient.setAll(kvList);
+        } catch (CorruptedDataException e) {
+            Assert.fail("Failed at setAll.", e);
+        }
 
         List<KV> getAllResult = immuClient.getAll(keys);
 

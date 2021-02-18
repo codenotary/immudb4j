@@ -15,6 +15,7 @@ limitations under the License.
 */
 package io.codenotary.immudb4j;
 
+import io.codenotary.immudb4j.exceptions.CorruptedDataException;
 import io.codenotary.immudb4j.exceptions.VerificationException;
 import org.testng.Assert;
 import org.testng.annotations.Test;
@@ -23,15 +24,20 @@ import java.nio.charset.StandardCharsets;
 
 public class VerifiedSetAndGetTest extends ImmuClientIntegrationTest {
 
-    @Test
-    public void t1___set_vGet() {
+    @Test(testName = "set, verifiedGet")
+    public void t1() {
+
         immuClient.login("immudb", "immudb");
         immuClient.useDatabase("defaultdb");
 
         String key = "vsg";
         byte[] val = "test-set-vget".getBytes(StandardCharsets.UTF_8);
 
-        immuClient.set(key, val);
+        try {
+            immuClient.set(key, val);
+        } catch (CorruptedDataException e) {
+            Assert.fail("Failed at set.", e);
+        }
 
         Entry vEntry = null;
         try {
@@ -45,8 +51,9 @@ public class VerifiedSetAndGetTest extends ImmuClientIntegrationTest {
         immuClient.logout();
     }
 
-    @Test
-    public void t2___vSet_vGet() {
+    @Test(testName = "verifiedSet, verifiedGet")
+    public void t2() {
+
         immuClient.login("immudb", "immudb");
         immuClient.useDatabase("defaultdb");
 

@@ -407,22 +407,25 @@ public class ImmuClient {
     // ========== SET ==========
     //
 
-    public void set(String key, byte[] value) {
-        set(key.getBytes(StandardCharsets.UTF_8), value);
+    public TxMetadata set(String key, byte[] value) throws CorruptedDataException {
+        return set(key.getBytes(StandardCharsets.UTF_8), value);
     }
 
-    public void set(byte[] key, byte[] value) {
+    public TxMetadata set(byte[] key, byte[] value) throws CorruptedDataException {
         ImmudbProto.KeyValue kv = ImmudbProto.KeyValue
                 .newBuilder()
                 .setKey(ByteString.copyFrom(key))
                 .setValue(ByteString.copyFrom(value))
                 .build();
         ImmudbProto.SetRequest req = ImmudbProto.SetRequest.newBuilder().addKVs(kv).build();
-        // noinspection ResultOfMethodCallIgnored
-        getStub().set(req);
+        ImmudbProto.TxMetadata txMd = getStub().set(req);
+        if (txMd.getNentries() != 1) {
+            throw new CorruptedDataException();
+        }
+        return TxMetadata.valueOf(txMd);
     }
 
-    public void setAll(KVList kvList) {
+    public TxMetadata setAll(KVList kvList) throws CorruptedDataException {
         ImmudbProto.SetRequest.Builder reqBuilder = ImmudbProto.SetRequest.newBuilder();
         for (KV kv : kvList.entries()) {
             ImmudbProto.KeyValue schemaKV = ImmudbProto.KeyValue
@@ -432,8 +435,29 @@ public class ImmuClient {
                     .build();
             reqBuilder.addKVs(schemaKV);
         }
-        // noinspection ResultOfMethodCallIgnored
-        getStub().set(reqBuilder.build());
+        ImmudbProto.TxMetadata txMd = getStub().set(reqBuilder.build());
+        if (txMd.getNentries() != kvList.entries().size()) {
+            throw new CorruptedDataException();
+        }
+        return TxMetadata.valueOf(txMd);
+    }
+
+    public TxMetadata setReference(byte[] key, byte[] referencedKey) throws CorruptedDataException {
+        return setReferenceAt(key, referencedKey, 0);
+    }
+
+    public TxMetadata setReferenceAt(byte[] key, byte[] referencedKey, long atTx) throws CorruptedDataException {
+        ImmudbProto.ReferenceRequest req = ImmudbProto.ReferenceRequest.newBuilder()
+                .setKey(ByteString.copyFrom(key))
+                .setReferencedKey(ByteString.copyFrom(referencedKey))
+                .setAtTx(atTx)
+                .setBoundRef(atTx > 0)
+                .build();
+        ImmudbProto.TxMetadata txMd = getStub().setReference(req);
+        if (txMd.getNentries() != 1) {
+            throw new CorruptedDataException();
+        }
+        return TxMetadata.valueOf(txMd);
     }
 
     /**

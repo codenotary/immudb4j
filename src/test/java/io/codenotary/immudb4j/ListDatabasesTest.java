@@ -21,10 +21,11 @@ import java.util.List;
 
 public class ListDatabasesTest extends ImmuClientIntegrationTest {
 
-  @Test(enabled = false)
-  public void t1_LoginWithDefaultCredentialsAndListDatabases() {
+  @Test(enabled = false, testName = "databases")
+  public void t1() {
 
     immuClient.login("immudb", "immudb");
+
     List<String> databases = immuClient.databases();
     if (databases.size() > 0) {
         System.out.print(">>> The databases are");

@@ -21,8 +21,8 @@ import org.testng.annotations.Test;
 
 public class ShutdownTest extends ImmuClientIntegrationTest {
 
-  @Test(expectedExceptions = StatusRuntimeException.class)
-  public void testLoginAttemptAfterShutdown() {
+  @Test(testName = "Login attempt after shutdown", expectedExceptions = StatusRuntimeException.class)
+  public void t1() {
 
     Assert.assertFalse(immuClient.isShutdown());
 

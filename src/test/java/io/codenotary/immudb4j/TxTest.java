@@ -25,8 +25,9 @@ import java.security.NoSuchAlgorithmException;
 
 public class TxTest extends ImmuClientIntegrationTest {
 
-    @Test
-    public void t1___txById__() {
+    @Test(testName = "verifiedSet, txById, verifiedTxById")
+    public void t1() {
+
         immuClient.login("immudb", "immudb");
         immuClient.useDatabase("defaultdb");
 

@@ -28,13 +28,13 @@ import io.codenotary.immudb4j.exceptions.MaxWidthExceededException;
 
 public class HTreeTest {
 
-    @Test(expectedExceptions = IllegalArgumentException.class)
+    @Test(testName = "Empty HTree", expectedExceptions = IllegalArgumentException.class)
     public void t1() {
 
         new HTree(0);
     }
 
-    @Test(expectedExceptions = IllegalStateException.class)
+    @Test(testName = "HTree init & root", expectedExceptions = IllegalStateException.class)
     public void t2() {
 
         final int maxWidth = 1000;
@@ -45,7 +45,7 @@ public class HTreeTest {
         tree.root();
     }
 
-    @Test
+    @Test(testName = "HTree buildWith, root, inclusionProof, verifyInclusion")
     public void t3() {
 
         final int maxWidth = 1000;

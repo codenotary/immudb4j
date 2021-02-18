@@ -20,8 +20,8 @@ import org.testng.annotations.Test;
 
 public class CountTest extends ImmuClientIntegrationTest {
 
-    @Test(enabled = false)
-    public void t1_LoginWithDefaultCredentialsAndCount() {
+    @Test(enabled = false, testName = "count")
+    public void t1() {
 
         immuClient.login("immudb", "immudb");
 
@@ -32,8 +32,8 @@ public class CountTest extends ImmuClientIntegrationTest {
         immuClient.logout();
     }
 
-    @Test(enabled = false)
-    public void t2_LoginWithDefaultCredentialsAndCountAll() {
+    @Test(enabled = false, testName = "countAll")
+    public void t2() {
 
         immuClient.login("immudb", "immudb");
 

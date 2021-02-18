@@ -19,8 +19,8 @@ import org.testng.annotations.Test;
 
 public class ListUsersTest extends ImmuClientIntegrationTest {
 
-  @Test
-  public void t1_LoginWithDefaultCredentialsAndListUsers() {
+  @Test(testName = "listUsers")
+  public void t1() {
 
     immuClient.login("immudb", "immudb");
 

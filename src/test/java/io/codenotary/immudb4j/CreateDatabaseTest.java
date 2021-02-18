@@ -19,10 +19,12 @@ import org.testng.annotations.Test;
 
 public class CreateDatabaseTest extends ImmuClientIntegrationTest {
 
-  @Test
-  public void t1_LoginWithDefaultCredentialsAndCreateDB() {
+  @Test(testName = "createDatabase")
+  public void t1() {
     immuClient.login("immudb", "immudb");
+
     immuClient.createDatabase("test1db");
+
     immuClient.logout();
   }
 

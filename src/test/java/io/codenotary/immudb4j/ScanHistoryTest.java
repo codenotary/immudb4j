@@ -16,27 +16,33 @@ limitations under the License.
 package io.codenotary.immudb4j;
 
 import io.codenotary.immudb4j.exceptions.CorruptedDataException;
-import java.nio.charset.StandardCharsets;
-import java.util.List;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
+import java.nio.charset.StandardCharsets;
+import java.util.List;
+
 public class ScanHistoryTest extends ImmuClientIntegrationTest {
 
-    @Test(priority = 2)
-    public void testHistory() {
+    @Test(testName = "set, history", priority = 2)
+    public void t1() {
+
         immuClient.login("immudb", "immudb");
         immuClient.useDatabase("defaultdb");
 
-        byte[] value1 = { 0, 1, 2, 3 };
-        byte[] value2 = { 4, 5, 6, 7 };
-        byte[] value3 = { 8, 9, 10, 11 };
+        byte[] value1 = {0, 1, 2, 3};
+        byte[] value2 = {4, 5, 6, 7};
+        byte[] value3 = {8, 9, 10, 11};
 
-        immuClient.set("history1", value1);
-        immuClient.set("history1", value2);
-        immuClient.set("history2", value1);
-        immuClient.set("history2", value2);
-        immuClient.set("history2", value3);
+        try {
+            immuClient.set("history1", value1);
+            immuClient.set("history1", value2);
+            immuClient.set("history2", value1);
+            immuClient.set("history2", value2);
+            immuClient.set("history2", value3);
+        } catch (CorruptedDataException e) {
+            Assert.fail("Failed at set.", e);
+        }
 
         List<KV> historyResponse1 = immuClient.history("history1", 10, 0, false);
 
@@ -67,15 +73,21 @@ public class ScanHistoryTest extends ImmuClientIntegrationTest {
         immuClient.logout();
     }
 
-    @Test(priority = 2)
-    public void testScan() {
+    @Test(testName = "scan", priority = 2)
+    public void t2() {
+
         immuClient.login("immudb", "immudb");
         immuClient.useDatabase("defaultdb");
-        byte[] value1 = { 0, 1, 2, 3 };
-        byte[] value2 = { 4, 5, 6, 7 };
 
-        immuClient.set("scan1", value1);
-        immuClient.set("scan2", value2);
+        byte[] value1 = {0, 1, 2, 3};
+        byte[] value2 = {4, 5, 6, 7};
+
+        try {
+            immuClient.set("scan1", value1);
+            immuClient.set("scan2", value2);
+        } catch (CorruptedDataException e) {
+            Assert.fail("Failed at set.", e);
+        }
 
         List<KV> scan = immuClient.scan("scan", 1, 5, false);
 
@@ -88,15 +100,21 @@ public class ScanHistoryTest extends ImmuClientIntegrationTest {
         immuClient.logout();
     }
 
-    @Test(priority = 3)
-    public void testZScan() {
+    @Test(testName = "set, zAdd, zScan", priority = 3)
+    public void t3() {
+
         immuClient.login("immudb", "immudb");
         immuClient.useDatabase("defaultdb");
-        byte[] value1 = { 0, 1, 2, 3 };
-        byte[] value2 = { 4, 5, 6, 7 };
 
-        immuClient.set("zadd1", value1);
-        immuClient.set("zadd2", value2);
+        byte[] value1 = {0, 1, 2, 3};
+        byte[] value2 = {4, 5, 6, 7};
+
+        try {
+            immuClient.set("zadd1", value1);
+            immuClient.set("zadd2", value2);
+        } catch (CorruptedDataException e) {
+            Assert.fail("Failed at set.", e);
+        }
 
         try {
             immuClient.zAdd("set1", "zadd1", 1);
@@ -126,4 +144,5 @@ public class ScanHistoryTest extends ImmuClientIntegrationTest {
 
         immuClient.logout();
     }
+
 }

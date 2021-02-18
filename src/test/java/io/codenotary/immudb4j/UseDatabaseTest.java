@@ -20,10 +20,13 @@ import org.testng.annotations.Test;
 
 public class UseDatabaseTest extends ImmuClientIntegrationTest {
 
-  @Test
-  public void t1_LoginWithDefaultCredentialsAndUseDefaultDB() {
+  @Test(testName = "useDatabase('defaultdb')")
+  public void t1() {
+
     immuClient.login("immudb", "immudb");
+
     immuClient.useDatabase("defaultdb");
+
     immuClient.logout();
   }
 
