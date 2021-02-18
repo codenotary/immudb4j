@@ -36,6 +36,7 @@ import java.nio.charset.StandardCharsets;
 import java.security.NoSuchAlgorithmException;
 import java.security.PublicKey;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.stream.Collectors;
@@ -298,7 +299,7 @@ public class ImmuClient {
         }
 
         if (!CryptoUtils.verifyInclusion(inclusionProof, kv, eh)) {
-            throw new VerificationException("inclusion verification failed");
+            throw new VerificationException("Inclusion verification failed.");
         }
 
         if (state.txId > 0) {
@@ -309,7 +310,7 @@ public class ImmuClient {
                     sourceAlh,
                     targetAlh
             )) {
-                throw new VerificationException("dual proof verification failed");
+                throw new VerificationException("Dual proof verification failed.");
             }
         }
 
@@ -466,15 +467,15 @@ public class ImmuClient {
         try {
             tx = Tx.valueOf(vtx.getTx());
         } catch (Exception e) {
-            throw new VerificationException("Failed to extract the transaction. Cause: " + e.getMessage());
+            throw new VerificationException("Failed to extract the transaction.", e);
         }
 
         try {
             inclusionProof = tx.proof(CryptoUtils.encodeKey(key));
         } catch (NoSuchElementException e) {
-            throw new VerificationException("Failed to create the inclusion proof. Cause: key not found");
+            throw new VerificationException("Failed to create the inclusion proof.", e);
         } catch (IllegalArgumentException e) {
-            throw new VerificationException("Failed to extract the transaction. Cause: " + e.getMessage());
+            throw new VerificationException("Failed to extract the transaction.", e);
         }
 
         if (!CryptoUtils.verifyInclusion(inclusionProof, CryptoUtils.encodeKV(key, value), tx.eh())) {
@@ -494,7 +495,7 @@ public class ImmuClient {
                     sourceAlh,
                     targetAlh
             )) {
-                throw new VerificationException("data is corrupted (dual proof verification failed)");
+                throw new VerificationException("Data is corrupted (dual proof verification failed).");
             }
         }
 
@@ -508,13 +509,79 @@ public class ImmuClient {
         return TxMetadata.valueOf(vtx.getTx().getMetadata());
     }
 
+    public TxMetadata verifiedSetReference(byte[] key, byte[] referencedKey) throws VerificationException {
+        return verifiedSetReferenceAt(key, referencedKey, 0);
+    }
+
+    public TxMetadata verifiedSetReferenceAt(byte[] key, byte[] referencedKey, long atTx) throws VerificationException {
+
+        ImmuState state = state();
+        ImmudbProto.ReferenceRequest refReq = ImmudbProto.ReferenceRequest.newBuilder()
+                .setKey(ByteString.copyFrom(key))
+                .setReferencedKey(ByteString.copyFrom(referencedKey))
+                .setAtTx(atTx)
+                .setBoundRef(atTx > 0)
+                .build();
+        ImmudbProto.VerifiableReferenceRequest vRefReq = ImmudbProto.VerifiableReferenceRequest.newBuilder()
+                .setReferenceRequest(refReq)
+                .setProveSinceTx(state.txId)
+                .build();
+        ImmudbProto.VerifiableTx vtx = getStub().verifiableSetReference(vRefReq);
+        if (vtx.getTx().getMetadata().getNentries() != 1) {
+            throw new VerificationException("Data is corrupted.");
+        }
+        Tx tx;
+        try {
+            tx = Tx.valueOf(vtx.getTx());
+        } catch (NoSuchAlgorithmException e) {
+            throw new VerificationException("No such algorithm error.", e);
+        } catch (MaxWidthExceededException e) {
+            throw new VerificationException("Max width exceeded.", e);
+        }
+
+        InclusionProof inclusionProof = tx.proof(CryptoUtils.encodeKey(key));
+        if (!CryptoUtils.verifyInclusion(inclusionProof, CryptoUtils.encodeReference(key, referencedKey, atTx), tx.eh())) {
+            throw new VerificationException("Data is corrupted (inclusion verification failed).");
+        }
+
+        if (Arrays.equals(tx.eh(), CryptoUtils.digestFrom(vtx.getDualProof().getTargetTxMetadata().getEH().toByteArray()))) {
+            throw new VerificationException("Data is corrupted (different digests).");
+        }
+
+        long sourceId = state.txId;
+        long targetId = tx.getId();
+        byte[] sourceAlh = CryptoUtils.digestFrom(state.txHash);
+        byte[] targetAlh = tx.getAlh();
+
+        if (state.txId > 0) {
+            if (!CryptoUtils.verifyDualProof(
+                    DualProof.valueOf(vtx.getDualProof()),
+                    sourceId,
+                    targetId,
+                    sourceAlh,
+                    targetAlh
+            )) {
+                throw new VerificationException("Data is corrupted (dual proof verification failed).");
+            }
+        }
+
+        ImmuState newState = new ImmuState(currentDb, targetId, targetAlh, vtx.getSignature().getSignature().toByteArray());
+
+        // TODO: to-be-implemented (see pkg/client/client.go:1122 newState.CheckSignature ...)
+        // if (serverSigningPubKey != null) { ... }
+
+        stateHolder.setState(newState);
+
+        return TxMetadata.valueOf(vtx.getTx().getMetadata());
+    }
+
     // ========== Z ==========
 
-    public ImmudbProto.TxMetadata zAdd(String set, String key, double score) throws CorruptedDataException {
+    public TxMetadata zAdd(String set, String key, double score) throws CorruptedDataException {
         return zAddAt(set, key, score, 0);
     }
 
-    public ImmudbProto.TxMetadata zAddAt(String set, String key, double score, long atTxId)
+    public TxMetadata zAddAt(String set, String key, double score, long atTxId)
             throws CorruptedDataException {
         ImmudbProto.TxMetadata txMd = getStub().zAdd(
                 ImmudbProto.ZAddRequest.newBuilder()
@@ -528,7 +595,75 @@ public class ImmuClient {
         if (txMd.getNentries() != 1) {
             throw new CorruptedDataException();
         }
-        return txMd;
+        return TxMetadata.valueOf(txMd);
+    }
+
+    public TxMetadata verifiedZAdd(byte[] set, double score, byte[] key) throws VerificationException {
+        return verifiedZAddAt(set, score, key, 0);
+    }
+
+    public TxMetadata verifiedZAddAt(byte[] set, double score, byte[] key, long atTx) throws VerificationException {
+
+        ImmuState state = state();
+        ImmudbProto.ZAddRequest zAddReq = ImmudbProto.ZAddRequest.newBuilder()
+                .setSet(ByteString.copyFrom(set))
+                .setScore(score)
+                .setKey(ByteString.copyFrom(key))
+                .setAtTx(atTx)
+                .build();
+        ImmudbProto.VerifiableZAddRequest vZAddReq = ImmudbProto.VerifiableZAddRequest.newBuilder()
+                .setZAddRequest(zAddReq)
+                .setProveSinceTx(state.txId)
+                .build();
+        ImmudbProto.VerifiableTx vtx = getStub().verifiableZAdd(vZAddReq);
+
+        if (vtx.getTx().getMetadata().getNentries() != 1) {
+            throw new VerificationException("Data is corrupted.");
+        }
+
+        Tx tx;
+        try {
+            tx = Tx.valueOf(vtx.getTx());
+        } catch (NoSuchAlgorithmException | MaxWidthExceededException e) {
+            throw new VerificationException("Failed to extract the transaction.", e);
+        }
+
+        KV ekv = CryptoUtils.encodeZAdd(set, score, key, atTx);
+        InclusionProof inclusionProof = tx.proof(ekv.getKey());
+
+        if (!CryptoUtils.verifyInclusion(inclusionProof, ekv, tx.eh())) {
+            throw new VerificationException("Data is corrupted (inclusion verification failed).");
+        }
+
+        if (tx.eh() != CryptoUtils.digestFrom(vtx.getDualProof().getTargetTxMetadata().getEH().toByteArray())) {
+            throw new VerificationException("Data is corrupted (different digests).");
+        }
+
+        long sourceId = state.txId;
+        long targetId = tx.getId();
+        byte[] sourceAlh = CryptoUtils.digestFrom(state.txHash);
+        byte[] targetAlh = tx.getAlh();
+
+        if (state.txId > 0) {
+            if (!CryptoUtils.verifyDualProof(
+                    DualProof.valueOf(vtx.getDualProof()),
+                    sourceId,
+                    targetId,
+                    sourceAlh,
+                    targetAlh
+            )) {
+                throw new VerificationException("Data is corrupted (dual proof verification failed).");
+            }
+        }
+
+        ImmuState newState = new ImmuState(currentDb, targetId, targetAlh, vtx.getSignature().getSignature().toByteArray());
+
+        // TODO: to-be-implemented (see pkg/client/client.go:803 newState.CheckSignature ...)
+        // if (serverSigningPubKey != null) { ... }
+
+        stateHolder.setState(newState);
+
+        return TxMetadata.valueOf(vtx.getTx().getMetadata());
     }
 
     public List<KV> zScan(String set, long limit, boolean reverse) {

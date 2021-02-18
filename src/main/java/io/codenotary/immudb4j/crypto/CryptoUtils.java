@@ -18,7 +18,6 @@ package io.codenotary.immudb4j.crypto;
 import com.google.protobuf.ByteString;
 import io.codenotary.immudb4j.*;
 
-import java.lang.reflect.Array;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Arrays;
@@ -26,10 +25,6 @@ import java.util.List;
 
 
 public class CryptoUtils {
-
-    private static final byte SET_KEY_PREFIX = 0;
-    private static final byte PLAIN_VALUE_PREFIX = 0;
-    private static final byte REFERENCE_VALUE_PREFIX = 1;
 
     /**
      * This method returns a SHA256 digest of the provided data.
@@ -70,21 +65,25 @@ public class CryptoUtils {
     }
 
     public static byte[] encodeKey(byte[] key) {
-        return wrapWithPrefix(key, SET_KEY_PREFIX);
+        return wrapWithPrefix(key, Consts.SET_KEY_PREFIX);
     }
 
     public static KV encodeKV(byte[] key, byte[] value) {
         return new KVPair(
-                wrapWithPrefix(key, SET_KEY_PREFIX),
-                wrapWithPrefix(value, PLAIN_VALUE_PREFIX)
+                wrapWithPrefix(key, Consts.SET_KEY_PREFIX),
+                wrapWithPrefix(value, Consts.PLAIN_VALUE_PREFIX)
         );
     }
 
     public static KV encodeReference(byte[] key, byte[] referencedKey, long atTx) {
         return new KVPair(
-                wrapWithPrefix(key, SET_KEY_PREFIX),
-                wrapReferenceValueAt(wrapWithPrefix(referencedKey, SET_KEY_PREFIX), atTx)
+                wrapWithPrefix(key, Consts.SET_KEY_PREFIX),
+                wrapReferenceValueAt(wrapWithPrefix(referencedKey, Consts.SET_KEY_PREFIX), atTx)
         );
+    }
+
+    public static KV encodeZAdd(byte[] set, double score, byte[] key, long atTx) {
+        return new KVPair(wrapZAddReferenceAt(set, score, key, atTx), null);
     }
 
     private static byte[] wrapWithPrefix(byte[] b, byte prefix) {
@@ -99,12 +98,35 @@ public class CryptoUtils {
 
     private static byte[] wrapReferenceValueAt(byte[] key, long atTx) {
         byte[] refVal = new byte[1 + 8 + key.length];
-        refVal[0] = REFERENCE_VALUE_PREFIX;
+        refVal[0] = Consts.REFERENCE_VALUE_PREFIX;
 
         Utils.putUint64(atTx, refVal, 1);
 
         System.arraycopy(key, 0, refVal, 1 + 8, key.length);
         return refVal;
+    }
+
+    private static byte[] wrapZAddReferenceAt(byte[] set, double score, byte[] key, long atTx) {
+
+        byte[] zKey = new byte[1 + Consts.SET_LEN_LEN + set.length + Consts.SCORE_LEN
+                + Consts.KEY_LEN_LEN + key.length + Consts.TX_ID_SIZE];
+        int zi = 0;
+
+        zKey[0] = Consts.SORTED_SET_KEY_PREFIX;
+        zi++;
+        Utils.putUint64(set.length, zKey, zi);
+        zi += Consts.SET_LEN_LEN;
+        Utils.copy(set, zKey, zi);
+        zi += set.length;
+        Utils.putUint64(Double.doubleToRawLongBits(score), zKey, zi);
+        zi += Consts.SCORE_LEN;
+        Utils.putUint64(key.length, zKey, zi);
+        zi += Consts.KEY_LEN_LEN;
+        Utils.copy(key, zKey, zi);
+        zi += key.length;
+        Utils.putUint64(atTx, zKey, zi);
+
+        return zKey;
     }
 
     public static boolean verifyDualProof(DualProof proof,
