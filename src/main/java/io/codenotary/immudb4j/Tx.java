@@ -82,6 +82,33 @@ public class Tx {
         return tx;
     }
 
+    static Tx valueOfWithDecodedEntries(ImmudbProto.Tx stx) throws NoSuchAlgorithmException, MaxWidthExceededException {
+
+        List<TxEntry> txEntries = new ArrayList<>(stx.getEntriesCount());
+        stx.getEntriesList().forEach(stxe -> {
+            byte[] key = stxe.getKey().toByteArray();
+            key = Arrays.copyOfRange(key, 1, key.length);
+            txEntries.add(
+                    new TxEntry(key,
+                            stxe.getVLen(),
+                            CryptoUtils.digestFrom(stxe.getHValue().toByteArray()),
+                            stxe.getVOff())
+            );
+        });
+        ImmudbProto.TxMetadata stxMd = stx.getMetadata();
+        Tx tx = valueFrom(txEntries);
+        tx.id = stxMd.getId();
+        tx.prevAlh = CryptoUtils.digestFrom(stxMd.getPrevAlh().toByteArray());
+        tx.ts = stxMd.getTs();
+        tx.blTxId = stxMd.getBlTxId();
+        tx.blRoot = CryptoUtils.digestFrom(stxMd.getBlRoot().toByteArray());
+
+        tx.buildHashTree();
+        tx.calcAlh();
+
+        return tx;
+    }
+
     public long getId() {
         return id;
     }

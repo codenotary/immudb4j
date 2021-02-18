@@ -16,7 +16,10 @@ limitations under the License.
 package io.codenotary.immudb4j.crypto;
 
 import com.google.protobuf.ByteString;
-import io.codenotary.immudb4j.*;
+import io.codenotary.immudb4j.Consts;
+import io.codenotary.immudb4j.KV;
+import io.codenotary.immudb4j.KVPair;
+import io.codenotary.immudb4j.Utils;
 
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;

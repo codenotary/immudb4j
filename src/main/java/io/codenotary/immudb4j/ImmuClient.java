@@ -42,7 +42,7 @@ import java.util.NoSuchElementException;
 import java.util.stream.Collectors;
 
 /**
- * The official immudb Client.
+ * The official immudb Java Client.
  */
 public class ImmuClient {
 
@@ -141,7 +141,9 @@ public class ImmuClient {
         );
     }
 
+    //
     // ========== DATABASE ==========
+    //
 
     public void createDatabase(String database) {
         ImmudbProto.Database db = ImmudbProto.Database.newBuilder().setDatabasename(database).build();
@@ -166,7 +168,9 @@ public class ImmuClient {
         return list;
     }
 
+    //
     // ========== GET ==========
+    //
 
     public byte[] get(String key) {
         return get(key.getBytes(StandardCharsets.UTF_8));
@@ -346,7 +350,9 @@ public class ImmuClient {
         return verifiedGet(keyReq, state);
     }
 
+    //
     // ========== HISTORY ==========
+    //
 
     public List<KV> history(String key, int limit, long offset, boolean reverse) {
         return history(key.getBytes(StandardCharsets.UTF_8), limit, offset, reverse);
@@ -368,7 +374,9 @@ public class ImmuClient {
         return buildList(entries);
     }
 
+    //
     // ========== SCAN ==========
+    //
 
     public List<KV> scan(String key) {
         return scan(ByteString.copyFrom(key, StandardCharsets.UTF_8).toByteArray());
@@ -395,7 +403,9 @@ public class ImmuClient {
         return buildList(entries);
     }
 
+    //
     // ========== SET ==========
+    //
 
     public void set(String key, byte[] value) {
         set(key.getBytes(StandardCharsets.UTF_8), value);
@@ -472,10 +482,8 @@ public class ImmuClient {
 
         try {
             inclusionProof = tx.proof(CryptoUtils.encodeKey(key));
-        } catch (NoSuchElementException e) {
+        } catch (NoSuchElementException | IllegalArgumentException e) {
             throw new VerificationException("Failed to create the inclusion proof.", e);
-        } catch (IllegalArgumentException e) {
-            throw new VerificationException("Failed to extract the transaction.", e);
         }
 
         if (!CryptoUtils.verifyInclusion(inclusionProof, CryptoUtils.encodeKV(key, value), tx.eh())) {
@@ -575,7 +583,9 @@ public class ImmuClient {
         return TxMetadata.valueOf(vtx.getTx().getMetadata());
     }
 
+    //
     // ========== Z ==========
+    //
 
     public TxMetadata zAdd(String set, String key, double score) throws CorruptedDataException {
         return zAddAt(set, key, score, 0);
@@ -690,11 +700,69 @@ public class ImmuClient {
         return buildList(zEntries);
     }
 
+    //
     // ========== TX ==========
+    //
 
     public Tx txById(long txId) throws MaxWidthExceededException, NoSuchAlgorithmException {
         ImmudbProto.Tx tx = getStub().txById(ImmudbProto.TxRequest.newBuilder().setTx(txId).build());
         return Tx.valueOf(tx);
+    }
+
+    public Tx verifiedTxById(long txId) throws VerificationException {
+
+        ImmuState state = state();
+        ImmudbProto.VerifiableTxRequest vTxReq = ImmudbProto.VerifiableTxRequest.newBuilder()
+                .setTx(txId)
+                .setProveSinceTx(state.txId)
+                .build();
+        ImmudbProto.VerifiableTx vtx = getStub().verifiableTxById(vTxReq);
+
+        DualProof dualProof = DualProof.valueOf(vtx.getDualProof());
+
+        long sourceId;
+        long targetId;
+        byte[] sourceAlh;
+        byte[] targetAlh;
+
+        if (state.txId <= vtx.getTx().getMetadata().getId()) {
+            sourceId = state.txId;
+            sourceAlh = CryptoUtils.digestFrom(state.txHash);
+            targetId = vtx.getTx().getMetadata().getId();
+            targetAlh = dualProof.targetTxMetadata.alh();
+        } else {
+            sourceId = vtx.getTx().getMetadata().getId();
+            sourceAlh = dualProof.sourceTxMetadata.alh();
+            targetId = state.txId;
+            targetAlh = CryptoUtils.digestFrom(state.txHash);
+        }
+
+        if (state.txId > 0) {
+            if (!CryptoUtils.verifyDualProof(
+                    DualProof.valueOf(vtx.getDualProof()),
+                    sourceId,
+                    targetId,
+                    sourceAlh,
+                    targetAlh
+            )) {
+                throw new VerificationException("Data is corrupted (dual proof verification failed).");
+            }
+        }
+
+        ImmuState newState = new ImmuState(currentDb, targetId, targetAlh, vtx.getSignature().getSignature().toByteArray());
+
+        // TODO: to-be-implemented (see pkg/client/client.go:803 newState.CheckSignature ...)
+        // if (serverSigningPubKey != null) { ... }
+
+        stateHolder.setState(newState);
+
+        Tx tx = null;
+        try {
+            tx = Tx.valueOfWithDecodedEntries(vtx.getTx());
+        } catch (NoSuchAlgorithmException | MaxWidthExceededException e) {
+            throw new VerificationException("Failed to extract the transaction.", e);
+        }
+        return tx;
     }
 
     public List<Tx> txScan(long initialTxId) {
@@ -714,7 +782,9 @@ public class ImmuClient {
         return buildList(txList);
     }
 
+    //
     // ========== COUNT ==========
+    //
 
     public long count(String prefix) {
         return count(prefix.getBytes(StandardCharsets.UTF_8));
@@ -730,7 +800,9 @@ public class ImmuClient {
         return getStub().countAll(Empty.getDefaultInstance()).getCount();
     }
 
+    //
     // ========== HEALTH ==========
+    //
 
     public boolean healthCheck() {
         return getStub().health(Empty.getDefaultInstance()).getStatus();
@@ -740,7 +812,9 @@ public class ImmuClient {
         return channel != null;
     }
 
+    //
     // ========== USER MGMT ==========
+    //
 
     public List<User> listUsers() {
         ImmudbProto.UserList userList = getStub().listUsers(Empty.getDefaultInstance());
@@ -788,7 +862,9 @@ public class ImmuClient {
         getStub().changePassword(changePasswordRequest);
     }
 
+    //
     // ========== INTERNAL UTILS ==========
+    //
 
     private List<KV> buildList(ImmudbProto.Entries entries) {
         List<KV> result = new ArrayList<>(entries.getEntriesCount());
@@ -816,7 +892,9 @@ public class ImmuClient {
         return result;
     }
 
+    //
     // ========== BUILDER ==========
+    //
 
     public static class Builder {
 

@@ -1,0 +1,63 @@
+/*
+Copyright 2019-2021 vChain, Inc.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+	http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+package io.codenotary.immudb4j;
+
+import io.codenotary.immudb4j.exceptions.MaxWidthExceededException;
+import io.codenotary.immudb4j.exceptions.VerificationException;
+import org.testng.Assert;
+import org.testng.annotations.Test;
+
+import java.nio.charset.StandardCharsets;
+import java.security.NoSuchAlgorithmException;
+
+public class TxTest extends ImmuClientIntegrationTest {
+
+    @Test
+    public void t1___txById__() {
+        immuClient.login("immudb", "immudb");
+        immuClient.useDatabase("defaultdb");
+
+        String key = "test-txid";
+        byte[] val = "test-txid-value".getBytes(StandardCharsets.UTF_8);
+
+        TxMetadata txMd = null;
+        try {
+            txMd = immuClient.verifiedSet(key, val);
+        } catch (VerificationException e) {
+            Assert.fail("Failed at verifiedSet", e);
+        }
+
+        Tx tx = null;
+        try {
+            tx = immuClient.txById(txMd.id);
+        } catch (MaxWidthExceededException | NoSuchAlgorithmException e) {
+            Assert.fail("Failed at txById", e);
+        }
+
+        Assert.assertEquals(txMd.id, tx.metadata().id);
+
+        try {
+            tx = immuClient.verifiedTxById(txMd.id);
+        } catch (VerificationException e) {
+            Assert.fail("Failed at verifiedTxById", e);
+        }
+
+        Assert.assertEquals(txMd.id, tx.metadata().id);
+
+        immuClient.logout();
+    }
+
+}
