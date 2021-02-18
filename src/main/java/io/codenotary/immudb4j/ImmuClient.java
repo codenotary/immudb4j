@@ -487,7 +487,6 @@ public class ImmuClient {
         ImmudbProto.VerifiableSetRequest vSetReq = ImmudbProto.VerifiableSetRequest.newBuilder()
                 .setSetRequest(ImmudbProto.SetRequest.newBuilder().addKVs(kv).build())
                 .setProveSinceTx(state.txId)
-                // TODO: TBD grpc.Header(&metadata.HeaderMD), grpc.Trailer(&metadata.TrailerMD),
                 .build();
         ImmudbProto.VerifiableTx vtx = getStub().verifiableSet(vSetReq);
         int ne = vtx.getTx().getMetadata().getNentries();
@@ -540,6 +539,7 @@ public class ImmuClient {
 
         return TxMetadata.valueOf(vtx.getTx().getMetadata());
     }
+
 
     public TxMetadata verifiedSetReference(byte[] key, byte[] referencedKey) throws VerificationException {
         return verifiedSetReferenceAt(key, referencedKey, 0);
@@ -611,11 +611,11 @@ public class ImmuClient {
     // ========== Z ==========
     //
 
-    public TxMetadata zAdd(String set, String key, double score) throws CorruptedDataException {
-        return zAddAt(set, key, score, 0);
+    public TxMetadata zAdd(String set, double score, String key) throws CorruptedDataException {
+        return zAddAt(set, score, key, 0);
     }
 
-    public TxMetadata zAddAt(String set, String key, double score, long atTxId)
+    public TxMetadata zAddAt(String set, double score, String key, long atTxId)
             throws CorruptedDataException {
         ImmudbProto.TxMetadata txMd = getStub().zAdd(
                 ImmudbProto.ZAddRequest.newBuilder()
@@ -632,8 +632,17 @@ public class ImmuClient {
         return TxMetadata.valueOf(txMd);
     }
 
+
+    public TxMetadata verifiedZAdd(String set, double score, String key) throws VerificationException {
+        return verifiedZAddAt(set.getBytes(StandardCharsets.UTF_8), score, key.getBytes(StandardCharsets.UTF_8), 0);
+    }
+
     public TxMetadata verifiedZAdd(byte[] set, double score, byte[] key) throws VerificationException {
         return verifiedZAddAt(set, score, key, 0);
+    }
+
+    public TxMetadata verifiedZAddAt(String set, double score, String key, long atTx) throws VerificationException {
+        return verifiedZAddAt(set.getBytes(StandardCharsets.UTF_8), score, key.getBytes(StandardCharsets.UTF_8), atTx);
     }
 
     public TxMetadata verifiedZAddAt(byte[] set, double score, byte[] key, long atTx) throws VerificationException {
@@ -662,14 +671,15 @@ public class ImmuClient {
             throw new VerificationException("Failed to extract the transaction.", e);
         }
 
-        KV ekv = CryptoUtils.encodeZAdd(set, score, key, atTx);
+        KV ekv = CryptoUtils.encodeZAdd(set, score, CryptoUtils.encodeKey(key), atTx);
+
         InclusionProof inclusionProof = tx.proof(ekv.getKey());
 
         if (!CryptoUtils.verifyInclusion(inclusionProof, ekv, tx.eh())) {
             throw new VerificationException("Data is corrupted (inclusion verification failed).");
         }
 
-        if (tx.eh() != CryptoUtils.digestFrom(vtx.getDualProof().getTargetTxMetadata().getEH().toByteArray())) {
+        if (!Arrays.equals(tx.eh(), CryptoUtils.digestFrom(vtx.getDualProof().getTargetTxMetadata().getEH().toByteArray()))) {
             throw new VerificationException("Data is corrupted (different digests).");
         }
 

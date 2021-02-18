@@ -21,7 +21,7 @@ import java.util.List;
 
 public class ListDatabasesTest extends ImmuClientIntegrationTest {
 
-  @Test(enabled = false, testName = "databases")
+  @Test(testName = "databases")
   public void t1() {
 
     immuClient.login("immudb", "immudb");

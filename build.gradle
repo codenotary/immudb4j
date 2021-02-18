@@ -86,7 +86,7 @@ repositories {
 sourceSets {
 
     main {
-        java.srcDirs += [ 'src/generated/main/grpc/', 'src/generated/main/java/' ]
+        java.srcDirs += ['src/generated/main/grpc/', 'src/generated/main/java/']
     }
 
     integrationTest {
@@ -117,21 +117,25 @@ dependencies {
 }
 
 task immudbStart {
-    //    TODO: temporary not used.
-//    ProcessBuilder pb = new ProcessBuilder("./start.sh")
-//    pb.directory(new File("immudb"))
-//    Process proc = pb.start()
-//    proc.waitFor()
-//    if (proc.exitValue() == 0) {
-//        println "immudb has been started."
-//    }
+    // INFO: You can disable this logic (comment these lines below within this task)
+    // if you want to use an existing immudb server, without starting and stopping
+    // the locally used immudb version. Just make sure you use the same/proper version.
+    ProcessBuilder pb = new ProcessBuilder("./start.sh")
+    pb.directory(new File("immudb"))
+    Process proc = pb.start()
+    proc.waitFor()
+    if (proc.exitValue() == 0) {
+        println "immudb has been started."
+    }
 }
 
 task immudbStop(type: Exec) {
-//    workingDir 'immudb'
-//    TODO: temporary not used.
-//     commandLine './stop.sh'
-    commandLine 'echo'
+    // INFO: You can disable this logic (comment these lines below within this task)
+    // if you want to use an existing immudb server, without starting and stopping
+    // the locally used immudb version. Just make sure you use the same/proper version.
+    workingDir 'immudb'
+    commandLine './clean.sh'
+    // commandLine 'echo'
 }
 
 idea {
@@ -210,13 +214,19 @@ publishing {
                     developer {
                         id = 'jeroiraz'
                         name = 'Jerónimo Irazábal'
-                        email = 'jeronimo@vchain.us'
+                        email = 'jeronimo@codenotary.com'
                     }
 
                     developer {
                         id = 'giako'
                         name = 'Giacomo Russo'
-                        email = 'giacomo@vchain.us'
+                        email = 'giacomo@codenotary.com'
+                    }
+
+                    developer {
+                        id = 'dxps'
+                        name = 'Marius Ileana'
+                        email = 'marius@codenotary.com'
                     }
                 }
                 scm {

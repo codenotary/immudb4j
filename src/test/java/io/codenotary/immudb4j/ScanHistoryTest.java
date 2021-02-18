@@ -117,11 +117,11 @@ public class ScanHistoryTest extends ImmuClientIntegrationTest {
         }
 
         try {
-            immuClient.zAdd("set1", "zadd1", 1);
-            immuClient.zAdd("set1", "zadd2", 2);
+            immuClient.zAdd("set1", 1, "zadd1");
+            immuClient.zAdd("set1", 2, "zadd2");
 
-            immuClient.zAdd("set2", "zadd1", 2);
-            immuClient.zAdd("set2", "zadd2", 1);
+            immuClient.zAdd("set2", 2, "zadd1");
+            immuClient.zAdd("set2", 1, "zadd2");
         } catch (CorruptedDataException e) {
             Assert.fail("Failed to zAdd", e);
         }

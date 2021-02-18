@@ -24,15 +24,25 @@ import io.codenotary.immudb4j.Utils;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Arrays;
+import java.util.Base64;
 import java.util.List;
 
 
 public class CryptoUtils {
 
+    private static final byte[] SHA256_SUM_OF_NULL = Base64.getDecoder().decode("47DEQpj8HBSa+/TImW+5JCeuQeRkm5NMpJWZG3hSuFU=");
+
     /**
      * This method returns a SHA256 digest of the provided data.
      */
     public static byte[] sha256Sum(byte[] data) {
+        if (data == null) {
+            // Interesting enough, Go returns a fixed value for sha256.Sum256(nil) and this value is:
+            // [227 176 196 66 152 252 28 20 154 251 244 200 153 111 185 36 39 174 65 228 100 155 147 76 164 149 153 27 120 82 184 85]
+            // whose Base64 encoded value is 47DEQpj8HBSa+/TImW+5JCeuQeRkm5NMpJWZG3hSuFU=.
+            // But Java's MessageDigest fails with NPE when providing a null value. So we treat this case as in Go.
+            return SHA256_SUM_OF_NULL;
+        }
         try {
             MessageDigest sha256 = MessageDigest.getInstance("SHA-256");
             return sha256.digest(data);
