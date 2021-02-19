@@ -1,5 +1,5 @@
 /*
-Copyright 2019-2020 vChain, Inc.
+Copyright 2021 CodeNotary, Inc. All rights reserved.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -21,8 +21,8 @@ import org.testng.annotations.Test;
 
 public class ShutdownTest extends ImmuClientIntegrationTest {
 
-  @Test(expectedExceptions = StatusRuntimeException.class)
-  public void testLoginAttemptAfterShutdown() {
+  @Test(testName = "Login attempt after shutdown", expectedExceptions = StatusRuntimeException.class)
+  public void t1() {
 
     Assert.assertFalse(immuClient.isShutdown());
 

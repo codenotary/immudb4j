@@ -1,5 +1,5 @@
 /*
-Copyright 2019-2020 vChain, Inc.
+Copyright 2021 CodeNotary, Inc. All rights reserved.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -56,6 +56,11 @@ public class User {
         return permissions;
     }
 
+    @Override
+    public String toString() {
+        return String.format("User{user='%s', createdAt='%s', createdBy='%s', active=%s, permissions=%s}",
+                user, createdAt, createdBy, active, permissions);
+    }
 
     public static class UserBuilder {
         private String user;

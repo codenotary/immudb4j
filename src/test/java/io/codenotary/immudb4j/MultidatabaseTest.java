@@ -1,5 +1,5 @@
 /*
-Copyright 2019-2020 vChain, Inc.
+Copyright 2021 CodeNotary, Inc. All rights reserved.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -15,7 +15,8 @@ limitations under the License.
 */
 package io.codenotary.immudb4j;
 
-import io.codenotary.immudb4j.crypto.VerificationException;
+import io.codenotary.immudb4j.exceptions.CorruptedDataException;
+import io.codenotary.immudb4j.exceptions.VerificationException;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
@@ -23,40 +24,66 @@ import java.util.List;
 
 public class MultidatabaseTest extends ImmuClientIntegrationTest {
 
-  @Test
-  public void testCreateDatabase() throws VerificationException {
-    immuClient.login("immudb", "immudb");
+    @Test(testName = "Interacting with multiple databases (creating them, setting, and getting, listing)")
+    public void t1() throws VerificationException {
 
-    immuClient.createDatabase("db1");
-    immuClient.createDatabase("db2");
+        immuClient.login("immudb", "immudb");
 
-    immuClient.useDatabase("db1");
-    byte[] v0 = new byte[] {0, 1, 2, 3};
-    immuClient.set("k0", v0);
+        immuClient.createDatabase("db1");
+        immuClient.createDatabase("db2");
 
-    immuClient.useDatabase("db2");
-    byte[] v1 = new byte[] {3, 2, 1, 0};
-    immuClient.set("k1", v1);
+        immuClient.useDatabase("db1");
+        byte[] v0 = new byte[]{0, 1, 2, 3};
+        try {
+            immuClient.set("k0", v0);
+        } catch (CorruptedDataException e) {
+            Assert.fail("Failed at set.", e);
+        }
 
-    immuClient.useDatabase("db1");
-    byte[] rv0 = immuClient.get("k0");
-    Assert.assertEquals(v0, rv0);
-    byte[] sv0 = immuClient.safeGet("k0");
-    Assert.assertEquals(sv0, v0);
+        immuClient.useDatabase("db2");
 
-    immuClient.useDatabase("db2");
-    byte[] rv1 = immuClient.get("k1");
-    Assert.assertEquals(v1, rv1);
-    byte[] sv1 = immuClient.safeGet("k1");
-    Assert.assertEquals(sv1, v1);
+        byte[] v1 = new byte[]{3, 2, 1, 0};
+        try {
+            immuClient.set("k1", v1);
+        } catch (CorruptedDataException e) {
+            Assert.fail("Failed at set.", e);
+        }
 
-    List<String> dbs = immuClient.databases();
-    Assert.assertNotNull(dbs);
-    Assert.assertEquals(3 , dbs.size());
-    Assert.assertTrue(dbs.contains("defaultdb"));
-    Assert.assertTrue(dbs.contains("db1"));
-    Assert.assertTrue(dbs.contains("db2"));
+        immuClient.useDatabase("db1");
 
-    immuClient.logout();
-  }
+        byte[] gv0 = null;
+        try {
+            gv0 = immuClient.get("k0");
+        } catch (Exception e) {
+            Assert.fail("Failed at get.", e);
+        }
+        Assert.assertEquals(v0, gv0);
+
+        Entry ev0 = immuClient.verifiedGet("k0");
+        Assert.assertNotNull(ev0);
+        Assert.assertEquals(ev0.kv.getValue(), v0);
+
+        immuClient.useDatabase("db2");
+
+        byte[] gv1 = null;
+        try {
+            gv1 = immuClient.get("k1");
+        } catch (Exception e) {
+            Assert.fail("Failed at get.", e);
+        }
+        Assert.assertEquals(v1, gv1);
+
+        Entry evgv1 = immuClient.verifiedGet("k1");
+        Assert.assertEquals(evgv1.kv.getValue(), v1);
+
+        List<String> dbs = immuClient.databases();
+        Assert.assertNotNull(dbs);
+        Assert.assertEquals(3, dbs.size(), String.format("Expected 3, but got %d dbs: %s", dbs.size(), dbs));
+        Assert.assertTrue(dbs.contains("defaultdb"));
+        Assert.assertTrue(dbs.contains("db1"));
+        Assert.assertTrue(dbs.contains("db2"));
+
+        immuClient.logout();
+    }
+
 }

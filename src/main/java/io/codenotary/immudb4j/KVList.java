@@ -1,5 +1,5 @@
 /*
-Copyright 2019-2020 vChain, Inc.
+Copyright 2021 CodeNotary, Inc. All rights reserved.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -22,7 +22,7 @@ import java.util.List;
 
 public class KVList {
 
-    private List<KV> kvList;
+    private final List<KV> kvList;
 
     private KVList(KVListBuilder builder) {
         kvList = builder.kvList;
@@ -37,7 +37,8 @@ public class KVList {
     }
 
     public static class KVListBuilder {
-        private List<KV> kvList;
+
+        private final List<KV> kvList;
 
         private KVListBuilder() {
             kvList = new LinkedList<>();

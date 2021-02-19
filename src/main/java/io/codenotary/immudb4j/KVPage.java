@@ -1,5 +1,5 @@
 /*
-Copyright 2019-2020 vChain, Inc.
+Copyright 2021 CodeNotary, Inc. All rights reserved.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -16,8 +16,8 @@ limitations under the License.
 package io.codenotary.immudb4j;
 
 public class KVPage {
-    private KVList kvList;
-    private boolean more;
+    private final KVList kvList;
+    private final boolean more;
 
     private KVPage(KVPageBuilder builder) {
         kvList = builder.kvList;

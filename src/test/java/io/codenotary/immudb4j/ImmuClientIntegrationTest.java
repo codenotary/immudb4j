@@ -1,5 +1,5 @@
 /*
-Copyright 2019-2020 vChain, Inc.
+Copyright 2021 CodeNotary, Inc. All rights reserved.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -15,8 +15,7 @@ limitations under the License.
 */
 package io.codenotary.immudb4j;
 
-import io.codenotary.immudb4j.FileRootHolder;
-import io.codenotary.immudb4j.ImmuClient;
+import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 
 import java.io.IOException;
@@ -27,13 +26,21 @@ public abstract class ImmuClientIntegrationTest {
 
   @BeforeClass
   public static void beforeClass() throws IOException {
-    FileRootHolder rootHolder = FileRootHolder.newBuilder().setRootsFolder("immudb/roots").build();
+    FileImmuStateHolder stateHolder = FileImmuStateHolder.newBuilder()
+            .setStatesFolder("immudb/states")
+            .build();
 
     immuClient = ImmuClient.newBuilder()
-            .setRootHolder(rootHolder)
+            .setStateHolder(stateHolder)
             .setServerUrl("localhost")
             .setServerPort(3322)
             .setWithAuthToken(true)
             .build();
   }
+
+  @AfterClass
+  public static void afterClass() {
+      immuClient.shutdown();
+  }
+
 }
