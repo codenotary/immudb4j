@@ -7,7 +7,7 @@ echo
 # -----------------------------------------------------------------------------
 
 TESTS=""
-TESTS="${TESTS} BasicImmuClientTest CreateDatabaseTest"
+TESTS="${TESTS} BasicImmuClientTest"
 TESTS="${TESTS} HTreeTest"
 TESTS="${TESTS} ListDatabasesTest ListUsersTest"
 TESTS="${TESTS} LoginTest"

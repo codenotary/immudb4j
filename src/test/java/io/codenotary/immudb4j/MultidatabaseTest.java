@@ -51,7 +51,12 @@ public class MultidatabaseTest extends ImmuClientIntegrationTest {
 
         immuClient.useDatabase("db1");
 
-        byte[] gv0 = immuClient.get("k0");
+        byte[] gv0 = null;
+        try {
+            gv0 = immuClient.get("k0");
+        } catch (Exception e) {
+            Assert.fail("Failed at get.", e);
+        }
         Assert.assertEquals(v0, gv0);
 
         Entry ev0 = immuClient.verifiedGet("k0");
@@ -60,7 +65,12 @@ public class MultidatabaseTest extends ImmuClientIntegrationTest {
 
         immuClient.useDatabase("db2");
 
-        byte[] gv1 = immuClient.get("k1");
+        byte[] gv1 = null;
+        try {
+            gv1 = immuClient.get("k1");
+        } catch (Exception e) {
+            Assert.fail("Failed at get.", e);
+        }
         Assert.assertEquals(v1, gv1);
 
         Entry evgv1 = immuClient.verifiedGet("k1");
@@ -68,7 +78,7 @@ public class MultidatabaseTest extends ImmuClientIntegrationTest {
 
         List<String> dbs = immuClient.databases();
         Assert.assertNotNull(dbs);
-        Assert.assertEquals(3, dbs.size());
+        Assert.assertEquals(3, dbs.size(), String.format("Expected 3, but got %d dbs: %s", dbs.size(), dbs));
         Assert.assertTrue(dbs.contains("defaultdb"));
         Assert.assertTrue(dbs.contains("db1"));
         Assert.assertTrue(dbs.contains("db2"));

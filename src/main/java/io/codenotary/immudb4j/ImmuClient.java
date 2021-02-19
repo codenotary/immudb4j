@@ -39,6 +39,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.NoSuchElementException;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 /**
@@ -78,7 +79,17 @@ public class ImmuClient {
     }
 
     public synchronized void shutdown() {
+        if (channel == null) {
+            return;
+        }
         channel.shutdown();
+        if (!channel.isShutdown()) {
+            try {
+                channel.awaitTermination(2, TimeUnit.SECONDS);
+            } catch (InterruptedException e) {
+                // nothing to do here.
+            }
+        }
         channel = null;
     }
 
@@ -172,13 +183,18 @@ public class ImmuClient {
     // ========== GET ==========
     //
 
-    public byte[] get(String key) {
+    public byte[] get(String key) throws Exception {
         return get(key.getBytes(StandardCharsets.UTF_8));
     }
 
-    public byte[] get(byte[] key) {
+    public byte[] get(byte[] key) throws Exception {
         ImmudbProto.KeyRequest req = ImmudbProto.KeyRequest.newBuilder().setKey(ByteString.copyFrom(key)).build();
-        ImmudbProto.Entry entry = getStub().get(req);
+        ImmudbProto.Entry entry;
+        try {
+            entry = getStub().get(req);
+        } catch (StatusRuntimeException e) {
+            throw new Exception(e.getMessage(), e);
+        }
         return entry.getValue().toByteArray();
     }
 

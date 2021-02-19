@@ -37,7 +37,12 @@ public class SetAndGetTest extends ImmuClientIntegrationTest {
             Assert.fail("Failed at set.", e);
         }
 
-        byte[] got = immuClient.get(key);
+        byte[] got = new byte[0];
+        try {
+            got = immuClient.get(key);
+        } catch (Exception e) {
+            Assert.fail("Failed at get.", e);
+        }
 
         Assert.assertEquals(val, got);
 

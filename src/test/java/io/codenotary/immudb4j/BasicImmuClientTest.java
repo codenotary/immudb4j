@@ -44,17 +44,23 @@ public class BasicImmuClientTest extends ImmuClientIntegrationTest {
             Assert.fail("Failed at set.", e);
         }
 
-        byte[] rv0 = immuClient.get("k0");
-        byte[] rv1 = immuClient.get("k1");
+        byte[] rv0 = null;
+        byte[] rv1 = null;
+        try {
+            rv0 = immuClient.get("k0");
+            rv1 = immuClient.get("k1");
+        } catch (Exception e) {
+            Assert.fail("Failed at get.", e);
+        }
 
         Assert.assertEquals(v0, rv0);
         Assert.assertEquals(v1, rv1);
 
-        byte[] sv0 = immuClient.safeGet("k0");
-        byte[] sv1 = immuClient.safeGet("k1");
+        Entry sv0 = immuClient.verifiedGet("k0");
+        Entry sv1 = immuClient.verifiedGet("k1");
 
-        Assert.assertEquals(sv0, v0);
-        Assert.assertEquals(sv1, v1);
+        Assert.assertEquals(sv0.kv.getValue(), v0);
+        Assert.assertEquals(sv1.kv.getValue(), v1);
 
         byte[] v2 = new byte[]{0, 1, 2, 3};
 
@@ -105,7 +111,12 @@ public class BasicImmuClientTest extends ImmuClientIntegrationTest {
         }
 
         for (int i = 0; i < keys.size(); i++) {
-            byte[] v = immuClient.get(keys.get(i));
+            byte[] v = new byte[0];
+            try {
+                v = immuClient.get(keys.get(i));
+            } catch (Exception e) {
+                Assert.fail("Failed at get.", e);
+            }
             Assert.assertEquals(v, values.get(i));
         }
 

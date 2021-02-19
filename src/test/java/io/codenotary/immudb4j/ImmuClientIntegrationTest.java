@@ -15,6 +15,7 @@ limitations under the License.
 */
 package io.codenotary.immudb4j;
 
+import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 
 import java.io.IOException;
@@ -35,6 +36,11 @@ public abstract class ImmuClientIntegrationTest {
             .setServerPort(3322)
             .setWithAuthToken(true)
             .build();
+  }
+
+  @AfterClass
+  public static void afterClass() {
+      immuClient.shutdown();
   }
 
 }

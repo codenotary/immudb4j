@@ -149,6 +149,8 @@ idea {
 
 test {
     useTestNG()
+    // For sequentially running the unit tests.
+    // maxParallelForks = 1
 }
 
 test.dependsOn immudbStart
