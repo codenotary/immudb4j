@@ -24,10 +24,10 @@ import io.codenotary.immudb4j.exceptions.MaxWidthExceededException;
 import io.codenotary.immudb4j.Utils;
 
 /**
- * This is a hash tree implementation.<br/>
+ * This is a hash tree implementation.
  * It is closely based on the Go version that is part of immudb 0.9 Go SDK.
  *
- * @author devisions
+ * @author dxps
  */
 public class HTree {
 
