@@ -100,9 +100,7 @@ public class ScanHistoryTest extends ImmuClientIntegrationTest {
         immuClient.logout();
     }
 
-    // TODO: Temporary disabled, to investigate why Assert.assertEquals(zScan1.size(), 2) fails:
-    // "expected [2] but found [0]"
-    @Test(enabled = false, testName = "set, zAdd, zScan", priority = 3)
+    @Test(testName = "set, zAdd, zScan", priority = 3)
     public void t3() {
 
         immuClient.login("immudb", "immudb");
@@ -118,17 +116,21 @@ public class ScanHistoryTest extends ImmuClientIntegrationTest {
             Assert.fail("Failed at set.", e);
         }
 
+        TxMetadata set1TxMd = null;
+        TxMetadata set2TxMd = null;
         try {
             immuClient.zAdd("set1", 1, "zadd1");
-            immuClient.zAdd("set1", 2, "zadd2");
+            set1TxMd = immuClient.zAdd("set1", 2, "zadd2");
 
             immuClient.zAdd("set2", 2, "zadd1");
-            immuClient.zAdd("set2", 1, "zadd2");
+            set2TxMd = immuClient.zAdd("set2", 1, "zadd2");
         } catch (CorruptedDataException e) {
             Assert.fail("Failed to zAdd", e);
         }
 
-        List<KV> zScan1 = immuClient.zScan("set1", 5, false);
+        Assert.assertNotNull(set1TxMd);
+
+        List<KV> zScan1 = immuClient.zScan("set1", set1TxMd.id,5, false);
 
         Assert.assertEquals(zScan1.size(), 2);
         Assert.assertEquals(zScan1.get(0).getKey(), "zadd1".getBytes(StandardCharsets.UTF_8));
@@ -136,7 +138,9 @@ public class ScanHistoryTest extends ImmuClientIntegrationTest {
         Assert.assertEquals(zScan1.get(1).getKey(), "zadd2".getBytes(StandardCharsets.UTF_8));
         Assert.assertEquals(zScan1.get(1).getValue(), value2);
 
-        List<KV> zScan2 = immuClient.zScan("set2", 5, false);
+        Assert.assertNotNull(set2TxMd);
+
+        List<KV> zScan2 = immuClient.zScan("set2", set2TxMd.id,5, false);
 
         Assert.assertEquals(zScan2.size(), 2);
         Assert.assertEquals(zScan2.get(0).getKey(), "zadd2".getBytes(StandardCharsets.UTF_8));
