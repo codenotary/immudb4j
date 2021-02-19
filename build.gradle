@@ -38,7 +38,7 @@ apply plugin: 'signing'
 
 group = 'io.codenotary'
 archivesBaseName = 'immudb4j'
-version = '0.4.0'
+version = '0.9.0'
 sourceCompatibility = 1.8
 targetCompatibility = 1.8
 
@@ -119,7 +119,8 @@ dependencies {
 task immudbStart {
     // INFO: You can disable this logic (comment these lines below within this task)
     // if you want to use an existing immudb server, without starting and stopping
-    // the locally used immudb version. Just make sure you use the same/proper version.
+    // the locally used immudb version (stored in `immudb` directory and controlled
+    // through the scripts). Just make sure immudb server has the proper version.
     ProcessBuilder pb = new ProcessBuilder("./start.sh")
     pb.directory(new File("immudb"))
     Process proc = pb.start()
@@ -132,7 +133,8 @@ task immudbStart {
 task immudbStop(type: Exec) {
     // INFO: You can disable this logic (comment these lines below within this task)
     // if you want to use an existing immudb server, without starting and stopping
-    // the locally used immudb version. Just make sure you use the same/proper version.
+    // the locally used immudb version (stored in `immudb` directory and controlled
+    // through the scripts). Just make sure immudb server has the proper version.
     workingDir 'immudb'
     commandLine './clean.sh'
     // commandLine 'echo'

@@ -18,5 +18,8 @@ src/generated/**
 
 !immudb/start.sh
 !immudb/stop.sh
+!immudb/clean.sh
 
 **/.DS_Store
+
+

@@ -3,6 +3,7 @@
 ## TODOs
 
 - [ ] Check if connected (similar with Go's `isConnected()`) in the beginning of all API operations.
-- [ ] MTLS options 
-- [ ] Server signature checking (TODOs in code exist for it)
+- [ ] MTLS options.
+- [ ] Server signature checking (TODOs in code exist for it).
+- [ ] `ImmuStateHolder` to be used with multiple immudb servers.
 

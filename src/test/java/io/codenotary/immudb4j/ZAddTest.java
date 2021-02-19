@@ -63,8 +63,9 @@ public class ZAddTest extends ImmuClientIntegrationTest {
         Assert.assertNotNull(txMd);
 
 
-//        TODO: Needs investigation. Currently it throws this gRPC issue:
-//        io.grpc.StatusRuntimeException: UNKNOWN: illegal arguments
+//        TODO: Temporary commented, it needs investigation.
+//              Currently it throws this gRPC issue:
+//              io.grpc.StatusRuntimeException: UNKNOWN: illegal arguments
 //        try {
 //            immuClient.verifiedZAddAt(set, 12, key1, initialTxId);
 //        } catch (VerificationException e) {
