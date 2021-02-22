@@ -3,7 +3,6 @@
 [![Slack](https://img.shields.io/badge/join%20slack-%23immutability-brightgreen.svg)](https://slack.vchain.us/)
 [![Discuss at immudb@googlegroups.com](https://img.shields.io/badge/discuss-immudb%40googlegroups.com-blue.svg)](https://groups.google.com/group/immudb)
 [![Coverage](https://coveralls.io/repos/github/codenotary/immudb4j/badge.svg?branch=master)](https://coveralls.io/github/codenotary/immudb4j?branch=master)
-dxps fork: [![Coverage Status](https://coveralls.io/repos/github/dxps/immudb4j/badge.svg?branch=master)](https://coveralls.io/github/dxps/immudb4j?branch=master)
 [![Maven Central](https://img.shields.io/maven-central/v/io.codenotary/immudb4j.svg?label=Maven%20Central)](https://search.maven.org/search?q=g:%22io.codenotary%22%20AND%20a:%22immudb4j%22)
 
 ### The Official [immudb] Client for Java 1.8 and above.
