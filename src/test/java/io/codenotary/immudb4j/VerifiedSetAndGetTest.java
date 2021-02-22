@@ -51,7 +51,7 @@ public class VerifiedSetAndGetTest extends ImmuClientIntegrationTest {
         immuClient.logout();
     }
 
-    @Test(testName = "verifiedSet, verifiedGet")
+    @Test(testName = "verifiedSet, verifiedGet, verifiedGetAt, verifiedGetSince")
     public void t2() {
 
         immuClient.login("immudb", "immudb");
@@ -60,6 +60,7 @@ public class VerifiedSetAndGetTest extends ImmuClientIntegrationTest {
         String key = "vsg";
         byte[] val = "test-vset-vget".getBytes(StandardCharsets.UTF_8);
 
+        // verifiedSet
         try {
             TxMetadata txMd = immuClient.verifiedSet(key, val);
             Assert.assertNotNull(txMd, "The result of verifiedSet must not be null.");
@@ -67,16 +68,44 @@ public class VerifiedSetAndGetTest extends ImmuClientIntegrationTest {
             Assert.fail("Failed at verifiedSet. Cause: " + e.getMessage(), e);
         }
 
+        // verifiedGet
         Entry vEntry = null;
         try {
             vEntry = immuClient.verifiedGet(key);
         } catch (VerificationException e) {
             Assert.fail("Failed at verifiedGet. Cause: " + e.getMessage(), e);
         }
-
         Assert.assertEquals(val, vEntry.kv.getValue());
+
+        // verifiedGetAt
+        try {
+            vEntry = immuClient.verifiedGetAt(key.getBytes(StandardCharsets.UTF_8), vEntry.txId);
+        } catch (VerificationException e) {
+            Assert.fail("Failed at verifiedGetAt. Cause: " + e.getMessage(), e);
+        }
+        Assert.assertEquals(val, vEntry.kv.getValue());
+
+        // verifiedGetSince
+        try {
+            vEntry = immuClient.verifiedGetSince(key.getBytes(StandardCharsets.UTF_8), vEntry.txId);
+        } catch (VerificationException e) {
+            Assert.fail("Failed at verifiedGetSince. Cause: " + e.getMessage(), e);
+        }
+        Assert.assertEquals(val, vEntry.kv.getValue());
+
+        // verifiedSetReference
+        byte[] refKey = "vsgRef".getBytes(StandardCharsets.UTF_8);
+        TxMetadata txMd = null;
+        try {
+            txMd = immuClient.verifiedSetReference(refKey, key.getBytes(StandardCharsets.UTF_8));
+        } catch (VerificationException e) {
+            Assert.fail("Failed at verifiedSetReference. Cause: " + e.getMessage(), e);
+        }
+        Assert.assertNotNull(txMd);
 
         immuClient.logout();
     }
+
+
 
 }

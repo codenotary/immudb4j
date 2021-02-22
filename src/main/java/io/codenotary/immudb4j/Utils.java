@@ -123,11 +123,13 @@ public class Utils {
     }
 
     public static void copy(byte[] src, byte[] dest, int destPos) {
-        System.arraycopy(src, 0, dest, destPos, src.length);
+        // System.arraycopy(src, 0, dest, destPos, src.length);
+        copy(src, 0, src.length, dest, destPos);
     }
 
     public static void copy(byte[] src, int srcPos, int length, byte[] dest) {
-        System.arraycopy(src, srcPos, dest, 0, length);
+        // System.arraycopy(src, srcPos, dest, 0, length);
+        copy(src, 0, length, dest, 0);
     }
 
     public static void copy(byte[] src, int srcPos, int length, byte[] dest, int destPos) {

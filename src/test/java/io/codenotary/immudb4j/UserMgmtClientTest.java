@@ -36,8 +36,9 @@ public class UserMgmtClientTest extends ImmuClientIntegrationTest {
         List<User> users = immuClient.listUsers();
         users.forEach(user -> Assert.assertNotEquals(user.getUser(), "testCreateUser"));
 
+        String userName = "testCreateUser";
         try {
-            immuClient.createUser("testCreateUser", "testTest123!", Permission.PERMISSION_ADMIN, "defaultdb");
+            immuClient.createUser(userName, "testTest123!", Permission.PERMISSION_ADMIN, "defaultdb");
         } catch (StatusRuntimeException e) {
             // The user could already exist, ignoring this.
         }
@@ -54,6 +55,8 @@ public class UserMgmtClientTest extends ImmuClientIntegrationTest {
         Assert.assertTrue(createdUser.isPresent());
 
         User user = createdUser.get();
+        Assert.assertEquals(user.getUser(), userName);
+        Assert.assertTrue(user.isActive());
         Assert.assertNotEquals(user.getCreatedAt(), "");
         Assert.assertEquals(user.getCreatedBy(), "immudb");
         Assert.assertEquals(user.getPermissions().get(0), Permission.PERMISSION_ADMIN);

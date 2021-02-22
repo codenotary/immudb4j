@@ -83,13 +83,13 @@ public class ImmuClient {
             return;
         }
         channel.shutdown();
-        if (!channel.isShutdown()) {
-            try {
-                channel.awaitTermination(2, TimeUnit.SECONDS);
-            } catch (InterruptedException e) {
-                // nothing to do here.
-            }
-        }
+//        if (!channel.isShutdown()) {
+//            try {
+//                channel.awaitTermination(2, TimeUnit.SECONDS);
+//            } catch (InterruptedException e) {
+//                // nothing to do here.
+//            }
+//        }
         channel = null;
     }
 
@@ -575,8 +575,10 @@ public class ImmuClient {
                 .setProveSinceTx(state.txId)
                 .build();
         ImmudbProto.VerifiableTx vtx = getStub().verifiableSetReference(vRefReq);
-        if (vtx.getTx().getMetadata().getNentries() != 1) {
-            throw new VerificationException("Data is corrupted.");
+        int vtxNentries = vtx.getTx().getMetadata().getNentries();
+        if (vtxNentries != 1) {
+            throw new VerificationException(String.format("Data is corrupted (verifTx has %d Nentries instead of 1).",
+                    vtxNentries));
         }
         Tx tx;
         try {

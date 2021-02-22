@@ -20,7 +20,6 @@ public class TxMetadataTest {
         String alhAsBase64 = "cEH05opQ0CVh9rsz0NpbFmcEITNDoyearaQ1Lp+4slA=";
         byte[] alh = Base64.getDecoder().decode(alhAsBase64);
         TxMetadata txMd = new TxMetadata(id, prevAlh, ts, 1, eh, blTxId, blRoot);
-        System.out.println(">>> TxMetadataTest > " + txMd.toString());
 
         Assert.assertTrue(txMd.toString().contains(alhAsBase64));
     }
