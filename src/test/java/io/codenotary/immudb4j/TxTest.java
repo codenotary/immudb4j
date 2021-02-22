@@ -43,8 +43,6 @@ public class TxTest extends ImmuClientIntegrationTest {
             Assert.fail("Failed at verifiedSet", e);
         }
 
-        Assert.assertTrue(txMd.toString().contains("prevAlh=47DEQpj8HBSa+/TImW+5JCeuQeRkm5NMpJWZG3hSuFU="));
-
         Tx tx = null;
         try {
             tx = immuClient.txById(txMd.id);
