@@ -6,7 +6,12 @@ echo
 
 # -----------------------------------------------------------------------------
 
-TESTS=""
+## Unit Tests
+
+TESTS="ExceptionsTest"
+
+## Integration Tests
+
 TESTS="${TESTS} BasicImmuClientTest"
 TESTS="${TESTS} HTreeTest"
 TESTS="${TESTS} ListDatabasesTest ListUsersTest"
