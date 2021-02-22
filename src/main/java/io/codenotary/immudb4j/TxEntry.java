@@ -21,20 +21,21 @@ public class TxEntry {
 
     private byte[] k;
     private int kLength;
-    private int vLength;
+    //    private int vLength;
     private byte[] hVal;
-    private long vOff;
+//    private long vOff;
 
     public TxEntry(byte[] k) {
         this.k = k;
         this.kLength = k.length;
     }
 
+    //    public TxEntry(byte[] k, int vLength, byte[] hVal, long vOff) {
     public TxEntry(byte[] k, int vLength, byte[] hVal, long vOff) {
         this.kLength = k.length;
-        this.vLength = vLength;
+//        this.vLength = vLength;
         this.hVal = hVal;
-        this.vOff = vOff;
+//        this.vOff = vOff;
         this.k = new byte[kLength];
         System.arraycopy(k, 0, this.k, 0, kLength);
     }
@@ -55,29 +56,29 @@ public class TxEntry {
         System.arraycopy(key, 0, k, 0, kLength);
     }
 
-    public byte[] getHVal() {
-        return hVal;
-    }
-
-    public void setHVal(byte[] hVal) {
-        this.hVal = hVal;
-    }
-
-    public int getVLength() {
-        return vLength;
-    }
-
-    public void setVLength(int vLength) {
-        this.vLength = vLength;
-    }
-
-    public long getVOff() {
-        return vOff;
-    }
-
-    public void setVOff(long vOff) {
-        this.vOff = vOff;
-    }
+//    public byte[] getHVal() {
+//        return hVal;
+//    }
+//
+//    public void setHVal(byte[] hVal) {
+//        this.hVal = hVal;
+//    }
+//
+//    public int getVLength() {
+//        return vLength;
+//    }
+//
+//    public void setVLength(int vLength) {
+//        this.vLength = vLength;
+//    }
+//
+//    public long getVOff() {
+//        return vOff;
+//    }
+//
+//    public void setVOff(long vOff) {
+//        this.vOff = vOff;
+//    }
 
     public byte[] digest() {
         byte[] b = new byte[kLength + Consts.SHA256_SIZE];

@@ -37,15 +37,6 @@ public class ImmuState {
         this.signature = signature;
     }
 
-    public boolean CheckSignature(PublicKey key) throws Exception {
-        if (signature == null) {
-            throw new Exception("ImmuState has no signature to check against");
-        }
-        // TODO: to-be-implemented, see pkg/api/schema/state.go:50
-        // return signer.Verify(state.ToBytes(), state.Signature.Signature, key)
-        return true;
-    }
-
     @Override
     public String toString() {
         Base64.Encoder enc = Base64.getEncoder();
