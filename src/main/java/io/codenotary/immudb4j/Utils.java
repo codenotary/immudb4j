@@ -115,6 +115,9 @@ public class Utils {
     }
 
     public static String asBase64(byte[] data) {
+        if (data == null) {
+            return null;
+        }
         return Base64.getEncoder().encodeToString(data);
     }
 

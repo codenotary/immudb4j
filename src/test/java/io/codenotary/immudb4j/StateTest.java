@@ -29,7 +29,7 @@ public class StateTest extends ImmuClientIntegrationTest {
         ImmuState state = immuClient.state();
 
         Assert.assertNotNull(state);
-        System.out.println(">>> t1 > state: " + state.toString());
+        // System.out.println(">>> t1 > state: " + state.toString());
 
         immuClient.logout();
     }
@@ -43,7 +43,7 @@ public class StateTest extends ImmuClientIntegrationTest {
         ImmuState currState = immuClient.currentState();
 
         Assert.assertNotNull(currState);
-        System.out.println(">>> t2 > currState: " + currState.toString());
+        // System.out.println(">>> t2 > currState: " + currState.toString());
 
         immuClient.logout();
     }

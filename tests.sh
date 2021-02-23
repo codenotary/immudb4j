@@ -8,7 +8,7 @@ echo
 
 ## Unit Tests
 
-TESTS="ExceptionsTest"
+TESTS="DualProofTest ExceptionsTest FileImmuStateHolderTest InclusionProofTest KVPairTest"
 
 ## Integration Tests
 

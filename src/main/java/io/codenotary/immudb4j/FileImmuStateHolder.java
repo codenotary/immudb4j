@@ -30,7 +30,7 @@ public class FileImmuStateHolder implements ImmuStateHolder {
 
     private final SerializableImmuStateHolder stateHolder;
 
-    private FileImmuStateHolder(Builder builder) throws IOException {
+    private FileImmuStateHolder(Builder builder) throws IOException, IllegalStateException {
         statesFolder = Paths.get(builder.getStatesFolder());
 
         if (Files.notExists(statesFolder)) {
@@ -51,7 +51,7 @@ public class FileImmuStateHolder implements ImmuStateHolder {
             stateHolderFile = statesFolder.resolve(lastRootFilename);
 
             if (Files.notExists(stateHolderFile)) {
-                throw new RuntimeException("Inconsistent current state file");
+                throw new IllegalStateException("Inconsistent current state file");
             }
 
             stateHolder.readFrom(Files.newInputStream(stateHolderFile));
@@ -64,7 +64,7 @@ public class FileImmuStateHolder implements ImmuStateHolder {
     }
 
     @Override
-    public synchronized void setState(ImmuState state) {
+    public synchronized void setState(ImmuState state) throws IllegalStateException {
         ImmuState currentState = stateHolder.getState(state.database);
 
         if (currentState != null && currentState.txId >= state.txId) {
@@ -95,7 +95,7 @@ public class FileImmuStateHolder implements ImmuStateHolder {
             stateHolderFile = newStateHolderFile;
         } catch (IOException e) {
             e.printStackTrace();
-            throw new RuntimeException("Unexpected error " + e);
+            throw new IllegalStateException("Unexpected error " + e);
         }
     }
 
@@ -111,7 +111,7 @@ public class FileImmuStateHolder implements ImmuStateHolder {
             statesFolder = "states";
         }
 
-        public FileImmuStateHolder build() throws IOException {
+        public FileImmuStateHolder build() throws IOException, IllegalStateException {
             return new FileImmuStateHolder(this);
         }
 
