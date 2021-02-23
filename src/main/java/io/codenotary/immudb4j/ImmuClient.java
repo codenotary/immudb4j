@@ -83,13 +83,13 @@ public class ImmuClient {
             return;
         }
         channel.shutdown();
-//        if (!channel.isShutdown()) {
-//            try {
-//                channel.awaitTermination(2, TimeUnit.SECONDS);
-//            } catch (InterruptedException e) {
-//                // nothing to do here.
-//            }
-//        }
+        if (!channel.isShutdown()) {
+            try {
+                channel.awaitTermination(2, TimeUnit.SECONDS);
+            } catch (InterruptedException e) {
+                // nothing to do here.
+            }
+        }
         channel = null;
     }
 
