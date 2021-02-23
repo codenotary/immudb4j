@@ -22,7 +22,7 @@ import org.testng.annotations.Test;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 
-public class ScanHistoryTest extends ImmuClientIntegrationTest {
+public class ScanAndHistoryTest extends ImmuClientIntegrationTest {
 
     @Test(testName = "set, history", priority = 2)
     public void t1() {
@@ -96,6 +96,8 @@ public class ScanHistoryTest extends ImmuClientIntegrationTest {
         Assert.assertEquals(scan.get(0).getValue(), value1);
         Assert.assertEquals(scan.get(1).getKey(), "scan2".getBytes(StandardCharsets.UTF_8));
         Assert.assertEquals(scan.get(1).getValue(), value2);
+
+        Assert.assertTrue(immuClient.scan("scan").size() > 0);
 
         immuClient.logout();
     }

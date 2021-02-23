@@ -26,8 +26,8 @@ public class CountTest extends ImmuClientIntegrationTest {
         immuClient.login("immudb", "immudb");
 
         String prefix = "sga";
-        System.out.printf(">>> There are %d entries with keys having the prefix '%s'.\n",
-                immuClient.count(prefix), prefix);
+//        System.out.printf(">>> There are %d entries with keys having the prefix '%s'.\n",
+//                immuClient.count(prefix), prefix);
 
         immuClient.logout();
     }
@@ -37,7 +37,7 @@ public class CountTest extends ImmuClientIntegrationTest {
 
         immuClient.login("immudb", "immudb");
 
-        System.out.printf(">>> There are %d entries.\n", immuClient.countAll());
+//        System.out.printf(">>> There are %d entries.\n", immuClient.countAll());
 
         immuClient.logout();
     }

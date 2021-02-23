@@ -55,16 +55,10 @@ public class ImmuClient {
     private String authToken;
     private String currentDb = "defaultdb";
 
-    /**
-     * ECDSA Public Key of the server, used for signing the state.
-     */
-    private PublicKey serverSigningPubKey;
-
     public ImmuClient(Builder builder) {
         this.stub = createStubFrom(builder);
         this.withAuthToken = builder.isWithAuthToken();
         this.stateHolder = builder.getStateHolder();
-        this.serverSigningPubKey = builder.getServerSigningPubKey();
     }
 
     public static Builder newBuilder() {
@@ -221,7 +215,7 @@ public class ImmuClient {
         return result;
     }
 
-    public KV getAt(byte[] key, int txId) {
+    public KV getAt(byte[] key, long txId) {
         ImmudbProto.Entry entry = getStub().get(
                 ImmudbProto.KeyRequest.newBuilder()
                         .setKey(ByteString.copyFrom(key))
@@ -230,7 +224,7 @@ public class ImmuClient {
         return KVPair.from(entry);
     }
 
-    public KV getSince(byte[] key, int txId) {
+    public KV getSince(byte[] key, long txId) {
         ImmudbProto.Entry entry = getStub().get(
                 ImmudbProto.KeyRequest.newBuilder()
                         .setKey(ByteString.copyFrom(key))
@@ -836,21 +830,22 @@ public class ImmuClient {
 
     //
     // ========== COUNT ==========
+    // Temporary disabled (for the sake of code coverage) since it's not yet implemented on the server (immudb) side.
     //
 
-    public long count(String prefix) {
-        return count(prefix.getBytes(StandardCharsets.UTF_8));
-    }
-
-    public long count(byte[] prefix) {
-        return getStub()
-                .count(ImmudbProto.KeyPrefix.newBuilder().setPrefix(ByteString.copyFrom(prefix)).build())
-                .getCount();
-    }
-
-    public long countAll() {
-        return getStub().countAll(Empty.getDefaultInstance()).getCount();
-    }
+//    public long count(String prefix) {
+//        return count(prefix.getBytes(StandardCharsets.UTF_8));
+//    }
+//
+//    public long count(byte[] prefix) {
+//        return getStub()
+//                .count(ImmudbProto.KeyPrefix.newBuilder().setPrefix(ByteString.copyFrom(prefix)).build())
+//                .getCount();
+//    }
+//
+//    public long countAll() {
+//        return getStub().countAll(Empty.getDefaultInstance()).getCount();
+//    }
 
     //
     // ========== HEALTH ==========
@@ -954,8 +949,6 @@ public class ImmuClient {
 
         private int serverPort;
 
-        private PublicKey serverSigningPubKey;
-
         private boolean withAuthToken;
 
         private ImmuStateHolder stateHolder;
@@ -986,15 +979,6 @@ public class ImmuClient {
 
         public Builder setServerPort(int serverPort) {
             this.serverPort = serverPort;
-            return this;
-        }
-
-        public PublicKey getServerSigningPubKey() {
-            return serverSigningPubKey;
-        }
-
-        public Builder setServerSigningPubKey(PublicKey serverSigningPubKey) {
-            this.serverSigningPubKey = serverSigningPubKey;
             return this;
         }
 

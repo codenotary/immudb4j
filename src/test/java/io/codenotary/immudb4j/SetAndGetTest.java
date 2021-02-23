@@ -19,6 +19,8 @@ import io.codenotary.immudb4j.exceptions.CorruptedDataException;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
+import java.nio.charset.StandardCharsets;
+
 public class SetAndGetTest extends ImmuClientIntegrationTest {
 
     @Test(testName = "set, get")
@@ -30,12 +32,13 @@ public class SetAndGetTest extends ImmuClientIntegrationTest {
         String key = "key1";
         byte[] val = new byte[]{1, 2, 3, 4, 5};
 
+        TxMetadata txMd = null;
         try {
-            TxMetadata txMd = immuClient.set(key, val);
-            Assert.assertNotNull(txMd);
+            txMd = immuClient.set(key, val);
         } catch (CorruptedDataException e) {
             Assert.fail("Failed at set.", e);
         }
+        Assert.assertNotNull(txMd);
 
         byte[] got = new byte[0];
         try {
@@ -45,6 +48,14 @@ public class SetAndGetTest extends ImmuClientIntegrationTest {
         }
 
         Assert.assertEquals(val, got);
+
+        KV kv = immuClient.getAt(key.getBytes(StandardCharsets.UTF_8), txMd.id);
+        Assert.assertNotNull(kv);
+        Assert.assertEquals(kv.getValue(), val);
+
+        kv = immuClient.getSince(key.getBytes(StandardCharsets.UTF_8), txMd.id);
+        Assert.assertNotNull(kv);
+        Assert.assertEquals(kv.getValue(), val);
 
         immuClient.logout();
     }
