@@ -19,6 +19,8 @@ public class KVPairTest {
         Assert.assertEquals(kv1.getValue(), val);
         Assert.assertEquals(kv1.hashCode(), kv2.hashCode());
         Assert.assertEquals(kv1, kv2);
+
+        Assert.assertEquals(kv1.digest().length, Consts.SHA256_SIZE);
     }
 
 }

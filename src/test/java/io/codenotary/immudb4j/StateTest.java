@@ -31,6 +31,11 @@ public class StateTest extends ImmuClientIntegrationTest {
         Assert.assertNotNull(state);
         // System.out.println(">>> t1 > state: " + state.toString());
 
+        String stateStr = state.toString();
+        Assert.assertTrue(stateStr.contains("ImmuState{"));
+        Assert.assertTrue(stateStr.contains("txHash(base64)"));
+        Assert.assertTrue(stateStr.contains("signature(base64)"));
+
         immuClient.logout();
     }
 
