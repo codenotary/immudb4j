@@ -55,12 +55,12 @@ Just include immudb4j as a dependency in your project:
   <dependency>
       <groupId>io.codenotary</groupId>
       <artifactId>immudb4j</artifactId>
-      <version>0.3.0</version>
+      <version>0.9.0</version>
   </dependency> 
   ```
 - if using Gradle:
   ```groovy
-  compile 'io.codenotary:immudb4j:0.3.0'
+  compile 'io.codenotary:immudb4j:0.9.0'
   ```
 
 `immudb4j` is currently hosted on both [Maven Central] and [Github Packages].
@@ -77,9 +77,9 @@ and _Configuring Gradle for use with GitHub Packages_ at [Github Packages].
 
 ## Supported Versions
 
-immudb4j supports the [latest immudb release], that is 0.9.0 at the time of this writing.
+immudb4j supports the [latest immudb release], that is 0.9.1 at the time of this writing.
 
-[latest immudb release]: https://github.com/codenotary/immudb/releases/tag/v0.9.0
+[latest immudb release]: https://github.com/codenotary/immudb/releases/tag/v0.9.1
 
 ## Quickstart
 
@@ -108,18 +108,18 @@ Setting `immudb` url and port:
                                 .build();
 ```
 
-Customizing the `Root Holder`:
+Customizing the `State Holder`:
 ```java
-    FileRootHolder rootHolder = FileRootHolder.newBuilder()
-                                    .setRootsFolder("./my_immuapp_roots")
-                                    .build();
+    FileImmuStateHolder stateHolder = FileImmuStateHolder.newBuilder()
+                                        .setStatesFolder("./my_immuapp_roots")
+                                        .build();
 
     ImmuClient immuClient = ImmuClient.newBuilder()
-                                      .withRootHolder(rootHolder)
+                                      .setStateHolder(stateHolder)
                                       .build();
 ```
 
-### User sessions
+### User Sessions
 
 Use `login` and `logout` methods to initiate and terminate user sessions:
 
@@ -127,6 +127,7 @@ Use `login` and `logout` methods to initiate and terminate user sessions:
     immuClient.login("usr1", "pwd1");
 
     // Interact with immudb using logged-in user.
+    //...
 
     immuClient.logout();
 ```
@@ -147,7 +148,7 @@ Specify the active database with:
     immuClient.useDatabase("db1");
 ```
 
-### Traditional read and write
+### Standard Read and Write
 
 immudb provides standard read and write operations that behave as in a traditional
 key-value store i.e. no cryptographic verification is involved. Such operations
@@ -167,54 +168,57 @@ read or write operation:
 
 ```java
     try {
-        client.safeSet("k123", new byte[]{1, 2, 3});
+        client.verifiedSet("k123", new byte[]{1, 2, 3});
     
-        byte[] v = client.safeGet("k123");
+        byte[] v = client.verifiedGet("k123");
 
     } (catch VerificationException e) {
 
-        //TODO: tampering detected!
+        // Check if it is a data tampering detected case!
 
     }
 ```
 
-### Multi-key read and write
+### Multi-key Read and Write
 
 Transactional multi-key read and write operations are supported by immudb and immudb4j.
 
 Atomic multi-key write (all entries are persisted or none):
 
 ```java
-    KVList.KVListBuilder builder = KVList.newBuilder();
+        String key1 = "sga-key1";
+        byte[] val1 = new byte[] { 1 };
+        String key2 = "sga-key2";
+        byte[] val2 = new byte[] { 2, 3 };
 
-    builder.add("k123", new byte[]{1, 2, 3});
-    builder.add("k321", new byte[]{3, 2, 1});
+        List<KV> kvs = Arrays.asList(
+                        new KVPair(key1, val1), 
+                        new KVPair(key2, val2));
 
-    KVList kvList = builder.build();
-
-    client.setAll(kvList);
+        KVList kvList = KVList.newBuilder().addAll(kvs).build();
+        try {
+            immuClient.setAll(kvList);
+        } catch (CorruptedDataException e) {
+            // ...
+        }
 ```
 
 Atomic multi-key read (all entries are retrieved or none):
 
 ```java
-    List<String> keyList = new ArrayList<String>();
-
-    keyList.add("k123");
-    keyList.add("k321");
-
-    List<KV> result = client.getAll(keyList);
+    List<String> keys = Arrays.asList(key1, key2, key3);
+    List<KV> result = immuClient.getAll(keys);
 
     for (KV kv : result) {
         byte[] key = kv.getKey();
         byte[] value = kv.getValue();
-        ...
+        // ...
     }
 ```
 
 ### Closing the client
 
-For closing the connection with immudb server use the `shutdown` operation:
+Apart from the `logout`, for closing the connection with immudb server use the `shutdown` operation:
  
 ```java
     immuClient.shutdown();
