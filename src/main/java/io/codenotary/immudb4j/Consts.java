@@ -67,4 +67,6 @@ public class Consts {
      */
     public static final int KEY_LEN_LEN = 8;
 
+    private Consts(){}
+
 }

@@ -22,7 +22,7 @@
     * [User sessions](#user-sessions)
     * [Creating a database](#creating-a-database)
     * [Setting the active database](#setting-the-active-database)
-    * [Traditional read and write](#traditional-read-and-write)
+    * [Standard Read and Write](#standard-read-and-write)
     * [Verified or Safe read and write](#verified-or-safe-read-and-write)
     * [Multi-key read and write](#multi-key-read-and-write)
     * [Closing the client](#creating-a-database)
@@ -55,12 +55,12 @@ Just include immudb4j as a dependency in your project:
   <dependency>
       <groupId>io.codenotary</groupId>
       <artifactId>immudb4j</artifactId>
-      <version>0.9.0</version>
+      <version>0.9.0.2</version>
   </dependency> 
   ```
 - if using Gradle:
   ```groovy
-  compile 'io.codenotary:immudb4j:0.9.0'
+  compile 'io.codenotary:immudb4j:0.9.0.2'
   ```
 
 `immudb4j` is currently hosted on both [Maven Central] and [Github Packages].

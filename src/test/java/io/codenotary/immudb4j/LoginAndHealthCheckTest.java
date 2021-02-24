@@ -16,14 +16,18 @@ limitations under the License.
 package io.codenotary.immudb4j;
 
 import io.grpc.StatusRuntimeException;
+import org.testng.Assert;
 import org.testng.annotations.Test;
 
-public class LoginTest extends ImmuClientIntegrationTest {
+public class LoginAndHealthCheckTest extends ImmuClientIntegrationTest {
 
-    @Test(testName = "login (with default credentials) & logout")
+    @Test(testName = "login (with default credentials), healthCheck, logout")
     public void t1() {
 
         immuClient.login("immudb", "immudb");
+
+        Assert.assertTrue(immuClient.healthCheck());
+
         immuClient.logout();
     }
 

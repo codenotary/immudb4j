@@ -24,23 +24,26 @@ import org.testng.annotations.Test;
 import java.util.List;
 import java.util.Optional;
 
-public class UserMgmtClientTest extends ImmuClientIntegrationTest {
+public class UserMgmtTest extends ImmuClientIntegrationTest {
 
+    // TODO: Temporary disabled & to investigate why createUser is not failing, but listing afterwards does not include it.
     @Test(testName = "createUser, listUsers", priority = 100, enabled = false)
     public void t1() {
 
         immuClient.login("immudb", "immudb");
         immuClient.useDatabase("defaultdb");
 
+        String userName = "testCreateUser";
+
         // Should not contain testCreateUser
         List<User> users = immuClient.listUsers();
-        users.forEach(user -> Assert.assertNotEquals(user.getUser(), "testCreateUser"));
+        users.forEach(user -> Assert.assertNotEquals(user.getUser(), userName));
 
-        String userName = "testCreateUser";
         try {
             immuClient.createUser(userName, "testTest123!", Permission.PERMISSION_ADMIN, "defaultdb");
         } catch (StatusRuntimeException e) {
             // The user could already exist, ignoring this.
+            System.out.println(">>> UserMgmtTest > t1 > createUser exception: " + e.getMessage());
         }
 
         try {
@@ -51,7 +54,9 @@ public class UserMgmtClientTest extends ImmuClientIntegrationTest {
 
         // Should contain testCreateUser
         users = immuClient.listUsers();
-        Optional<User> createdUser = users.stream().filter(u -> u.getUser().equals("testCreateUser")).findFirst();
+        users.forEach(user -> System.out.println(">>> UserMgmtTest > t1 > listUsers > " + user.toString()));
+
+        Optional<User> createdUser = users.stream().filter(u -> u.getUser().equals(userName)).findFirst();
         Assert.assertTrue(createdUser.isPresent());
 
         User user = createdUser.get();
@@ -74,9 +79,11 @@ public class UserMgmtClientTest extends ImmuClientIntegrationTest {
             immuClient.createUser("testUser", "testTest123!", Permission.PERMISSION_ADMIN, "defaultdb");
         } catch (StatusRuntimeException e) {
             // The user could already exist, ignoring this.
+            System.out.println(">>> UserMgmtTest > t2 > createUser exception: " + e.getMessage());
         }
 
         immuClient.changePassword("testUser", "testTest123!", "newTestTest123!");
+
         immuClient.logout();
 
         // This must fail.

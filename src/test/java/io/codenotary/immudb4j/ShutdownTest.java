@@ -30,6 +30,8 @@ public class ShutdownTest extends ImmuClientIntegrationTest {
 
     Assert.assertTrue(immuClient.isShutdown());
 
+    Assert.assertFalse(immuClient.isConnected());
+
     immuClient.login("immudb", "immudb");
 
   }

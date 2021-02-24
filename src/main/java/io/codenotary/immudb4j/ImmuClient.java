@@ -20,7 +20,9 @@ import com.google.protobuf.Empty;
 import io.codenotary.immudb.ImmuServiceGrpc;
 import io.codenotary.immudb.ImmudbProto;
 import io.codenotary.immudb.ImmudbProto.ScanRequest;
-import io.codenotary.immudb4j.crypto.*;
+import io.codenotary.immudb4j.crypto.CryptoUtils;
+import io.codenotary.immudb4j.crypto.DualProof;
+import io.codenotary.immudb4j.crypto.InclusionProof;
 import io.codenotary.immudb4j.exceptions.CorruptedDataException;
 import io.codenotary.immudb4j.exceptions.MaxWidthExceededException;
 import io.codenotary.immudb4j.exceptions.VerificationException;
@@ -34,7 +36,6 @@ import io.grpc.stub.MetadataUtils;
 
 import java.nio.charset.StandardCharsets;
 import java.security.NoSuchAlgorithmException;
-import java.security.PublicKey;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -44,6 +45,9 @@ import java.util.stream.Collectors;
 
 /**
  * The official immudb Java Client.
+ *
+ * @author Jeronimo Irazabal
+ * @author Marius Ileana
  */
 public class ImmuClient {
 
@@ -927,7 +931,7 @@ public class ImmuClient {
         txList.getTxsList().forEach(tx -> {
             try {
                 result.add(Tx.valueOf(tx));
-            } catch (NoSuchAlgorithmException | MaxWidthExceededException e) {
+            } catch (Exception e) {
                 e.printStackTrace();
             }
         });

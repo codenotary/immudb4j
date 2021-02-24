@@ -15,7 +15,7 @@ TESTS="DualProofTest ExceptionsTest FileImmuStateHolderTest InclusionProofTest K
 TESTS="${TESTS} BasicImmuClientTest"
 TESTS="${TESTS} HTreeTest"
 TESTS="${TESTS} ListDatabasesTest ListUsersTest"
-TESTS="${TESTS} LoginTest"
+TESTS="${TESTS} LoginAndHealthCheckTest"
 TESTS="${TESTS} MultidatabaseTest MultithreadTest"
 TESTS="${TESTS} ReferenceTest"
 TESTS="${TESTS} ScanAndHistoryTest"
@@ -23,7 +23,7 @@ TESTS="${TESTS} SetAndGetTest SetAllAndGetAllTest"
 TESTS="${TESTS} ShutdownTest"
 TESTS="${TESTS} StateTest"
 TESTS="${TESTS} TxTest"
-TESTS="${TESTS} UseDatabaseTest UserMgmtClientTest"
+TESTS="${TESTS} UseDatabaseTest UserMgmtTest"
 TESTS="${TESTS} VerifiedSetAndGetTest"
 TESTS="${TESTS} ZAddTest"
 
@@ -38,4 +38,3 @@ do
   echo ""
   ./gradlew test --info --tests $test
 done
-

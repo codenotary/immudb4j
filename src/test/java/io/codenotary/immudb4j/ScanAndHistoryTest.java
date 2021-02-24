@@ -119,20 +119,19 @@ public class ScanAndHistoryTest extends ImmuClientIntegrationTest {
         }
 
         TxMetadata set1TxMd = null;
-        TxMetadata set2TxMd = null;
         try {
             immuClient.zAdd("set1", 1, "zadd1");
             set1TxMd = immuClient.zAdd("set1", 2, "zadd2");
 
             immuClient.zAdd("set2", 2, "zadd1");
-            set2TxMd = immuClient.zAdd("set2", 1, "zadd2");
+            immuClient.zAdd("set2", 1, "zadd2");
         } catch (CorruptedDataException e) {
             Assert.fail("Failed to zAdd", e);
         }
 
         Assert.assertNotNull(set1TxMd);
 
-        List<KV> zScan1 = immuClient.zScan("set1", set1TxMd.id,5, false);
+        List<KV> zScan1 = immuClient.zScan("set1", set1TxMd.id, 5, false);
 
         Assert.assertEquals(zScan1.size(), 2);
         Assert.assertEquals(zScan1.get(0).getKey(), "zadd1".getBytes(StandardCharsets.UTF_8));
@@ -140,9 +139,7 @@ public class ScanAndHistoryTest extends ImmuClientIntegrationTest {
         Assert.assertEquals(zScan1.get(1).getKey(), "zadd2".getBytes(StandardCharsets.UTF_8));
         Assert.assertEquals(zScan1.get(1).getValue(), value2);
 
-        Assert.assertNotNull(set2TxMd);
-
-        List<KV> zScan2 = immuClient.zScan("set2", set2TxMd.id,5, false);
+        List<KV> zScan2 = immuClient.zScan("set2", 5, false);
 
         Assert.assertEquals(zScan2.size(), 2);
         Assert.assertEquals(zScan2.get(0).getKey(), "zadd2".getBytes(StandardCharsets.UTF_8));

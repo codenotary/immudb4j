@@ -92,6 +92,8 @@ public class TxTest extends ImmuClientIntegrationTest {
         Assert.assertNotNull(txs);
         Assert.assertEquals(txs.size(), 2);
 
+        Assert.assertNotNull(immuClient.txScan(initialTxId));
+
         immuClient.logout();
     }
 
