@@ -61,7 +61,7 @@ public class Tx {
         return new Tx(0, entries, hTree);
     }
 
-    static Tx valueOf(ImmudbProto.Tx stx) throws NoSuchAlgorithmException, MaxWidthExceededException {
+    public static Tx valueOf(ImmudbProto.Tx stx) throws NoSuchAlgorithmException, MaxWidthExceededException {
 
         List<TxEntry> entries = new ArrayList<>(stx.getEntriesCount());
         stx.getEntriesList().forEach(txe -> entries.add(

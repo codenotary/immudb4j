@@ -29,11 +29,11 @@ public class KVPair implements KV {
     private final byte[] key;
     private final byte[] value;
 
-    static KV from(ImmudbProto.Entry entry) {
+    public static KV from(ImmudbProto.Entry entry) {
         return new KVPair(entry.getKey().toByteArray(), entry.getValue().toByteArray());
     }
 
-    static KV from(ImmudbProto.ZEntry zEntry) {
+    public static KV from(ImmudbProto.ZEntry zEntry) {
         return KVPair.from(zEntry.getEntry());
     }
 

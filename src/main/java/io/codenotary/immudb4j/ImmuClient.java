@@ -200,11 +200,6 @@ public class ImmuClient {
         return getAllBS(keysBS);
     }
 
-    public List<KV> getAllBytes(List<byte[]> keys) {
-        List<ByteString> keysBS = new ArrayList<>(keys.size());
-        return getAllBS(keysBS);
-    }
-
     private List<KV> getAllBS(List<ByteString> keys) {
         ImmudbProto.KeyListRequest req = ImmudbProto.KeyListRequest.newBuilder().addAllKeys(keys).build();
         ImmudbProto.Entries entries = getStub().getAll(req);
