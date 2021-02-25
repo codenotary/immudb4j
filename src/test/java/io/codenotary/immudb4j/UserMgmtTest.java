@@ -21,12 +21,14 @@ import io.grpc.StatusRuntimeException;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
+
 public class UserMgmtTest extends ImmuClientIntegrationTest {
 
-    // TODO: Temporary disabled & to investigate why createUser is not failing, but listing afterwards does not include it.
+    // TODO: Temporary disabled: to investigate why createUser is not failing, but the listing afterwards does not include it.
     @Test(testName = "createUser, listUsers", priority = 100, enabled = false)
     public void t1() {
 
@@ -35,7 +37,7 @@ public class UserMgmtTest extends ImmuClientIntegrationTest {
 
         String userName = "testCreateUser";
 
-        // Should not contain testCreateUser
+        // Should not contain testCreateUser.
         List<User> users = immuClient.listUsers();
         users.forEach(user -> Assert.assertNotEquals(user.getUser(), userName));
 
@@ -52,7 +54,7 @@ public class UserMgmtTest extends ImmuClientIntegrationTest {
             // no-op
         }
 
-        // Should contain testCreateUser
+        // Should contain testCreateUser.
         users = immuClient.listUsers();
         users.forEach(user -> System.out.println(">>> UserMgmtTest > t1 > listUsers > " + user.toString()));
 
@@ -96,6 +98,16 @@ public class UserMgmtTest extends ImmuClientIntegrationTest {
 
         immuClient.login("testUser", "newTestTest123!");
         immuClient.logout();
+
+        // Some basic test to temporary (until t1 test above can be used) increase the code coverage.
+        User myUser = new User.UserBuilder().setUser("myUsername").setCreatedAt("someTimestamp").setCreatedBy("me")
+                .setActive(true).setPermissions(Collections.singletonList(Permission.PERMISSION_R))
+                .build();
+        Assert.assertEquals(myUser.getUser(), "myUsername", "Usernames are different");
+        Assert.assertEquals(myUser.getCreatedAt(), "someTimestamp", "CreatedAt values are different");
+        Assert.assertEquals(myUser.getCreatedBy(), "me", "CreatedBy values are different");
+        Assert.assertTrue(myUser.isActive(), "User is not active, as expected");
+        Assert.assertEquals(myUser.getPermissions(), Collections.singletonList(Permission.PERMISSION_R), "Permissions are different");
     }
 
 }

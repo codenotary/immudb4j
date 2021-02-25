@@ -18,6 +18,7 @@ package io.codenotary.immudb4j.user;
 import java.util.List;
 
 public class User {
+
     private final String user;
     private final String createdAt;
     private final String createdBy;
@@ -98,4 +99,5 @@ public class User {
             return new User(this);
         }
     }
+
 }

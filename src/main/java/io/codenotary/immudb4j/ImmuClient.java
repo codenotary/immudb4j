@@ -522,24 +522,7 @@ public class ImmuClient {
             throw new VerificationException("Data is corrupted (verify inclusion failed)");
         }
 
-        long sourceId = state.txId;
-        long targetId = tx.getId();
-        byte[] sourceAlh = CryptoUtils.digestFrom(state.txHash);
-        byte[] targetAlh = tx.getAlh();
-
-        if (state.txId > 0) {
-            if (!CryptoUtils.verifyDualProof(
-                    DualProof.valueOf(vtx.getDualProof()),
-                    sourceId,
-                    targetId,
-                    sourceAlh,
-                    targetAlh
-            )) {
-                throw new VerificationException("Data is corrupted (dual proof verification failed).");
-            }
-        }
-
-        ImmuState newState = new ImmuState(currentDb, targetId, targetAlh, vtx.getSignature().getSignature().toByteArray());
+        ImmuState newState = verifyDualProof(vtx, tx, state);
 
         // TODO: to-be-implemented (see pkg/client/client.go:803 newState.CheckSignature ...)
         // if (serverSigningPubKey != null) { ... }
@@ -591,6 +574,17 @@ public class ImmuClient {
             throw new VerificationException("Data is corrupted (different digests).");
         }
 
+        ImmuState newState = verifyDualProof(vtx, tx, state);
+
+        // TODO: to-be-implemented (see pkg/client/client.go:1122 newState.CheckSignature ...)
+        // if (serverSigningPubKey != null) { ... }
+
+        stateHolder.setState(newState);
+
+        return TxMetadata.valueOf(vtx.getTx().getMetadata());
+    }
+
+    private ImmuState verifyDualProof(ImmudbProto.VerifiableTx vtx, Tx tx, ImmuState state) throws VerificationException {
         long sourceId = state.txId;
         long targetId = tx.getId();
         byte[] sourceAlh = CryptoUtils.digestFrom(state.txHash);
@@ -607,15 +601,8 @@ public class ImmuClient {
                 throw new VerificationException("Data is corrupted (dual proof verification failed).");
             }
         }
-
-        ImmuState newState = new ImmuState(currentDb, targetId, targetAlh, vtx.getSignature().getSignature().toByteArray());
-
-        // TODO: to-be-implemented (see pkg/client/client.go:1122 newState.CheckSignature ...)
-        // if (serverSigningPubKey != null) { ... }
-
-        stateHolder.setState(newState);
-
-        return TxMetadata.valueOf(vtx.getTx().getMetadata());
+        // If all good, return the new state to be locally stored.
+        return new ImmuState(currentDb, targetId, targetAlh, vtx.getSignature().getSignature().toByteArray());
     }
 
     //
@@ -694,24 +681,7 @@ public class ImmuClient {
             throw new VerificationException("Data is corrupted (different digests).");
         }
 
-        long sourceId = state.txId;
-        long targetId = tx.getId();
-        byte[] sourceAlh = CryptoUtils.digestFrom(state.txHash);
-        byte[] targetAlh = tx.getAlh();
-
-        if (state.txId > 0) {
-            if (!CryptoUtils.verifyDualProof(
-                    DualProof.valueOf(vtx.getDualProof()),
-                    sourceId,
-                    targetId,
-                    sourceAlh,
-                    targetAlh
-            )) {
-                throw new VerificationException("Data is corrupted (dual proof verification failed).");
-            }
-        }
-
-        ImmuState newState = new ImmuState(currentDb, targetId, targetAlh, vtx.getSignature().getSignature().toByteArray());
+        ImmuState newState = verifyDualProof(vtx, tx, state);
 
         // TODO: to-be-implemented (see pkg/client/client.go:803 newState.CheckSignature ...)
         // if (serverSigningPubKey != null) { ... }
