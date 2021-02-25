@@ -18,8 +18,8 @@ package io.codenotary.immudb4j;
 
 public interface ImmuStateHolder {
 
-    ImmuState getState(String database);
+    ImmuState getState(String serverUuid, String database);
 
-    void setState(ImmuState state);
+    void setState(String serverUuid, ImmuState state);
 
 }

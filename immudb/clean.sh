@@ -13,5 +13,5 @@ fi
 rm -rf data
 rm -rf states
 
-echo "immudb4j data and states folders were removed."
+echo "immudb's data and immudb4j's states folders were removed."
 

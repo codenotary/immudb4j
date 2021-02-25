@@ -45,10 +45,10 @@ public class FileImmuStateHolder implements ImmuStateHolder {
 
         stateHolder = new SerializableImmuStateHolder();
 
-        String lastRootFilename = new String(Files.readAllBytes(currentStateFile));
+        String lastStateFilename = new String(Files.readAllBytes(currentStateFile));
 
-        if (!lastRootFilename.isEmpty()) {
-            stateHolderFile = statesFolder.resolve(lastRootFilename);
+        if (!lastStateFilename.isEmpty()) {
+            stateHolderFile = statesFolder.resolve(lastStateFilename);
 
             if (Files.notExists(stateHolderFile)) {
                 throw new IllegalStateException("Inconsistent current state file");
@@ -59,32 +59,32 @@ public class FileImmuStateHolder implements ImmuStateHolder {
     }
 
     @Override
-    public synchronized ImmuState getState(String database) {
-        return stateHolder.getState(database);
+    public synchronized ImmuState getState(String serverUuid, String database) {
+        return stateHolder.getState(serverUuid, database);
     }
 
     @Override
-    public synchronized void setState(ImmuState state) throws IllegalStateException {
-        ImmuState currentState = stateHolder.getState(state.database);
+    public synchronized void setState(String serverUuid, ImmuState state) throws IllegalStateException {
 
+        ImmuState currentState = stateHolder.getState(serverUuid, state.database);
         if (currentState != null && currentState.txId >= state.txId) {
             return;
         }
 
-        stateHolder.setState(state);
+        stateHolder.setState(serverUuid, state);
 
-        Path newStateHolderFile = statesFolder.resolve("state_" + System.nanoTime());
+        Path newStateFile = statesFolder.resolve("state_" + serverUuid + "_" + state.database + "_" + System.nanoTime());
 
-        if (Files.exists(newStateHolderFile)) {
-            throw new RuntimeException("Failed attempting to create fresh state file. Please retry.");
+        if (Files.exists(newStateFile)) {
+            throw new RuntimeException("Failed attempting to create a new state file. Please retry.");
         }
 
         try {
-            Files.createFile(newStateHolderFile);
-            stateHolder.writeTo(Files.newOutputStream(newStateHolderFile));
+            Files.createFile(newStateFile);
+            stateHolder.writeTo(Files.newOutputStream(newStateFile));
 
             BufferedWriter bufferedWriter = Files.newBufferedWriter(currentStateFile, StandardOpenOption.TRUNCATE_EXISTING);
-            bufferedWriter.write(newStateHolderFile.getFileName().toString());
+            bufferedWriter.write(newStateFile.getFileName().toString());
             bufferedWriter.flush();
             bufferedWriter.close();
 
@@ -92,7 +92,7 @@ public class FileImmuStateHolder implements ImmuStateHolder {
                 Files.delete(stateHolderFile);
             }
 
-            stateHolderFile = newStateHolderFile;
+            stateHolderFile = newStateFile;
         } catch (IOException e) {
             e.printStackTrace();
             throw new IllegalStateException("Unexpected error " + e);

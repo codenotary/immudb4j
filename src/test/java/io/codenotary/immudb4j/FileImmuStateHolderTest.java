@@ -18,7 +18,7 @@ public class FileImmuStateHolderTest {
         File statesDir = null;
         try {
             String tempDir = System.getProperty("java.io.tmpdir");
-            statesDir = new File(tempDir, "fileimmustateholdertest_states/");
+            statesDir = new File(tempDir, "FileImmuStateHolderTest_states/");
             File currStateFile = new File(statesDir, "current_state");
 
             // Write some fake "state_..." into "current_state" file.
@@ -31,6 +31,9 @@ public class FileImmuStateHolderTest {
         } catch (IOException e) {
             // If that would be the case, it's not the test's fault.
             System.out.println(">>> Got IO ex (expected): " + e.getMessage());
+            if (e.getCause() != null) {
+                System.out.println(">>> Got IO ex (expected) cause: " + e.getCause().getMessage());
+            }
         } catch (IllegalStateException ignored) {
             // This should actually happen with that "fake" state entry.
         }

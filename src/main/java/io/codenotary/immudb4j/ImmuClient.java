@@ -57,6 +57,7 @@ public class ImmuClient {
     private final ImmuStateHolder stateHolder;
     private ManagedChannel channel;
     private String authToken;
+    private String currentServerUuid;
     private String currentDb = "defaultdb";
 
     public ImmuClient(Builder builder) {
@@ -72,9 +73,23 @@ public class ImmuClient {
     private ImmuServiceGrpc.ImmuServiceBlockingStub createStubFrom(Builder builder) {
         channel = ManagedChannelBuilder.forAddress(builder.getServerUrl(), builder.getServerPort())
                 .usePlaintext()
+                .intercept(new ImmuServerUUIDInterceptor(this))
                 .build();
         return ImmuServiceGrpc.newBlockingStub(channel);
     }
+
+    // ---------------------------------------------------------------------
+    // These two currentServerUuid related methods are not publicly exposed,
+    // since these should be called by the ImmuServerUUIDInterceptor only.
+
+    void setCurrentServerUuid(String serverUuid) {
+        currentServerUuid = serverUuid;
+    }
+
+    String getCurrentServerUuid() {
+        return currentServerUuid;
+    }
+    // ---------------------------------------------------------------------
 
     public synchronized void shutdown() {
         if (channel == null) {
@@ -99,7 +114,6 @@ public class ImmuClient {
         if (!withAuthToken || authToken == null) {
             return stub;
         }
-
         Metadata metadata = new Metadata();
         metadata.put(Metadata.Key.of(AUTH_HEADER, Metadata.ASCII_STRING_MARSHALLER), "Bearer " + authToken);
 
@@ -128,10 +142,10 @@ public class ImmuClient {
      * If nothing exists already, it is fetched from the server and save it locally.
      */
     public ImmuState state() {
-        ImmuState state = stateHolder.getState(currentDb);
+        ImmuState state = stateHolder.getState(currentServerUuid, currentDb);
         if (state == null) {
             state = currentState();
-            stateHolder.setState(state);
+            stateHolder.setState(currentServerUuid, state);
         }
         return state;
     }
@@ -336,7 +350,7 @@ public class ImmuClient {
         // TODO: to-be-implemented (see pkg/client/client.go:620, newState.CheckSignature(c.serverSigningPubKey))
         // if (serverSigningPubKey != null) { }
 
-        stateHolder.setState(newState);
+        stateHolder.setState(currentServerUuid, newState);
 
         return Entry.valueOf(vEntry.getEntry());
     }
@@ -527,7 +541,7 @@ public class ImmuClient {
         // TODO: to-be-implemented (see pkg/client/client.go:803 newState.CheckSignature ...)
         // if (serverSigningPubKey != null) { ... }
 
-        stateHolder.setState(newState);
+        stateHolder.setState(currentServerUuid, newState);
 
         return TxMetadata.valueOf(vtx.getTx().getMetadata());
     }
@@ -579,7 +593,7 @@ public class ImmuClient {
         // TODO: to-be-implemented (see pkg/client/client.go:1122 newState.CheckSignature ...)
         // if (serverSigningPubKey != null) { ... }
 
-        stateHolder.setState(newState);
+        stateHolder.setState(currentServerUuid, newState);
 
         return TxMetadata.valueOf(vtx.getTx().getMetadata());
     }
@@ -686,7 +700,7 @@ public class ImmuClient {
         // TODO: to-be-implemented (see pkg/client/client.go:803 newState.CheckSignature ...)
         // if (serverSigningPubKey != null) { ... }
 
-        stateHolder.setState(newState);
+        stateHolder.setState(currentServerUuid, newState);
 
         return TxMetadata.valueOf(vtx.getTx().getMetadata());
     }
@@ -769,7 +783,7 @@ public class ImmuClient {
         // TODO: to-be-implemented (see pkg/client/client.go:803 newState.CheckSignature ...)
         // if (serverSigningPubKey != null) { ... }
 
-        stateHolder.setState(newState);
+        stateHolder.setState(currentServerUuid, newState);
 
         Tx tx = null;
         try {

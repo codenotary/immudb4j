@@ -15,7 +15,6 @@ limitations under the License.
 */
 package io.codenotary.immudb4j;
 
-import java.security.PublicKey;
 import java.util.Base64;
 
 /**
@@ -47,4 +46,5 @@ public class ImmuState {
                 ", signature(base64)=" + enc.encodeToString(signature) +
                 " }";
     }
+
 }
