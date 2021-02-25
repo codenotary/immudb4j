@@ -28,50 +28,50 @@ import java.util.Optional;
 
 public class UserMgmtTest extends ImmuClientIntegrationTest {
 
-    // TODO: Temporary disabled: to investigate why createUser is not failing, but the listing afterwards does not include it.
-    @Test(testName = "createUser, listUsers", priority = 100, enabled = false)
+    @Test(testName = "createUser, listUsers", priority = 100)
     public void t1() {
 
+        String database = "defaultdb";
+        String username = "testCreateUser";
+        String password = "paSs123$%^"; // Initially, it was "testTest123!".
+        Permission permission = Permission.PERMISSION_RW;
+
         immuClient.login("immudb", "immudb");
-        immuClient.useDatabase("defaultdb");
+        immuClient.useDatabase(database);
 
-        String userName = "testCreateUser";
-
+        // Left commented because:
+        // 1. Running these tests implies that a new immudb instance is started for each Test class.
+        // 2. It looks that 'listUsers' is somehow cached on the server: if it's called before 'createUser'
+        //    then the 2nd time (used for verifying the existence of the newly created user) does not include the new user.
         // Should not contain testCreateUser.
-        List<User> users = immuClient.listUsers();
-        users.forEach(user -> Assert.assertNotEquals(user.getUser(), userName));
+        // immuClient.listUsers().forEach(user -> Assert.assertNotEquals(user.getUser(), username));
 
         try {
-            immuClient.createUser(userName, "testTest123!", Permission.PERMISSION_ADMIN, "defaultdb");
+            immuClient.createUser(username, password, permission, database);
         } catch (StatusRuntimeException e) {
             // The user could already exist, ignoring this.
             System.out.println(">>> UserMgmtTest > t1 > createUser exception: " + e.getMessage());
         }
 
-        try {
-            Thread.sleep(1_000);
-        } catch (InterruptedException e) {
-            // no-op
-        }
-
         // Should contain testCreateUser.
-        users = immuClient.listUsers();
-        users.forEach(user -> System.out.println(">>> UserMgmtTest > t1 > listUsers > " + user.toString()));
+        System.out.println(">>> listUsers:");
+        List<User> users = immuClient.listUsers();
+        users.forEach(user -> System.out.println("\t- " + user));
 
-        Optional<User> createdUser = users.stream().filter(u -> u.getUser().equals(userName)).findFirst();
+        Optional<User> createdUser = users.stream().filter(u -> u.getUser().equals(username)).findFirst();
         Assert.assertTrue(createdUser.isPresent());
 
         User user = createdUser.get();
-        Assert.assertEquals(user.getUser(), userName);
+        Assert.assertEquals(user.getUser(), username);
         Assert.assertTrue(user.isActive());
         Assert.assertNotEquals(user.getCreatedAt(), "");
         Assert.assertEquals(user.getCreatedBy(), "immudb");
-        Assert.assertEquals(user.getPermissions().get(0), Permission.PERMISSION_ADMIN);
+        Assert.assertEquals(user.getPermissions().get(0), permission);
 
         immuClient.logout();
     }
 
-    @Test(testName = "createUser, changePassword",priority = 101)
+    @Test(testName = "createUser, changePassword", priority = 101)
     public void t2() {
 
         immuClient.login("immudb", "immudb");
