@@ -19,6 +19,7 @@ public interface KV {
 
     byte[] getKey();
     byte[] getValue();
+    long getTxId();
 
     byte[] digest();
 

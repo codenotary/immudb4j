@@ -27,14 +27,14 @@ public abstract class ImmuClientIntegrationTest {
   @BeforeClass
   public static void beforeClass() throws IOException {
     FileImmuStateHolder stateHolder = FileImmuStateHolder.newBuilder()
-            .setStatesFolder("immudb/states")
+            .withStatesFolder("immudb/states")
             .build();
 
     immuClient = ImmuClient.newBuilder()
-            .setStateHolder(stateHolder)
-            .setServerUrl("localhost")
-            .setServerPort(3322)
-            .setWithAuthToken(true)
+            .withStateHolder(stateHolder)
+            .withServerUrl("localhost")
+            .withServerPort(3322)
+            .withAuthToken(true)
             .build();
   }
 

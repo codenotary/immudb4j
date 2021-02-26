@@ -115,7 +115,7 @@ public class FileImmuStateHolder implements ImmuStateHolder {
             return new FileImmuStateHolder(this);
         }
 
-        public Builder setStatesFolder(String statesFolder) {
+        public Builder withStatesFolder(String statesFolder) {
             this.statesFolder = statesFolder;
             return this;
         }

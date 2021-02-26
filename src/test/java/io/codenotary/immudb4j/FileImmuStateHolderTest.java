@@ -8,7 +8,6 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.attribute.FileAttribute;
 
 public class FileImmuStateHolderTest {
 
@@ -24,7 +23,7 @@ public class FileImmuStateHolderTest {
             // Write some fake "state_..." into "current_state" file.
             Files.write(currStateFile.toPath(), "state_fake".getBytes(StandardCharsets.UTF_8));
 
-            FileImmuStateHolder.newBuilder().setStatesFolder(statesDir.getAbsolutePath()).build();
+            FileImmuStateHolder.newBuilder().withStatesFolder(statesDir.getAbsolutePath()).build();
 
             cleanupDir(statesDir);
             Assert.fail("stateHolder creation must have fail, but it didn't.");

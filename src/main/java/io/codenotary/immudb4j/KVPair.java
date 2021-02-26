@@ -28,23 +28,35 @@ public class KVPair implements KV {
 
     private final byte[] key;
     private final byte[] value;
+    private final long txId;
 
     public static KV from(ImmudbProto.Entry entry) {
-        return new KVPair(entry.getKey().toByteArray(), entry.getValue().toByteArray());
+        return new KVPair(entry.getKey().toByteArray(),
+                entry.getValue().toByteArray(),
+                entry.getTx()
+        );
     }
 
     public static KV from(ImmudbProto.ZEntry zEntry) {
         return KVPair.from(zEntry.getEntry());
     }
 
-    public KVPair(byte[] key, byte[] value) {
+    public KVPair(byte[] key, byte[] value, long txId) {
         this.key = key;
         this.value = value;
+        this.txId = txId;
     }
 
     public KVPair(String key, byte[] value) {
         this.key = key.getBytes(StandardCharsets.UTF_8);
         this.value = value;
+        this.txId = 0;
+    }
+
+    public KVPair(byte[] key, byte[] value) {
+        this.key = key;
+        this.value = value;
+        this.txId = 0;
     }
 
     @Override
@@ -55,6 +67,11 @@ public class KVPair implements KV {
     @Override
     public byte[] getValue() {
         return this.value;
+    }
+
+    @Override
+    public long getTxId() {
+        return this.txId;
     }
 
     @Override

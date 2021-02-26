@@ -55,12 +55,12 @@ Just include immudb4j as a dependency in your project:
   <dependency>
       <groupId>io.codenotary</groupId>
       <artifactId>immudb4j</artifactId>
-      <version>0.9.0.3</version>
+      <version>0.9.0.4</version>
   </dependency> 
   ```
 - if using Gradle:
   ```groovy
-  compile 'io.codenotary:immudb4j:0.9.0.3'
+  compile 'io.codenotary:immudb4j:0.9.0.4'
   ```
 
 `immudb4j` is currently hosted on both [Maven Central] and [Github Packages].
@@ -103,19 +103,19 @@ Using default configuration:
 Setting `immudb` url and port:
 ```java
     ImmuClient immuClient = ImmuClient.newBuilder()
-                                .setServerUrl("localhost")
-                                .setServerPort(3322)
+                                .withServerUrl("localhost")
+                                .withServerPort(3322)
                                 .build();
 ```
 
 Customizing the `State Holder`:
 ```java
     FileImmuStateHolder stateHolder = FileImmuStateHolder.newBuilder()
-                                        .setStatesFolder("./my_immuapp_roots")
+                                        .withStatesFolder("./my_immuapp_states")
                                         .build();
 
     ImmuClient immuClient = ImmuClient.newBuilder()
-                                      .setStateHolder(stateHolder)
+                                      .withStateHolder(stateHolder)
                                       .build();
 ```
 

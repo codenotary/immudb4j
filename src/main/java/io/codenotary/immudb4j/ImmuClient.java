@@ -951,7 +951,7 @@ public class ImmuClient {
             return this.serverUrl;
         }
 
-        public Builder setServerUrl(String serverUrl) {
+        public Builder withServerUrl(String serverUrl) {
             this.serverUrl = serverUrl;
             return this;
         }
@@ -960,7 +960,7 @@ public class ImmuClient {
             return serverPort;
         }
 
-        public Builder setServerPort(int serverPort) {
+        public Builder withServerPort(int serverPort) {
             this.serverPort = serverPort;
             return this;
         }
@@ -969,7 +969,7 @@ public class ImmuClient {
             return withAuthToken;
         }
 
-        public Builder setWithAuthToken(boolean withAuthToken) {
+        public Builder withAuthToken(boolean withAuthToken) {
             this.withAuthToken = withAuthToken;
             return this;
         }
@@ -978,7 +978,7 @@ public class ImmuClient {
             return stateHolder;
         }
 
-        public Builder setStateHolder(ImmuStateHolder stateHolder) {
+        public Builder withStateHolder(ImmuStateHolder stateHolder) {
             this.stateHolder = stateHolder;
             return this;
         }
