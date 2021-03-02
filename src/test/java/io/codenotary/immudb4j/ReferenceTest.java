@@ -49,6 +49,8 @@ public class ReferenceTest extends ImmuClientIntegrationTest {
         }
         Assert.assertNotNull(ref1TxMd);
 
+
+
         TxMetadata ref2TxMd = null;
         try {
             ref2TxMd = immuClient.setReferenceAt(ref2Key, key, setTxMd.id);

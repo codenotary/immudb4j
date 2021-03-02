@@ -34,7 +34,7 @@ immudb4j implements a [gRPC] immudb client, based on [immudb's official protobuf
 It exposes a minimal and simple to use API for applications, while the cryptographic verifications and state update protocol implementation 
 are fully implemented internally by this client.
 
-The latest validated immudb state may be kept in the local file system using default `FileRootHolder`.<br/>
+The latest validated immudb state may be kept in the local file system using default `FileImmuStateHolder`.<br/>
 Please read [immudb Research Paper] for details of how immutability is ensured by [immudb].
 
 [gRPC]: https://grpc.io/
@@ -55,12 +55,12 @@ Just include immudb4j as a dependency in your project:
   <dependency>
       <groupId>io.codenotary</groupId>
       <artifactId>immudb4j</artifactId>
-      <version>0.9.0.4</version>
+      <version>0.9.0.5</version>
   </dependency> 
   ```
 - if using Gradle:
   ```groovy
-  compile 'io.codenotary:immudb4j:0.9.0.4'
+  compile 'io.codenotary:immudb4j:0.9.0.5'
   ```
 
 `immudb4j` is currently hosted on both [Maven Central] and [Github Packages].
@@ -89,7 +89,7 @@ immudb4j supports the [latest immudb server] release, that is 0.9.1 at the time 
 
 Follow its [README](https://github.com/codenotary/immudb-client-examples/blob/master/java/README.md) to build and run it.
 
-## Step-by-step guide
+## Step-by-step Guide
 
 ### Creating a Client
 
@@ -150,7 +150,7 @@ Specify the active database with:
 
 ### Standard Read and Write
 
-immudb provides standard read and write operations that behave as in a traditional
+immudb provides standard read and write operations that behave as in a standard
 key-value store i.e. no cryptographic verification is involved. Such operations
 may be used when validations can be postponed.
 
@@ -160,10 +160,10 @@ may be used when validations can be postponed.
     byte[] v = client.get("k123");
 ```
 
-### Verified or Safe read and write
+### Verified or Safe Read and Write
 
 immudb provides built-in cryptographic verification for any entry. The client
-implements the mathematical validations while the application uses as a traditional
+implements the mathematical validations while the application uses as a standard
 read or write operation:
 
 ```java

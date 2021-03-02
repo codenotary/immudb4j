@@ -57,7 +57,7 @@ public class VerifiedSetAndGetTest extends ImmuClientIntegrationTest {
         immuClient.login("immudb", "immudb");
         immuClient.useDatabase("defaultdb");
 
-        String key = "vsg";
+        byte[] key = "vsg".getBytes(StandardCharsets.UTF_8);
         byte[] val = "test-vset-vget".getBytes(StandardCharsets.UTF_8);
 
         // verifiedSet
@@ -79,7 +79,7 @@ public class VerifiedSetAndGetTest extends ImmuClientIntegrationTest {
 
         // verifiedGetAt
         try {
-            vEntry = immuClient.verifiedGetAt(key.getBytes(StandardCharsets.UTF_8), vEntry.txId);
+            vEntry = immuClient.verifiedGetAt(key, vEntry.txId);
         } catch (VerificationException e) {
             Assert.fail("Failed at verifiedGetAt. Cause: " + e.getMessage(), e);
         }
@@ -87,7 +87,7 @@ public class VerifiedSetAndGetTest extends ImmuClientIntegrationTest {
 
         // verifiedGetSince
         try {
-            vEntry = immuClient.verifiedGetSince(key.getBytes(StandardCharsets.UTF_8), vEntry.txId);
+            vEntry = immuClient.verifiedGetSince(key, vEntry.txId);
         } catch (VerificationException e) {
             Assert.fail("Failed at verifiedGetSince. Cause: " + e.getMessage(), e);
         }
@@ -97,7 +97,7 @@ public class VerifiedSetAndGetTest extends ImmuClientIntegrationTest {
         byte[] refKey = "vsgRef".getBytes(StandardCharsets.UTF_8);
         TxMetadata txMd = null;
         try {
-            txMd = immuClient.verifiedSetReference(refKey, key.getBytes(StandardCharsets.UTF_8));
+            txMd = immuClient.verifiedSetReference(refKey, key);
         } catch (VerificationException e) {
             // TODO: Investigate "different digests" failure at VerifiedSetReference
             // Assert.fail("Failed at verifiedSetReference. Cause: " + e.getMessage(), e);

@@ -53,7 +53,7 @@ public class ImmuClient {
 
     private static final String AUTH_HEADER = "authorization";
     private final ImmuServiceGrpc.ImmuServiceBlockingStub stub;
-    private final boolean withAuthToken;
+    private final boolean withAuth;
     private final ImmuStateHolder stateHolder;
     private ManagedChannel channel;
     private String authToken;
@@ -62,7 +62,7 @@ public class ImmuClient {
 
     public ImmuClient(Builder builder) {
         this.stub = createStubFrom(builder);
-        this.withAuthToken = builder.isWithAuthToken();
+        this.withAuth = builder.isWithAuth();
         this.stateHolder = builder.getStateHolder();
     }
 
@@ -111,7 +111,7 @@ public class ImmuClient {
     }
 
     private ImmuServiceGrpc.ImmuServiceBlockingStub getStub() {
-        if (!withAuthToken || authToken == null) {
+        if (!withAuth || authToken == null) {
             return stub;
         }
         Metadata metadata = new Metadata();
@@ -377,18 +377,28 @@ public class ImmuClient {
     // ========== HISTORY ==========
     //
 
-    public List<KV> history(String key, int limit, long offset, boolean reverse) {
-        return history(key.getBytes(StandardCharsets.UTF_8), limit, offset, reverse);
+
+    public List<KV> history(String key, int limit, long offset, boolean desc) {
+        return history(key.getBytes(StandardCharsets.UTF_8), limit, offset, desc);
     }
 
-    public List<KV> history(byte[] key, int limit, long offset, boolean reverse) {
+    public List<KV> history(byte[] key, int limit, long offset, boolean desc) {
+        return history(key, limit, offset, desc, 1);
+    }
+
+    public List<KV> history(String key, int limit, long offset, boolean desc, long sinceTxId) {
+        return history(key.getBytes(StandardCharsets.UTF_8), limit, offset, desc, sinceTxId);
+    }
+
+    public List<KV> history(byte[] key, int limit, long offset, boolean desc, long sinceTxId) {
         ImmudbProto.Entries entries;
         try {
             entries = getStub().history(ImmudbProto.HistoryRequest.newBuilder()
                     .setKey(ByteString.copyFrom(key))
                     .setLimit(limit)
                     .setOffset(offset)
-                    .setDesc(reverse)
+                    .setDesc(desc)
+                    .setSinceTx(sinceTxId)
                     .build()
             );
         } catch (StatusRuntimeException e) {
@@ -401,26 +411,45 @@ public class ImmuClient {
     // ========== SCAN ==========
     //
 
-    public List<KV> scan(String key) {
-        return scan(ByteString.copyFrom(key, StandardCharsets.UTF_8).toByteArray());
+    public List<KV> scan(String prefix) {
+        return scan(ByteString.copyFrom(prefix, StandardCharsets.UTF_8).toByteArray());
     }
 
-    public List<KV> scan(String key, long sinceTxId, long limit, boolean reverse) {
-        return scan(ByteString.copyFrom(key, StandardCharsets.UTF_8).toByteArray(), sinceTxId, limit, reverse);
+    public List<KV> scan(String prefix, long sinceTxId, long limit, boolean desc) {
+        return scan(ByteString.copyFrom(prefix, StandardCharsets.UTF_8).toByteArray(), sinceTxId, limit, desc);
     }
 
-    public List<KV> scan(byte[] key) {
-        ScanRequest req = ScanRequest.newBuilder().setPrefix(ByteString.copyFrom(key)).build();
+    public List<KV> scan(String prefix, String seekKey, long sinceTxId, long limit, boolean desc) {
+        return scan(
+                ByteString.copyFrom(prefix, StandardCharsets.UTF_8).toByteArray(),
+                ByteString.copyFrom(seekKey, StandardCharsets.UTF_8).toByteArray(),
+                sinceTxId, limit, desc);
+    }
+
+    public List<KV> scan(byte[] prefix) {
+        ScanRequest req = ScanRequest.newBuilder().setPrefix(ByteString.copyFrom(prefix)).build();
         ImmudbProto.Entries entries = getStub().scan(req);
         return buildList(entries);
     }
 
-    public List<KV> scan(byte[] key, long sinceTxId, long limit, boolean reverse) {
+    public List<KV> scan(byte[] prefix, long sinceTxId, long limit, boolean desc) {
         ScanRequest req = ScanRequest.newBuilder()
-                .setPrefix(ByteString.copyFrom(key))
+                .setPrefix(ByteString.copyFrom(prefix))
                 .setLimit(limit)
                 .setSinceTx(sinceTxId)
-                .setDesc(reverse)
+                .setDesc(desc)
+                .build();
+        ImmudbProto.Entries entries = getStub().scan(req);
+        return buildList(entries);
+    }
+
+    public List<KV> scan(byte[] prefix, byte[] seekKey, long sinceTxId, long limit, boolean desc) {
+        ScanRequest req = ScanRequest.newBuilder()
+                .setPrefix(ByteString.copyFrom(prefix))
+                .setLimit(limit)
+                .setSeekKey(ByteString.copyFrom(seekKey))
+                .setSinceTx(sinceTxId)
+                .setDesc(desc)
                 .build();
         ImmudbProto.Entries entries = getStub().scan(req);
         return buildList(entries);
@@ -800,12 +829,12 @@ public class ImmuClient {
         return buildList(txList);
     }
 
-    public List<Tx> txScan(long initialTxId, int limit, boolean reverse) {
+    public List<Tx> txScan(long initialTxId, int limit, boolean desc) {
         ImmudbProto.TxScanRequest req = ImmudbProto.TxScanRequest
                 .newBuilder()
                 .setInitialTx(initialTxId)
                 .setLimit(limit)
-                .setDesc(reverse)
+                .setDesc(desc)
                 .build();
         ImmudbProto.TxList txList = getStub().txScan(req);
         return buildList(txList);
@@ -893,6 +922,15 @@ public class ImmuClient {
     }
 
     //
+    // ========== USER MGMT ==========
+    //
+
+    public void cleanIndex() {
+        //noinspection ResultOfMethodCallIgnored
+        getStub().cleanIndex(Empty.getDefaultInstance());
+    }
+
+    //
     // ========== INTERNAL UTILS ==========
     //
 
@@ -932,7 +970,7 @@ public class ImmuClient {
 
         private int serverPort;
 
-        private boolean withAuthToken;
+        private boolean withAuth;
 
         private ImmuStateHolder stateHolder;
 
@@ -940,7 +978,7 @@ public class ImmuClient {
             this.serverUrl = "localhost";
             this.serverPort = 3322;
             this.stateHolder = new SerializableImmuStateHolder();
-            this.withAuthToken = true;
+            this.withAuth = true;
         }
 
         public ImmuClient build() {
@@ -965,12 +1003,12 @@ public class ImmuClient {
             return this;
         }
 
-        public boolean isWithAuthToken() {
-            return withAuthToken;
+        public boolean isWithAuth() {
+            return withAuth;
         }
 
-        public Builder withAuthToken(boolean withAuthToken) {
-            this.withAuthToken = withAuthToken;
+        public Builder withAuth(boolean withAuth) {
+            this.withAuth = withAuth;
             return this;
         }
 

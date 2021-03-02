@@ -19,14 +19,17 @@ import io.grpc.StatusRuntimeException;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
-public class LoginAndHealthCheckTest extends ImmuClientIntegrationTest {
+public class LoginAndHealthCheckAndCleanIndexTest extends ImmuClientIntegrationTest {
 
     @Test(testName = "login (with default credentials), healthCheck, logout")
     public void t1() {
 
         immuClient.login("immudb", "immudb");
 
-        Assert.assertTrue(immuClient.healthCheck());
+        boolean isHealthy = immuClient.healthCheck();
+        Assert.assertTrue(isHealthy);
+
+        immuClient.cleanIndex();
 
         immuClient.logout();
     }

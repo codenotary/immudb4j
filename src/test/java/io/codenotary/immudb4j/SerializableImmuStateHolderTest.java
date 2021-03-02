@@ -18,20 +18,31 @@ package io.codenotary.immudb4j;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
-import java.util.List;
+public class SerializableImmuStateHolderTest {
 
-
-public class UseDatabaseTest extends ImmuClientIntegrationTest {
-
-    @Test(testName = "useDatabase")
+    @Test(testName = "in-memory state holder")
     public void t1() {
 
-        immuClient.login("immudb", "immudb");
+        SerializableImmuStateHolder stateHolder = new SerializableImmuStateHolder();
 
+        ImmuClient immuClient = ImmuClient.newBuilder()
+                .withStateHolder(stateHolder)
+                .withServerUrl("localhost")
+                .withServerPort(3322)
+                .build();
+
+        immuClient.login("immudb", "immudb");
         immuClient.useDatabase("defaultdb");
 
-        List<String> databases = immuClient.databases();
-        Assert.assertTrue(databases.size() > 0);
+        ImmuState state = immuClient.state();
+
+        Assert.assertNotNull(state);
+        // System.out.println(">>> t1 > state: " + state.toString());
+
+        String stateStr = state.toString();
+        Assert.assertTrue(stateStr.contains("ImmuState{"));
+        Assert.assertTrue(stateStr.contains("txHash(base64)"));
+        Assert.assertTrue(stateStr.contains("signature(base64)"));
 
         immuClient.logout();
     }

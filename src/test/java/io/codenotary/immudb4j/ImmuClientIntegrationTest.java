@@ -34,7 +34,6 @@ public abstract class ImmuClientIntegrationTest {
             .withStateHolder(stateHolder)
             .withServerUrl("localhost")
             .withServerPort(3322)
-            .withAuthToken(true)
             .build();
   }
 
