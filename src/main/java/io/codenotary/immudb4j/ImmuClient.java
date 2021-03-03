@@ -196,9 +196,9 @@ public class ImmuClient {
     //
 
     /**
-     * execAll can be used to submit in one call multiple operations like set, setReference, and zAdd.<br/>
-     * For setting KVs, <code>kvList</code> contains pairs of (key, value), as in the <code>set(key, value)</code> call.<br/>
-     * For setting references, <code>refList</code> contains pairs of (key, referencedKey), as in the <code>setReference(key, referencedKey)</code> call.<br/>
+     * execAll can be used to submit in one call multiple operations like set, setReference, and zAdd.
+     * For setting KVs, <code>kvList</code> contains pairs of (key, value), as in the <code>set(key, value)</code> call.
+     * For setting references, <code>refList</code> contains pairs of (key, referencedKey), as in the <code>setReference(key, referencedKey)</code> call.
      * For doing <code>zAdd</code>s, <code>zaddList</code> contains triples of (set, score, key), as in the <code>zAdd(set, score, key)</code> call.
      */
     public TxMetadata execAll(
