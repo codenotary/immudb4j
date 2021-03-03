@@ -17,6 +17,7 @@ package io.codenotary.immudb4j;
 
 import org.testng.annotations.Test;
 
+// Note: These tests are not used for now, since `count` and `countAll` are not yet implemented on the server.
 
 public class CountTest extends ImmuClientIntegrationTest {
 

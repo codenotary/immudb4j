@@ -20,6 +20,8 @@ import com.google.protobuf.Empty;
 import io.codenotary.immudb.ImmuServiceGrpc;
 import io.codenotary.immudb.ImmudbProto;
 import io.codenotary.immudb.ImmudbProto.ScanRequest;
+import io.codenotary.immudb4j.basics.Pair;
+import io.codenotary.immudb4j.basics.Triple;
 import io.codenotary.immudb4j.crypto.CryptoUtils;
 import io.codenotary.immudb4j.crypto.DualProof;
 import io.codenotary.immudb4j.crypto.InclusionProof;
@@ -36,10 +38,7 @@ import io.grpc.stub.MetadataUtils;
 
 import java.nio.charset.StandardCharsets;
 import java.security.NoSuchAlgorithmException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.NoSuchElementException;
+import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
@@ -189,6 +188,74 @@ public class ImmuClient {
             list.add(db.getDatabasename());
         }
         return list;
+    }
+
+
+    //
+    // ========== EXECALL ==========
+    //
+
+    /**
+     * execAll can be used to submit in one call multiple operations like set, setReference, and zAdd.<br/>
+     * For setting KVs, <code>kvList</code> contains pairs of (key, value), as in the <code>set(key, value)</code> call.<br/>
+     * For setting references, <code>refList</code> contains pairs of (key, referencedKey), as in the <code>setReference(key, referencedKey)</code> call.<br/>
+     * For doing <code>zAdd</code>s, <code>zaddList</code> contains triples of (set, score, key), as in the <code>zAdd(set, score, key)</code> call.
+     */
+    public TxMetadata execAll(
+            List<Pair<byte[], byte[]>> kvList,
+            List<Pair<byte[], byte[]>> refList,
+            List<Triple<String, Double, String>> zaddList) {
+
+        int opsCount = 0;
+        opsCount += kvList != null ? kvList.size() : 0;
+        opsCount += refList != null ? refList.size() : 0;
+        if (opsCount == 0) {
+            return null;
+        }
+        List<ImmudbProto.Op> operations = new ArrayList<>(opsCount);
+
+        if (kvList != null) {
+            ImmudbProto.Op.Builder opb = ImmudbProto.Op.newBuilder();
+            ImmudbProto.KeyValue.Builder kvb = ImmudbProto.KeyValue.newBuilder();
+            kvList.forEach(pair -> {
+                opb.setKv(kvb
+                        .setKey(ByteString.copyFrom(pair.a))
+                        .setValue(ByteString.copyFrom(pair.b))
+                        .build()
+                );
+                operations.add(opb.build());
+            });
+        }
+
+        if (refList != null) {
+            ImmudbProto.Op.Builder opb = ImmudbProto.Op.newBuilder();
+            refList.forEach(pair -> {
+                opb.setRef(ImmudbProto.ReferenceRequest.newBuilder()
+                        .setKey(ByteString.copyFrom(pair.a))
+                        .setReferencedKey(ByteString.copyFrom(pair.b))
+                        .build()
+                );
+                operations.add(opb.build());
+            });
+        }
+
+        if (zaddList != null) {
+            ImmudbProto.Op.Builder opb = ImmudbProto.Op.newBuilder();
+            zaddList.forEach(triple -> {
+                ImmudbProto.ZAddRequest req = opb.getZAddBuilder()
+                        .setSet(ByteString.copyFrom(triple.a, StandardCharsets.UTF_8))
+                        .setScore(triple.b)
+                        .setKey(ByteString.copyFrom(triple.c, StandardCharsets.UTF_8))
+                        .build();
+                opb.setZAdd(req);
+                operations.add(opb.build());
+            });
+        }
+
+        ImmudbProto.ExecAllRequest.Builder reqb = ImmudbProto.ExecAllRequest.newBuilder();
+        operations.forEach(reqb::addOperations);
+
+        return TxMetadata.valueOf(getStub().execAll(reqb.build()));
     }
 
     //
