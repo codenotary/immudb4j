@@ -38,6 +38,7 @@ import io.grpc.stub.MetadataUtils;
 
 import java.nio.charset.StandardCharsets;
 import java.security.NoSuchAlgorithmException;
+import java.security.PublicKey;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
@@ -58,11 +59,13 @@ public class ImmuClient {
     private String authToken;
     private String currentServerUuid;
     private String currentDb = "defaultdb";
+    private PublicKey serverSigningKey;
 
     public ImmuClient(Builder builder) {
         this.stub = createStubFrom(builder);
         this.withAuth = builder.isWithAuth();
         this.stateHolder = builder.getStateHolder();
+        this.serverSigningKey = builder.getServerSigningKey();
     }
 
     public static Builder newBuilder() {
@@ -75,6 +78,13 @@ public class ImmuClient {
                 .intercept(new ImmuServerUUIDInterceptor(this))
                 .build();
         return ImmuServiceGrpc.newBlockingStub(channel);
+    }
+
+    private boolean checkSignature(ImmudbProto.ImmutableState state) {
+        if (serverSigningKey != null) {
+            return ImmuState.valueOf(state).checkSignature(serverSigningKey);
+        }
+        return true;
     }
 
     // ---------------------------------------------------------------------
@@ -151,16 +161,24 @@ public class ImmuClient {
 
     /**
      * Get the current database state that exists on the server.
+     * It may throw a RuntimeException if server's state signature verification fails
+     * (if this feature is enabled on the client side, at least).
      */
     public ImmuState currentState() {
         Empty empty = com.google.protobuf.Empty.getDefaultInstance();
         ImmudbProto.ImmutableState state = getStub().currentState(empty);
-        return new ImmuState(
-                currentDb,
-                state.getTxId(),
-                state.getTxHash().toByteArray(),
-                state.getSignature().toByteArray()
-        );
+
+        boolean verifPassed;
+        try {
+            verifPassed = checkSignature(state);
+        } catch (Exception e) {
+            throw new RuntimeException("Could not perform the state signature verification. Reason: " + e.getMessage());
+        }
+        if (!verifPassed) {
+            throw new RuntimeException("State signature verification failed");
+        }
+
+        return ImmuState.valueOf(state);
     }
 
     //
@@ -1037,6 +1055,8 @@ public class ImmuClient {
 
         private int serverPort;
 
+        private PublicKey serverSigningKey;
+
         private boolean withAuth;
 
         private ImmuStateHolder stateHolder;
@@ -1070,6 +1090,19 @@ public class ImmuClient {
             return this;
         }
 
+        public PublicKey getServerSigningKey() {
+            return serverSigningKey;
+        }
+
+        /**
+         * Specify the public key file name (a DER file) that will
+         * be used for verifying the state signature received from the server.
+         */
+        public Builder withServerSigningKey(String publicKeyFilename) throws Exception {
+            this.serverSigningKey = CryptoUtils.getDERPublicKey(publicKeyFilename);
+            return this;
+        }
+
         public boolean isWithAuth() {
             return withAuth;
         }
@@ -1087,6 +1120,7 @@ public class ImmuClient {
             this.stateHolder = stateHolder;
             return this;
         }
+
     }
 
 }

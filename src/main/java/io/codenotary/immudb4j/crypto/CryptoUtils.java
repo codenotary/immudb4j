@@ -21,8 +21,14 @@ import io.codenotary.immudb4j.KV;
 import io.codenotary.immudb4j.KVPair;
 import io.codenotary.immudb4j.Utils;
 
+import java.io.DataInputStream;
+import java.io.File;
+import java.io.FileInputStream;
+import java.security.KeyFactory;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.security.PublicKey;
+import java.security.spec.X509EncodedKeySpec;
 import java.util.Arrays;
 import java.util.Base64;
 import java.util.List;
@@ -30,6 +36,10 @@ import java.util.List;
 
 public class CryptoUtils {
 
+    // FYI: Interesting enough, Go returns a fixed value for sha256.Sum256(nil) and this value is:
+    // [227 176 196 66 152 252 28 20 154 251 244 200 153 111 185 36 39 174 65 228 100 155 147 76 164 149 153 27 120 82 184 85]
+    // whose Base64 encoded value is 47DEQpj8HBSa+/TImW+5JCeuQeRkm5NMpJWZG3hSuFU=.
+    // But Java's MessageDigest fails with NPE when providing a null value. So we treat this case as in Go.
     private static final byte[] SHA256_SUM_OF_NULL = Base64.getDecoder().decode("47DEQpj8HBSa+/TImW+5JCeuQeRkm5NMpJWZG3hSuFU=");
 
     /**
@@ -37,10 +47,6 @@ public class CryptoUtils {
      */
     public static byte[] sha256Sum(byte[] data) {
         if (data == null) {
-            // Interesting enough, Go returns a fixed value for sha256.Sum256(nil) and this value is:
-            // [227 176 196 66 152 252 28 20 154 251 244 200 153 111 185 36 39 174 65 228 100 155 147 76 164 149 153 27 120 82 184 85]
-            // whose Base64 encoded value is 47DEQpj8HBSa+/TImW+5JCeuQeRkm5NMpJWZG3hSuFU=.
-            // But Java's MessageDigest fails with NPE when providing a null value. So we treat this case as in Go.
             return SHA256_SUM_OF_NULL;
         }
         try {
@@ -174,7 +180,7 @@ public class CryptoUtils {
                     proof.targetTxMetadata.blTxId,
                     leafFor(sourceAlh),
                     proof.targetTxMetadata.blRoot)) {
-                System.out.println("[dbg] verifIncl false");
+//                System.out.println("[dbg] verifIncl false");
                 return false;
             }
         }
@@ -272,7 +278,7 @@ public class CryptoUtils {
                 System.arraycopy(ciRoot, 0, b, Consts.SHA256_SIZE + 1, ciRoot.length);
             }
 
-            ciRoot = CryptoUtils.sha256Sum(b);
+            ciRoot = sha256Sum(b);
 
             i1 >>= 1;
             j1 >>= 1;
@@ -317,7 +323,7 @@ public class CryptoUtils {
         byte[] leaf = new byte[1 + Consts.SHA256_SIZE];
         leaf[0] = Consts.LEAF_PREFIX;
         System.arraycopy(digest, 0, leaf, 1, digest.length);
-        byte[] calcRoot = CryptoUtils.sha256Sum(leaf);
+        byte[] calcRoot = sha256Sum(leaf);
         int i = proof.leaf;
         int r = proof.width - 1;
 
@@ -334,7 +340,7 @@ public class CryptoUtils {
                     Utils.copy(calcRoot, b, 1 + Consts.SHA256_SIZE);
                 }
 
-                calcRoot = CryptoUtils.sha256Sum(b);
+                calcRoot = sha256Sum(b);
                 i /= 2;
                 r /= 2;
             }
@@ -390,10 +396,10 @@ public class CryptoUtils {
                 System.arraycopy(h, 0, b, 1, h.length);
 
                 System.arraycopy(ciRoot, 0, b, 1 + Consts.SHA256_SIZE, ciRoot.length);
-                ciRoot = CryptoUtils.sha256Sum(b);
+                ciRoot = sha256Sum(b);
 
                 System.arraycopy(cjRoot, 0, b, 1 + Consts.SHA256_SIZE, cjRoot.length);
-                cjRoot = CryptoUtils.sha256Sum(b);
+                cjRoot = sha256Sum(b);
 
                 while (fn % 2 == 0 && fn != 0) {
                     fn >>= 1;
@@ -402,7 +408,7 @@ public class CryptoUtils {
             } else {
                 System.arraycopy(cjRoot, 0, b, 1, cjRoot.length);
                 System.arraycopy(h, 0, b, 1 + Consts.SHA256_SIZE, h.length);
-                cjRoot = CryptoUtils.sha256Sum(b);
+                cjRoot = sha256Sum(b);
             }
             fn >>= 1;
             sn >>= 1;
@@ -412,6 +418,31 @@ public class CryptoUtils {
         result[0] = ciRoot;
         result[1] = cjRoot;
         return result;
+    }
+
+    /**
+     * Reads a public key from a DER file.
+     */
+    public static PublicKey getDERPublicKey(String filepath) throws Exception {
+
+        File f = new File(filepath);
+        FileInputStream fis = new FileInputStream(f);
+        DataInputStream dis = new DataInputStream(fis);
+        byte[] keyBytes = new byte[(int) f.length()];
+        dis.readFully(keyBytes);
+        dis.close();
+
+        String publicKeyPEM = new String(keyBytes)
+                .replace("-----BEGIN PUBLIC KEY-----\n", "")
+                .replaceAll(System.lineSeparator(), "")
+                .replace("-----END PUBLIC KEY-----", "")
+                .trim();
+
+        byte[] decoded = Base64.getDecoder().decode(publicKeyPEM);
+
+        X509EncodedKeySpec spec = new X509EncodedKeySpec(decoded);
+        KeyFactory kf = KeyFactory.getInstance("EC");
+        return kf.generatePublic(spec);
     }
 
 }

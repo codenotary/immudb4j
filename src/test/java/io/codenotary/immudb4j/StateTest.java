@@ -18,6 +18,9 @@ package io.codenotary.immudb4j;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
+import java.io.File;
+import java.util.Objects;
+
 public class StateTest extends ImmuClientIntegrationTest {
 
     @Test(testName = "state")
@@ -49,6 +52,84 @@ public class StateTest extends ImmuClientIntegrationTest {
 
         Assert.assertNotNull(currState);
         // System.out.println(">>> t2 > currState: " + currState.toString());
+
+        immuClient.logout();
+    }
+
+    @Test(testName = "currentState with server signature checking, but only on the client side")
+    public void t3() {
+
+        // Provisioning the client side with the public key file.
+        String publicKeyResource = "test_public_key.pem";
+        ClassLoader classLoader = getClass().getClassLoader();
+        File publicKeyFile = new File(Objects.requireNonNull(classLoader.getResource(publicKeyResource)).getFile());
+
+        // Recreating an client instance with the server signing key.
+        try {
+            immuClient = ImmuClient.newBuilder()
+                    .withServerUrl("localhost")
+                    .withServerPort(3322)
+                    .withServerSigningKey(publicKeyFile.getAbsolutePath())
+                    .build();
+        } catch (Exception e) {
+            // This is not a test failure, so just printing the issue and ending the test.
+            System.err.println("StateTest > t3 > Ending the test since could not load the server signing key. Reason: "
+                    + e.getMessage());
+            return;
+        }
+
+        immuClient.login("immudb", "immudb");
+        immuClient.useDatabase("defaultdb");
+
+        try {
+            ImmuState state = immuClient.currentState();
+            Assert.fail("Did not fail as expected, since a server signing key is provided, but only on the client side");
+        } catch (RuntimeException ignored) {
+            // Expected this since in the current tests setup, immudb does not have that state signature feature active.
+            // (this feature is active when starting it like: `immudb --signingKey test_private_key.pem`).
+        }
+
+        immuClient.logout();
+    }
+
+    @Test(testName = "currentState with server signature checking",
+            description = "Testing checkSignature() through currentState(), " +
+                    "the (state signing) feature being set up on both server and client side. " +
+                    "This could remain a manual test, that's why it is disabled." +
+                    "Of course, it must be `enabled = true`, if you want to run it from IDE or cli.",
+            enabled = true)
+    public void t4() {
+
+        // Provisioning the client side with the public key file.
+        String publicKeyResource = "test_public_key.pem";
+        ClassLoader classLoader = getClass().getClassLoader();
+        File publicKeyFile = new File(Objects.requireNonNull(classLoader.getResource(publicKeyResource)).getFile());
+
+        // Recreating an client instance with the server signing key.
+        try {
+            immuClient = ImmuClient.newBuilder()
+                    .withServerUrl("localhost")
+                    .withServerPort(3322)
+                    .withServerSigningKey(publicKeyFile.getAbsolutePath())
+                    .build();
+        } catch (Exception e) {
+            // This is not a test failure, so just printing the issue and ending the test.
+            System.err.println("StateTest > t4 > Ending the test since could not load the server signing key. Reason: "
+                    + e.getMessage());
+            return;
+        }
+
+        immuClient.login("immudb", "immudb");
+        immuClient.useDatabase("defaultdb");
+
+        try {
+            ImmuState state = immuClient.currentState();
+            // In this case, it should be ok as long as the immudb server has been started accordingly
+            // from `immudb` directory (on this repo root) using: `./immudb --signingKey test_private_key.pem`
+            Assert.assertNotNull(state);
+        } catch (RuntimeException e) {
+            Assert.fail("Server's state signature verification failed. Reason: ", e);
+        }
 
         immuClient.logout();
     }
