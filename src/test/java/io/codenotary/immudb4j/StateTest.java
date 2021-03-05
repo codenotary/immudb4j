@@ -57,7 +57,10 @@ public class StateTest extends ImmuClientIntegrationTest {
         Assert.assertNotNull(currState);
         // System.out.println(">>> t2 > currState: " + currState.toString());
 
+        // ------------------------------------------------
         // Additional checks for the sake of code coverage.
+        // ------------------------------------------------
+
         ClassLoader classLoader = getClass().getClassLoader();
         File publicKeyFile = new File(Objects.requireNonNull(classLoader.getResource(publicKeyResource)).getFile());
         PublicKey publicKey = null;
@@ -71,6 +74,10 @@ public class StateTest extends ImmuClientIntegrationTest {
 
         // The signature verification in this case should fail for the same aforementioned reason.
         Assert.assertFalse(currState.checkSignature(publicKey));
+
+        // Again, "covering" `checkSignature` when there is a `signature` attached.
+        ImmuState someState = new ImmuState(currState.database, currState.txId, currState.txHash, new byte[1]);
+        Assert.assertFalse(someState.checkSignature(publicKey));
 
         immuClient.logout();
     }
