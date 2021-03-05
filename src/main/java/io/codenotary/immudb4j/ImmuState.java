@@ -18,9 +18,13 @@ package io.codenotary.immudb4j;
 import io.codenotary.immudb.ImmudbProto;
 import io.codenotary.immudb4j.crypto.CryptoUtils;
 import io.codenotary.immudb4j.crypto.ECDSASignature;
+import org.bouncycastle.jce.provider.BouncyCastleProvider;
 
 import java.nio.charset.StandardCharsets;
 import java.security.PublicKey;
+import java.security.Security;
+import java.security.Signature;
+import java.util.Arrays;
 import java.util.Base64;
 
 /**
@@ -51,22 +55,21 @@ public class ImmuState {
 
             byte[] hash = CryptoUtils.sha256Sum(toBytes());
             try {
-                // Signature sig = Signature.getInstance("SHA256withECDSA");
-                // sig.initVerify(key);
-                // sig.update(hash);
-                // return sig.verify(signature);
+                // Security.addProvider(new org.bouncycastle.jce.provider.BouncyCastleProvider());
+                Signature sig = Signature.getInstance("SHA256withECDSA"); // , BouncyCastleProvider.PROVIDER_NAME);
+                sig.initVerify(pubKey);
+                sig.update(hash);
+                return sig.verify(signature);
 
                 // The `signature` coming from immudb server is an ASN.1 encoded value of
                 // a `ecdsaSignature{R: r, S: s}` Golang struct, where r, s are the result
                 // of `r, s, err := ecdsa.Sign(sig.rand, sig.privateKey, hash[:])` call.
 
-                System.out.println("[dbg] checkSignature > signature length: " + signature.length);
-                // return ecdsaSig.verify(signature);
+//                ECDSASignature ecdsaSig = ECDSASignature.decodeFromDER(signature);
+//                System.out.println("[dbg] checkSignature > ecdsa sign: \n\tr=" + ecdsaSig.r + " \n\ts=" + ecdsaSig.s
+//                    + "\n\thash=" + Arrays.toString(hash));
+//                 return ecdsaSig.checkSignature(hash, pubKey);
 
-                // ECDSASignature ecdsaSig = ECDSASignature.decodeFromDER(signature);
-                //System.out.println("[dbg] checkSignature > ecdsa sign: r=" + ecdsaSig.r + " s=" + ecdsaSig.s);
-
-                return ECDSASignature.checkSignature(hash, signature, pubKey);
 
             } catch (Exception e) { //ignored) {
                 System.err.println("checkSignature > e: " + e.getMessage());

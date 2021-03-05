@@ -17,11 +17,17 @@ limitations under the License.
 package io.codenotary.immudb4j.crypto;
 
 import org.bouncycastle.asn1.*;
+import org.bouncycastle.asn1.sec.SECNamedCurves;
 import org.bouncycastle.asn1.x9.X9ECParameters;
 import org.bouncycastle.crypto.ec.CustomNamedCurves;
 import org.bouncycastle.crypto.params.ECDomainParameters;
 import org.bouncycastle.crypto.params.ECPublicKeyParameters;
+import org.bouncycastle.crypto.params.RSAKeyParameters;
 import org.bouncycastle.crypto.signers.ECDSASigner;
+import org.bouncycastle.jcajce.provider.asymmetric.rsa.BCRSAPublicKey;
+import org.bouncycastle.jce.ECNamedCurveTable;
+import org.bouncycastle.jce.spec.ECParameterSpec;
+import org.bouncycastle.math.ec.ECPoint;
 import org.bouncycastle.math.ec.FixedPointUtil;
 import org.bouncycastle.util.Properties;
 
@@ -29,6 +35,9 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.math.BigInteger;
 import java.security.PublicKey;
+import java.security.interfaces.ECPublicKey;
+import java.security.interfaces.RSAPublicKey;
+import java.util.Arrays;
 
 
 public class ECDSASignature {
@@ -36,6 +45,7 @@ public class ECDSASignature {
     public final BigInteger r, s;
 
     private static final X9ECParameters CURVE_PARAMS = CustomNamedCurves.getByName("secp256k1");
+    // private static final X9ECParameters CURVE_PARAMS = SECNamedCurves.getByName("secp256r1");
     private static final ECDomainParameters CURVE;
 
     static {
@@ -63,30 +73,27 @@ public class ECDSASignature {
         }
     }
 
-    public static boolean checkSignature(byte[] data, byte[] signature, PublicKey pubKey) {
+    public boolean checkSignature(byte[] message, PublicKey pubKey) {
+
         ECDSASigner signer = new ECDSASigner();
+        System.out.println("[dbg] ECDSASignature > checkSignature > pubKey.getEncoded()=" + Arrays.toString(pubKey.getEncoded()));
+
+
         ECPublicKeyParameters params = new ECPublicKeyParameters(
                 CURVE.getCurve().decodePoint(pubKey.getEncoded()),
                 CURVE
         );
+        System.out.println("[dbg] ECDSASignature > checkSignature > message=" + Arrays.toString(message));
+
         signer.init(false, params);
-        try {
-            ASN1InputStream decoder = new ASN1InputStream(signature);
-            DERSequence seq = (DERSequence) decoder.readObject();
-            ASN1Integer r = (ASN1Integer) seq.getObjectAt(0);
-            ASN1Integer s = (ASN1Integer) seq.getObjectAt(1);
-            decoder.close();
-            return signer.verifySignature(data, r.getValue(), s.getValue());
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
+
+        return signer.verifySignature(message, r, s);
     }
 
     public static ECDSASignature decodeFromDER(byte[] bytes) throws Exception {
         ASN1InputStream decoder = null;
         try {
-            // BouncyCastle by default is strict about parsing ASN.1 integers. We relax this check, because some
-            // Bitcoin signatures would not parse.
+            // BouncyCastle by default is strict about parsing ASN.1 integers.
             Properties.setThreadOverride("org.bouncycastle.asn1.allow_unsafe_integer", true);
             decoder = new ASN1InputStream(bytes);
             final ASN1Primitive seqObj = decoder.readObject();

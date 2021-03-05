@@ -128,7 +128,7 @@ public class StateTest extends ImmuClientIntegrationTest {
             // from `immudb` directory (on this repo root) using: `./immudb --signingKey test_private_key.pem`
             Assert.assertNotNull(state);
         } catch (RuntimeException e) {
-            Assert.fail("Server's state signature verification failed. Reason: ", e);
+            Assert.fail(e.getMessage(), e.getCause());
         }
 
         immuClient.logout();
