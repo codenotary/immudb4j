@@ -25,6 +25,8 @@ import java.util.Objects;
 
 public class StateTest extends ImmuClientIntegrationTest {
 
+    private static final String publicKeyResource = "test_public_key.pem";
+
     @Test(testName = "state")
     public void t1() {
 
@@ -55,6 +57,21 @@ public class StateTest extends ImmuClientIntegrationTest {
         Assert.assertNotNull(currState);
         // System.out.println(">>> t2 > currState: " + currState.toString());
 
+        // Additional checks for the sake of code coverage.
+        ClassLoader classLoader = getClass().getClassLoader();
+        File publicKeyFile = new File(Objects.requireNonNull(classLoader.getResource(publicKeyResource)).getFile());
+        PublicKey publicKey = null;
+        try {
+            publicKey = CryptoUtils.getDERPublicKey(publicKeyFile.getAbsolutePath());
+        } catch (Exception e) {
+            // Not a test itself fault, but we cannot continue it.
+            immuClient.logout();
+            return;
+        }
+
+        // The signature verification in this case should fail for the same aforementioned reason.
+        Assert.assertFalse(currState.checkSignature(publicKey));
+
         immuClient.logout();
     }
 
@@ -62,7 +79,6 @@ public class StateTest extends ImmuClientIntegrationTest {
     public void t3() {
 
         // Provisioning the client side with the public key file.
-        String publicKeyResource = "test_public_key.pem";
         ClassLoader classLoader = getClass().getClassLoader();
         File publicKeyFile = new File(Objects.requireNonNull(classLoader.getResource(publicKeyResource)).getFile());
 
@@ -91,20 +107,6 @@ public class StateTest extends ImmuClientIntegrationTest {
             // Expected this since in the current tests setup, immudb does not have that state signature feature active.
             // (this feature is active when starting it like: `immudb --signingKey test_private_key.pem`).
         }
-        Assert.assertNotNull(state);
-
-        // Additional checks for the sake of code coverage.
-        PublicKey publicKey = null;
-        try {
-            publicKey = CryptoUtils.getDERPublicKey(publicKeyFile.getAbsolutePath());
-        } catch (Exception e) {
-            // Not a test itself fault, but we cannot continue it.
-            immuClient.logout();
-            return;
-        }
-
-        // The signature verification in this case should fail for the same aforementioned reason.
-        Assert.assertFalse(state.checkSignature(publicKey));
 
         immuClient.logout();
     }
