@@ -83,7 +83,7 @@ public class StateTest extends ImmuClientIntegrationTest {
 
         try {
             ImmuState state = immuClient.currentState();
-            Assert.fail("Did not fail as expected, since a server signing key is provided, but only on the client side");
+            Assert.fail("Did not fail as it should in this case when the signingKey is provisioned only on the client side");
         } catch (RuntimeException ignored) {
             // Expected this since in the current tests setup, immudb does not have that state signature feature active.
             // (this feature is active when starting it like: `immudb --signingKey test_private_key.pem`).
@@ -93,11 +93,11 @@ public class StateTest extends ImmuClientIntegrationTest {
     }
 
     @Test(testName = "currentState with server signature checking",
-            description = "Testing checkSignature() through currentState(), " +
+            description = "Testing `checkSignature` (indirectly, through `currentState`), " +
                     "the (state signing) feature being set up on both server and client side. " +
                     "This could remain a manual test, that's why it is disabled." +
                     "Of course, it must be `enabled = true`, if you want to run it from IDE or cli.",
-            enabled = true)
+            enabled = false)
     public void t4() {
 
         // Provisioning the client side with the public key file.

@@ -16,15 +16,10 @@ limitations under the License.
 package io.codenotary.immudb4j;
 
 import io.codenotary.immudb.ImmudbProto;
-import io.codenotary.immudb4j.crypto.CryptoUtils;
-import io.codenotary.immudb4j.crypto.ECDSASignature;
-import org.bouncycastle.jce.provider.BouncyCastleProvider;
 
 import java.nio.charset.StandardCharsets;
 import java.security.PublicKey;
-import java.security.Security;
 import java.security.Signature;
-import java.util.Arrays;
 import java.util.Base64;
 
 /**
@@ -47,31 +42,15 @@ public class ImmuState {
     }
 
     // This method should remain visible within this immudb4j package
-    // (and not public) since this is its usage scope.
+    // (and not `public`) since this is its usage scope.
     boolean checkSignature(PublicKey pubKey) {
         if (signature != null && signature.length > 0) {
-            // The Golang call: signer.Verify(state.ToBytes(), state.Signature.Signature, key)
-            // that is implemented in `pkg/signer/ecdsa.go:86`.
-
-            byte[] hash = CryptoUtils.sha256Sum(toBytes());
             try {
-                // Security.addProvider(new org.bouncycastle.jce.provider.BouncyCastleProvider());
-                Signature sig = Signature.getInstance("SHA256withECDSA"); // , BouncyCastleProvider.PROVIDER_NAME);
+                Signature sig = Signature.getInstance("SHA256withECDSA");
                 sig.initVerify(pubKey);
-                sig.update(hash);
+                sig.update(toBytes());
                 return sig.verify(signature);
-
-                // The `signature` coming from immudb server is an ASN.1 encoded value of
-                // a `ecdsaSignature{R: r, S: s}` Golang struct, where r, s are the result
-                // of `r, s, err := ecdsa.Sign(sig.rand, sig.privateKey, hash[:])` call.
-
-//                ECDSASignature ecdsaSig = ECDSASignature.decodeFromDER(signature);
-//                System.out.println("[dbg] checkSignature > ecdsa sign: \n\tr=" + ecdsaSig.r + " \n\ts=" + ecdsaSig.s
-//                    + "\n\thash=" + Arrays.toString(hash));
-//                 return ecdsaSig.checkSignature(hash, pubKey);
-
-
-            } catch (Exception e) { //ignored) {
+            } catch (Exception e) {
                 System.err.println("checkSignature > e: " + e.getMessage());
             }
         }

@@ -50,7 +50,6 @@ public class ReferenceTest extends ImmuClientIntegrationTest {
         Assert.assertNotNull(ref1TxMd);
 
 
-
         TxMetadata ref2TxMd = null;
         try {
             ref2TxMd = immuClient.setReferenceAt(ref2Key, key, setTxMd.id);
@@ -58,6 +57,9 @@ public class ReferenceTest extends ImmuClientIntegrationTest {
             Assert.fail("Failed at setReferenceAt.", e);
         }
         Assert.assertNotNull(ref2TxMd);
+
+        // And `verifiedSetReference` & `verifiedSetReferenceAt` tests are included `VerifiedSetAndGetTest`.
+
 
         immuClient.logout();
     }

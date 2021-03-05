@@ -39,7 +39,10 @@ import io.grpc.stub.MetadataUtils;
 import java.nio.charset.StandardCharsets;
 import java.security.NoSuchAlgorithmException;
 import java.security.PublicKey;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.NoSuchElementException;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
@@ -59,7 +62,7 @@ public class ImmuClient {
     private String authToken;
     private String currentServerUuid;
     private String currentDb = "defaultdb";
-    private PublicKey serverSigningKey;
+    private final PublicKey serverSigningKey;
 
     public ImmuClient(Builder builder) {
         this.stub = createStubFrom(builder);
@@ -83,6 +86,13 @@ public class ImmuClient {
     private boolean checkSignature(ImmudbProto.ImmutableState state) {
         if (serverSigningKey != null) {
             return ImmuState.valueOf(state).checkSignature(serverSigningKey);
+        }
+        return true;
+    }
+
+    private boolean checkSignature(ImmuState state) {
+        if (serverSigningKey != null) {
+            return state.checkSignature(serverSigningKey);
         }
         return true;
     }
@@ -432,8 +442,9 @@ public class ImmuClient {
                 targetAlh,
                 vEntry.getVerifiableTx().getSignature().toByteArray());
 
-        // TODO: to-be-implemented (see pkg/client/client.go:620, newState.CheckSignature(c.serverSigningPubKey))
-        // if (serverSigningPubKey != null) { }
+        if (!checkSignature(state)) {
+            throw new RuntimeException("State signature verification failed");
+        }
 
         stateHolder.setState(currentServerUuid, newState);
 
@@ -652,8 +663,9 @@ public class ImmuClient {
 
         ImmuState newState = verifyDualProof(vtx, tx, state);
 
-        // TODO: to-be-implemented (see pkg/client/client.go:803 newState.CheckSignature ...)
-        // if (serverSigningPubKey != null) { ... }
+        if (!checkSignature(state)) {
+            throw new RuntimeException("State signature verification failed");
+        }
 
         stateHolder.setState(currentServerUuid, newState);
 
@@ -704,8 +716,9 @@ public class ImmuClient {
 
         ImmuState newState = verifyDualProof(vtx, tx, state);
 
-        // TODO: to-be-implemented (see pkg/client/client.go:1122 newState.CheckSignature ...)
-        // if (serverSigningPubKey != null) { ... }
+        if (!checkSignature(state)) {
+            throw new RuntimeException("State signature verification failed");
+        }
 
         stateHolder.setState(currentServerUuid, newState);
 
@@ -811,8 +824,9 @@ public class ImmuClient {
 
         ImmuState newState = verifyDualProof(vtx, tx, state);
 
-        // TODO: to-be-implemented (see pkg/client/client.go:803 newState.CheckSignature ...)
-        // if (serverSigningPubKey != null) { ... }
+        if (!checkSignature(state)) {
+            throw new RuntimeException("State signature verification failed");
+        }
 
         stateHolder.setState(currentServerUuid, newState);
 
@@ -894,8 +908,9 @@ public class ImmuClient {
 
         ImmuState newState = new ImmuState(currentDb, targetId, targetAlh, vtx.getSignature().getSignature().toByteArray());
 
-        // TODO: to-be-implemented (see pkg/client/client.go:803 newState.CheckSignature ...)
-        // if (serverSigningPubKey != null) { ... }
+        if (!checkSignature(state)) {
+            throw new RuntimeException("State signature verification failed");
+        }
 
         stateHolder.setState(currentServerUuid, newState);
 
@@ -927,8 +942,9 @@ public class ImmuClient {
 
     //
     // ========== COUNT ==========
-    // Temporary disabled (for the sake of code coverage) since it's not yet implemented on the server (immudb) side.
     //
+    // Temporary disabled (for the sake of code coverage) since
+    // it's not yet implemented on the server (immudb) side.
 
 //    public long count(String prefix) {
 //        return count(prefix.getBytes(StandardCharsets.UTF_8));

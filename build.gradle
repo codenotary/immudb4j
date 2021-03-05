@@ -38,7 +38,7 @@ apply plugin: 'signing'
 
 group = 'io.codenotary'
 archivesBaseName = 'immudb4j'
-version = '0.9.0.5'
+version = '0.9.0.6'
 
 sourceCompatibility = 1.8
 targetCompatibility = 1.8
@@ -112,8 +112,6 @@ dependencies {
     implementation "io.grpc:grpc-stub:${grpcVersion}"
     implementation group: 'com.google.code.gson', name: 'gson', version: '2.8.6'
 
-    implementation 'org.bouncycastle:bcpkix-jdk15on:1.68'
-
     testImplementation 'org.testng:testng:6.8.8'
 
     implementation 'javax.annotation:javax.annotation-api:1.2-b01'
@@ -124,13 +122,13 @@ task immudbStart {
     // if you want to use an existing immudb server, without starting and stopping
     // the locally used immudb version (stored in `immudb` directory and controlled
     // through the scripts). Just make sure immudb server has the proper version.
-//    ProcessBuilder pb = new ProcessBuilder("./start.sh")
-//    pb.directory(new File("immudb"))
-//    Process proc = pb.start()
-//    proc.waitFor()
-//    if (proc.exitValue() == 0) {
-//        println "immudb has been started."
-//    }
+    ProcessBuilder pb = new ProcessBuilder("./start.sh")
+    pb.directory(new File("immudb"))
+    Process proc = pb.start()
+    proc.waitFor()
+    if (proc.exitValue() == 0) {
+        println "immudb has been started."
+    }
 }
 
 task immudbStop(type: Exec) {
@@ -138,9 +136,9 @@ task immudbStop(type: Exec) {
     // if you want to use an existing immudb server, without starting and stopping
     // the locally used immudb version (stored in `immudb` directory and controlled
     // through the scripts). Just make sure immudb server has the proper version.
-//    workingDir 'immudb'
-//    commandLine './clean.sh'
-     commandLine 'echo'
+    workingDir 'immudb'
+    commandLine './clean.sh'
+//     commandLine 'echo'
 }
 
 idea {
@@ -152,8 +150,8 @@ idea {
 
 test {
     useTestNG()
-    // For sequentially running the unit tests.
-    // maxParallelForks = 1
+    // Run the unit tests sequentially.
+    maxParallelForks = 1
 }
 
 test.dependsOn immudbStart
