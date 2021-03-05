@@ -36,6 +36,7 @@ public class BasicsTest {
         Assert.assertEquals(pair.b, pb);
         Assert.assertEquals(pair, Pair.of(pa, pb));
 
+        Assert.assertTrue(pair.toString().contains("{"));
         System.out.println("BasicsTest > t1 pair hashCode=" + pair.hashCode());
 
         String ta = "Bow";
@@ -50,7 +51,13 @@ public class BasicsTest {
         Assert.assertEquals(triple.c, tc);
         Assert.assertEquals(triple, Triple.of(ta, tb, tc));
 
+        Assert.assertTrue(triple.toString().contains("{"));
         System.out.println("BasicsTest > t1 triple hashCode=" + triple.hashCode());
+
+
+        Assert.assertNotEquals(triple, null);
+        Assert.assertEquals(triple, triple);
+        Assert.assertNotEquals(triple, Triple.of("aDifferent", "", ""));
 
     }
 

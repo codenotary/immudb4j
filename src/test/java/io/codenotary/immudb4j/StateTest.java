@@ -15,10 +15,12 @@ limitations under the License.
 */
 package io.codenotary.immudb4j;
 
+import io.codenotary.immudb4j.crypto.CryptoUtils;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
 import java.io.File;
+import java.security.PublicKey;
 import java.util.Objects;
 
 public class StateTest extends ImmuClientIntegrationTest {
@@ -81,16 +83,33 @@ public class StateTest extends ImmuClientIntegrationTest {
         immuClient.login("immudb", "immudb");
         immuClient.useDatabase("defaultdb");
 
+        ImmuState state = null;
         try {
-            ImmuState state = immuClient.currentState();
+            state = immuClient.currentState();
             Assert.fail("Did not fail as it should in this case when the signingKey is provisioned only on the client side");
         } catch (RuntimeException ignored) {
             // Expected this since in the current tests setup, immudb does not have that state signature feature active.
             // (this feature is active when starting it like: `immudb --signingKey test_private_key.pem`).
         }
+        Assert.assertNotNull(state);
+
+        // Additional checks for the sake of code coverage.
+        PublicKey publicKey = null;
+        try {
+            publicKey = CryptoUtils.getDERPublicKey(publicKeyFile.getAbsolutePath());
+        } catch (Exception e) {
+            // Not a test itself fault, but we cannot continue it.
+            immuClient.logout();
+            return;
+        }
+
+        // The signature verification in this case should fail for the same aforementioned reason.
+        Assert.assertFalse(state.checkSignature(publicKey));
 
         immuClient.logout();
     }
+
+
 
     @Test(testName = "currentState with server signature checking",
             description = "Testing `checkSignature` (indirectly, through `currentState`), " +
