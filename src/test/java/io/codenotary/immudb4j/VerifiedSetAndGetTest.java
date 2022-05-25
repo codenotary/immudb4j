@@ -62,8 +62,8 @@ public class VerifiedSetAndGetTest extends ImmuClientIntegrationTest {
 
         // verifiedSet
         try {
-            TxMetadata txMd = immuClient.verifiedSet(key, val);
-            Assert.assertNotNull(txMd, "The result of verifiedSet must not be null.");
+            TxHeader txHdr = immuClient.verifiedSet(key, val);
+            Assert.assertNotNull(txHdr, "The result of verifiedSet must not be null.");
         } catch (VerificationException e) {
             Assert.fail("Failed at verifiedSet. Cause: " + e.getMessage(), e);
         }
@@ -95,9 +95,9 @@ public class VerifiedSetAndGetTest extends ImmuClientIntegrationTest {
 
         // verifiedSetReference
         byte[] refKey = "vsgRef".getBytes(StandardCharsets.UTF_8);
-        TxMetadata txMd = null;
+        TxHeader txHdr = null;
         try {
-            txMd = immuClient.verifiedSetReference(refKey, key);
+            txHdr = immuClient.verifiedSetReference(refKey, key);
         } catch (VerificationException e) {
             // TODO: Investigate "different digests" failure at VerifiedSetReference
             // Assert.fail("Failed at verifiedSetReference. Cause: " + e.getMessage(), e);

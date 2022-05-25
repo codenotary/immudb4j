@@ -43,24 +43,24 @@ public class ZAddTest extends ImmuClientIntegrationTest {
             Assert.fail("Failed at set.", e);
         }
 
-        TxMetadata txMd = null;
+        TxHeader txHdr = null;
         long initialTxId = 1;
         try {
-            txMd = immuClient.zAdd(set, 10, key1);
-            Assert.assertNotNull(txMd);
-            initialTxId = txMd.id;
-            txMd = immuClient.zAdd(set, 4, key2);
-            Assert.assertNotNull(txMd);
+            txHdr = immuClient.zAdd(set, 10, key1);
+            Assert.assertNotNull(txHdr);
+            initialTxId = txHdr.id;
+            txHdr = immuClient.zAdd(set, 4, key2);
+            Assert.assertNotNull(txHdr);
         } catch (CorruptedDataException e) {
             Assert.fail("Failed at zAdd.", e);
         }
 
         try {
-            txMd = immuClient.verifiedZAdd(set, 8, key2);
+            txHdr = immuClient.verifiedZAdd(set, 8, key2);
         } catch (VerificationException e) {
             Assert.fail("Failed at verifiedZAdd", e);
         }
-        Assert.assertNotNull(txMd);
+        Assert.assertNotNull(txHdr);
 
 
 //        TODO: Temporary commented, it needs investigation.

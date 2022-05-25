@@ -16,28 +16,28 @@ limitations under the License.
 package io.codenotary.immudb4j.crypto;
 
 import io.codenotary.immudb.ImmudbProto;
-import io.codenotary.immudb4j.TxMetadata;
+import io.codenotary.immudb4j.TxHeader;
 import io.codenotary.immudb4j.Utils;
 
 public class DualProof {
 
-    public final TxMetadata sourceTxMetadata;
-    public final TxMetadata targetTxMetadata;
+    public final TxHeader sourceTxHeader;
+    public final TxHeader targetTxHeader;
     public final byte[][] inclusionProof;
     public final byte[][] consistencyProof;
     public final byte[] targetBlTxAlh;
     public final byte[][] lastInclusionProof;
     public final LinearProof linearProof;
 
-    public DualProof(TxMetadata sourceTxMetadata,
-                     TxMetadata targetTxMetadata,
+    public DualProof(TxHeader sourceTxHeader,
+                     TxHeader targetTxHeader,
                      byte[][] inclusionProof,
                      byte[][] consistencyProof,
                      byte[] targetBlTxAlh,
                      byte[][] lastInclusionProof,
                      LinearProof linearProof) {
-        this.sourceTxMetadata = sourceTxMetadata;
-        this.targetTxMetadata = targetTxMetadata;
+        this.sourceTxHeader = sourceTxHeader;
+        this.targetTxHeader = targetTxHeader;
         this.inclusionProof = inclusionProof;
         this.consistencyProof = consistencyProof;
         this.targetBlTxAlh = targetBlTxAlh;
@@ -47,8 +47,8 @@ public class DualProof {
 
     public static DualProof valueOf(ImmudbProto.DualProof proof) {
         return new DualProof(
-                TxMetadata.valueOf(proof.getSourceTxMetadata()),
-                TxMetadata.valueOf(proof.getTargetTxMetadata()),
+                TxHeader.valueOf(proof.getSourceTxHeader()),
+                TxHeader.valueOf(proof.getTargetTxHeader()),
                 Utils.convertSha256ListToBytesArray(proof.getInclusionProofList()),
                 Utils.convertSha256ListToBytesArray(proof.getConsistencyProofList()),
                 proof.getTargetBlTxAlh().toByteArray(),
@@ -60,8 +60,8 @@ public class DualProof {
     @Override
     public String toString() {
         return "DualProof{" +
-                "sourceTxMetadata=" + sourceTxMetadata +
-                ", targetTxMetadata=" + targetTxMetadata +
+                "sourceTxHeader=" + sourceTxHeader +
+                ", targetTxHeader=" + targetTxHeader +
                 ", inclusionProof=" + Utils.toStringAsBase64Values(inclusionProof) +
                 ", consistencyProof=" + Utils.toStringAsBase64Values(consistencyProof) +
                 ", targetBlTxAlh=" + Utils.asBase64(targetBlTxAlh) +

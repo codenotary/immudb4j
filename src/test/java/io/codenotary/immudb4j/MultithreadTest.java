@@ -34,7 +34,7 @@ public class MultithreadTest extends ImmuClientIntegrationTest {
         immuClient.useDatabase("defaultdb");
 
         final int threadCount = 10;
-        final int keyCount = 1000;
+        final int keyCount = 100;
 
         CountDownLatch latch = new CountDownLatch(threadCount);
         AtomicInteger succeeded = new AtomicInteger(0);
@@ -47,7 +47,7 @@ public class MultithreadTest extends ImmuClientIntegrationTest {
                 rnd.nextBytes(b);
 
                 try {
-                    immuClient.safeSet(uuid + "k" + i, b);
+                    immuClient.verifiedSet(uuid + "k" + i, b);
                 } catch (Exception e) {
                     latch.countDown();
                     throw new RuntimeException(e);
@@ -68,7 +68,7 @@ public class MultithreadTest extends ImmuClientIntegrationTest {
 
         for (int i = 0; i < threadCount; i++) {
             for (int k = 0; k < keyCount; k++) {
-                immuClient.safeGet("t" + i + "k" + i);
+                immuClient.verifiedGet("t" + i + "k" + i);
             }
         }
     }
@@ -80,7 +80,7 @@ public class MultithreadTest extends ImmuClientIntegrationTest {
         immuClient.useDatabase("defaultdb");
 
         final int threadCount = 10;
-        final int keyCount = 1000;
+        final int keyCount = 100;
 
         CountDownLatch latch = new CountDownLatch(threadCount);
         AtomicInteger succeeded = new AtomicInteger(0);
@@ -93,7 +93,7 @@ public class MultithreadTest extends ImmuClientIntegrationTest {
                 rnd.nextBytes(b);
 
                 try {
-                    immuClient.safeSet("k" + i, b);
+                    immuClient.verifiedSet("k" + i, b);
                 } catch (Exception e) {
                     latch.countDown();
                     throw new RuntimeException(e);
@@ -115,7 +115,7 @@ public class MultithreadTest extends ImmuClientIntegrationTest {
 
         for (int i = 0; i < threadCount; i++) {
             for (int k = 0; k < keyCount; k++) {
-                immuClient.safeGet("k" + i);
+                immuClient.verifiedGet("k" + i);
             }
         }
     }

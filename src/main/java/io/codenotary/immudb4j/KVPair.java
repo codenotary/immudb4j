@@ -21,17 +21,35 @@ import io.codenotary.immudb4j.crypto.CryptoUtils;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 
+import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
+
 /**
  * KVPair is a simple implementation of KV, representing a key value pair.
  */
 public class KVPair implements KV {
 
     private final byte[] key;
+    private final KVMetadata metadata;
     private final byte[] value;
     private final long txId;
 
     public static KV from(ImmudbProto.Entry entry) {
+        KVMetadata metadata = null;
+
+        if (entry.hasMetadata()) {
+            metadata = new KVMetadata();
+            metadata.asDeleted(entry.getMetadata().getDeleted());
+            
+            if (entry.getMetadata().hasExpiration()) {
+                metadata.expiresAt(entry.getMetadata().getExpiration().getExpiresAt());
+            }
+
+            metadata.asNonIndexable(entry.getMetadata().getNonIndexable());
+        }
+
         return new KVPair(entry.getKey().toByteArray(),
+                metadata,
                 entry.getValue().toByteArray(),
                 entry.getTx()
         );
@@ -41,20 +59,35 @@ public class KVPair implements KV {
         return KVPair.from(zEntry.getEntry());
     }
 
+    public KVPair(byte[] key, byte[] value) {
+        this(key, null, value, 0);
+    }
+
     public KVPair(byte[] key, byte[] value, long txId) {
+        this(key, null, value, txId);
+    }
+
+    public KVPair(byte[] key, KVMetadata metadata, byte[] value, long txId) {
         this.key = key;
+        this.metadata = metadata;
         this.value = value;
         this.txId = txId;
     }
 
     public KVPair(String key, byte[] value) {
+        this(key, null, value);
+    }
+
+    public KVPair(String key, KVMetadata metadata, byte[] value) {
         this.key = key.getBytes(StandardCharsets.UTF_8);
+        this.metadata = metadata;
         this.value = value;
         this.txId = 0;
     }
 
-    public KVPair(byte[] key, byte[] value) {
+    public KVPair(byte[] key, KVMetadata metadata, byte[] value) {
         this.key = key;
+        this.metadata = metadata;
         this.value = value;
         this.txId = 0;
     }
@@ -62,6 +95,11 @@ public class KVPair implements KV {
     @Override
     public byte[] getKey() {
         return this.key;
+    }
+
+    @Override
+    public KVMetadata getMetadata() {
+        return this.metadata;
     }
 
     @Override
@@ -75,7 +113,20 @@ public class KVPair implements KV {
     }
 
     @Override
-    public byte[] digest() {
+    public byte[] digestFor(int version) {
+        switch (version) {
+            case 0: return digest_v0();
+            case 1: return digest_v1();
+        }
+
+        throw new RuntimeException("unsupported tx header version");
+    }
+
+    public byte[] digest_v0() {
+        if (metadata != null) {
+             throw new RuntimeException("metadata is unsupported when in 1.1 compatibility mode");
+        }
+
         byte[] b = new byte[key.length + Consts.SHA256_SIZE];
 
         Utils.copy(key, b);
@@ -84,6 +135,31 @@ public class KVPair implements KV {
         Utils.copy(hvalue, b, key.length);
 
         return CryptoUtils.sha256Sum(b);
+    }
+
+    public byte[] digest_v1() {
+        byte[] mdbs = null;
+        int mdLen = 0;
+
+        if (metadata != null) {
+            mdbs = metadata.serialize();
+            mdLen = mdbs.length;
+        }
+
+        ByteBuffer bytes =  ByteBuffer.allocate(2 + mdLen + 2 + key.length + Consts.SHA256_SIZE);
+        bytes.order(ByteOrder.BIG_ENDIAN);
+        
+        bytes.putShort((short)mdLen);
+        if (mdLen > 0) {
+            bytes.put(mdbs);
+        }
+       
+        bytes.putShort((short)key.length);
+        bytes.put(key);
+        
+        bytes.put(CryptoUtils.sha256Sum(value));
+
+        return CryptoUtils.sha256Sum(bytes.array());
     }
 
     @Override

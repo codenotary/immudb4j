@@ -29,7 +29,7 @@ public class LoginAndHealthCheckAndCleanIndexTest extends ImmuClientIntegrationT
         boolean isHealthy = immuClient.healthCheck();
         Assert.assertTrue(isHealthy);
 
-        immuClient.cleanIndex();
+        immuClient.compactIndex();
 
         immuClient.logout();
     }

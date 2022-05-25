@@ -32,13 +32,13 @@ public class SetAndGetTest extends ImmuClientIntegrationTest {
         byte[] key = "key1".getBytes(StandardCharsets.UTF_8);
         byte[] val = new byte[]{1, 2, 3, 4, 5};
 
-        TxMetadata txMd = null;
+        TxHeader txHdr = null;
         try {
-            txMd = immuClient.set(key, val);
+            txHdr = immuClient.set(key, val);
         } catch (CorruptedDataException e) {
             Assert.fail("Failed at set.", e);
         }
-        Assert.assertNotNull(txMd);
+        Assert.assertNotNull(txHdr);
 
         byte[] got = new byte[0];
         try {
@@ -49,11 +49,11 @@ public class SetAndGetTest extends ImmuClientIntegrationTest {
 
         Assert.assertEquals(val, got);
 
-        KV kv = immuClient.getAt(key, txMd.id);
+        KV kv = immuClient.getAt(key, txHdr.id);
         Assert.assertNotNull(kv);
         Assert.assertEquals(kv.getValue(), val);
 
-        kv = immuClient.getSince(key, txMd.id);
+        kv = immuClient.getSince(key, txHdr.id);
         Assert.assertNotNull(kv);
         Assert.assertEquals(kv.getValue(), val);
 

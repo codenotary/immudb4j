@@ -31,9 +31,9 @@ public class ReferenceTest extends ImmuClientIntegrationTest {
         byte[] key = "testRef".getBytes(StandardCharsets.UTF_8);
         byte[] val = "abc".getBytes(StandardCharsets.UTF_8);
 
-        TxMetadata setTxMd = null;
+        TxHeader setTxHdr = null;
         try {
-            setTxMd = immuClient.set(key, val);
+            setTxHdr = immuClient.set(key, val);
         } catch (CorruptedDataException e) {
             Assert.fail("Failed at set.", e);
         }
@@ -41,22 +41,22 @@ public class ReferenceTest extends ImmuClientIntegrationTest {
         byte[] ref1Key = "ref1_to_testRef".getBytes(StandardCharsets.UTF_8);
         byte[] ref2Key = "ref2_to_testRef".getBytes(StandardCharsets.UTF_8);
 
-        TxMetadata ref1TxMd = null;
+        TxHeader ref1TxHdr = null;
         try {
-            ref1TxMd = immuClient.setReference(ref1Key, key);
+            ref1TxHdr = immuClient.setReference(ref1Key, key);
         } catch (CorruptedDataException e) {
             Assert.fail("Failed at setReference", e);
         }
-        Assert.assertNotNull(ref1TxMd);
+        Assert.assertNotNull(ref1TxHdr);
 
 
-        TxMetadata ref2TxMd = null;
+        TxHeader ref2TxHdr = null;
         try {
-            ref2TxMd = immuClient.setReferenceAt(ref2Key, key, setTxMd.id);
+            ref2TxHdr = immuClient.setReferenceAt(ref2Key, key, setTxHdr.id);
         } catch (CorruptedDataException e) {
             Assert.fail("Failed at setReferenceAt.", e);
         }
-        Assert.assertNotNull(ref2TxMd);
+        Assert.assertNotNull(ref2TxHdr);
 
         // And `verifiedSetReference` & `verifiedSetReferenceAt` tests are included `VerifiedSetAndGetTest`.
 

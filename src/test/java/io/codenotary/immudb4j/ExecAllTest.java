@@ -17,17 +17,12 @@ package io.codenotary.immudb4j;
 
 import io.codenotary.immudb4j.basics.Pair;
 import io.codenotary.immudb4j.basics.Triple;
-import io.codenotary.immudb4j.exceptions.CorruptedDataException;
-import io.codenotary.immudb4j.exceptions.MaxWidthExceededException;
-import io.codenotary.immudb4j.exceptions.VerificationException;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
 import java.nio.charset.StandardCharsets;
-import java.security.NoSuchAlgorithmException;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.List;
 
 public class ExecAllTest extends ImmuClientIntegrationTest {
 
@@ -41,7 +36,7 @@ public class ExecAllTest extends ImmuClientIntegrationTest {
 
         byte[] item2 = "execAll_key2".getBytes(StandardCharsets.UTF_8);
 
-        TxMetadata txMd = immuClient.execAll(
+        TxHeader txHdr = immuClient.execAll(
                 Arrays.asList(
                         Pair.of(item1, item1),
                         Pair.of(item2, item2)
@@ -50,8 +45,8 @@ public class ExecAllTest extends ImmuClientIntegrationTest {
                 null // No zaddList provided.
         );
 
-        Assert.assertNotNull(txMd);
-        Assert.assertEquals(txMd.nEntries, 2);
+        Assert.assertNotNull(txHdr);
+        Assert.assertEquals(txHdr.nEntries, 2);
 
         // It works! Left here just for any other verification
         // (since `immuclient get execAll_key1` fails).
@@ -61,7 +56,7 @@ public class ExecAllTest extends ImmuClientIntegrationTest {
         //        }
         // );
 
-        txMd = immuClient.execAll(
+        txHdr = immuClient.execAll(
                 null, //
                 Arrays.asList(
                         Pair.of("ref1".getBytes(StandardCharsets.UTF_8), item1),
@@ -70,8 +65,8 @@ public class ExecAllTest extends ImmuClientIntegrationTest {
                 Collections.singletonList(Triple.of("set1", 1.0, "execAll_key1"))
         );
 
-        Assert.assertNotNull(txMd);
-        Assert.assertEquals(txMd.nEntries, 3);
+        Assert.assertNotNull(txHdr);
+        Assert.assertEquals(txHdr.nEntries, 3);
 
         immuClient.logout();
     }

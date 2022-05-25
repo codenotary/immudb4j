@@ -64,9 +64,9 @@ public class BasicImmuClientTest extends ImmuClientIntegrationTest {
 
         byte[] v2 = new byte[]{0, 1, 2, 3};
 
-        immuClient.safeSet("k2", v2);
-        byte[] sv2 = immuClient.safeGet("k2");
-        Assert.assertEquals(v2, sv2);
+        immuClient.verifiedSet("k2", v2);
+        Entry sv2 = immuClient.verifiedGet("k2");
+        Assert.assertEquals(v2, sv2.kv.getValue());
 
         immuClient.logout();
     }

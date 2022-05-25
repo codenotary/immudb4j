@@ -42,7 +42,7 @@ public class SetAllAndGetAllTest extends ImmuClientIntegrationTest {
 
         KVList kvList = KVList.newBuilder().addAll(kvs).build();
         try {
-            TxMetadata txMd = immuClient.setAll(kvList);
+            TxHeader txMd = immuClient.setAll(kvList);
             Assert.assertNotNull(txMd);
         } catch (CorruptedDataException e) {
             Assert.fail("Failed at SetAll.", e);

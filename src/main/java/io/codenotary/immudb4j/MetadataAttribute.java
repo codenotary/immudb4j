@@ -15,14 +15,10 @@ limitations under the License.
 */
 package io.codenotary.immudb4j;
 
-public interface KV {
+public interface MetadataAttribute {
 
-    byte[] getKey();
-    KVMetadata getMetadata();
-    byte[] getValue();
+    static final int AttrCodeSize = 1;
 
-    long getTxId();
-
-    byte[] digestFor(int version);
-
+    byte code();
+	byte[] serialize();
 }
