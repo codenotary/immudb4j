@@ -8,10 +8,6 @@ echo
 
 ## Unit Tests
 
-TESTS="DualProofTest ExceptionsTest FileImmuStateHolderTest InclusionProofTest KVPairTest"
-
-## Integration Tests
-
 TESTS="${TESTS} BasicImmuClientTest"
 TESTS="${TESTS} HTreeTest"
 TESTS="${TESTS} ListDatabasesTest ListUsersTest"

@@ -1,5 +1,5 @@
 /*
-Copyright 2021 CodeNotary, Inc. All rights reserved.
+Copyright 2022 CodeNotary, Inc. All rights reserved.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -42,7 +42,6 @@ import java.security.PublicKey;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.NoSuchElementException;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
@@ -302,19 +301,13 @@ public class ImmuClient {
     // ========== GET ==========
     //
 
-    public byte[] get(String key) throws Exception {
+    public byte[] get(String key) {
         return get(key.getBytes(StandardCharsets.UTF_8));
     }
 
-    public byte[] get(byte[] key) throws Exception {
+    public byte[] get(byte[] key) {
         ImmudbProto.KeyRequest req = ImmudbProto.KeyRequest.newBuilder().setKey(ByteString.copyFrom(key)).build();
-        ImmudbProto.Entry entry;
-       
-        try {
-            entry = getStub().get(req);
-        } catch (StatusRuntimeException e) {
-            throw new Exception(e.getMessage(), e);
-        }
+        ImmudbProto.Entry entry = getStub().get(req);
 
         return entry.getValue().toByteArray();
     }
