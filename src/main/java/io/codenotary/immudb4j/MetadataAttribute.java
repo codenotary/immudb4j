@@ -13,14 +13,12 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
-package io.codenotary.immudb4j.exceptions;
+package io.codenotary.immudb4j;
 
-public class MaxWidthExceededException extends Exception {
+public interface MetadataAttribute {
 
-    private static final long serialVersionUID = 1L;
+    static final int AttrCodeSize = 1;
 
-    public MaxWidthExceededException(String message) {
-        super(message);
-    }
-
+    byte code();
+	byte[] serialize();
 }

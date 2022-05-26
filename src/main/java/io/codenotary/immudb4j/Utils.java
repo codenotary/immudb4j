@@ -1,5 +1,5 @@
 /*
-Copyright 2021 CodeNotary, Inc. All rights reserved.
+Copyright 2022 CodeNotary, Inc. All rights reserved.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -17,12 +17,28 @@ package io.codenotary.immudb4j;
 
 import com.google.protobuf.ByteString;
 
+import io.codenotary.immudb.ImmudbProto;
+
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.util.Base64;
 import java.util.List;
 
 public class Utils {
+
+    public static final KVMetadata kvMetadataFromProto(ImmudbProto.KVMetadata md) {
+        KVMetadata metadata = new KVMetadata();
+
+        metadata.asDeleted(md.getDeleted());
+
+        if (md.hasExpiration()) {
+            metadata.expiresAt(md.getExpiration().getExpiresAt());
+        }
+        
+        metadata.asNonIndexable(md.getNonIndexable());
+        
+        return metadata;
+    }
 
     public static int countBits(int number) {
 

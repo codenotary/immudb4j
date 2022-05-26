@@ -1,5 +1,5 @@
 /*
-Copyright 2021 CodeNotary, Inc. All rights reserved.
+Copyright 2022 CodeNotary, Inc. All rights reserved.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -15,78 +15,89 @@ limitations under the License.
 */
 package io.codenotary.immudb4j;
 
+import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
+
 import io.codenotary.immudb4j.crypto.CryptoUtils;
 
 public class TxEntry {
 
-    private byte[] k;
-    private int kLength;
-    //    private int vLength;
+    private byte[] key;
+    private KVMetadata metadata;
+    private int vLength;
     private byte[] hVal;
-//    private long vOff;
 
-    public TxEntry(byte[] k) {
-        this.k = k;
-        this.kLength = k.length;
-    }
+    public TxEntry(byte[] key, KVMetadata metadata, int vLength, byte[] hVal) {
+        this.key = new byte[key.length];
+        System.arraycopy(key, 0, this.key, 0, key.length);
 
-    //    public TxEntry(byte[] k, int vLength, byte[] hVal, long vOff) {
-    public TxEntry(byte[] k, int vLength, byte[] hVal, long vOff) {
-        this.kLength = k.length;
-//        this.vLength = vLength;
+        this.metadata = metadata;
+
+        this.vLength = vLength;
         this.hVal = hVal;
-//        this.vOff = vOff;
-        this.k = new byte[kLength];
-        System.arraycopy(k, 0, this.k, 0, kLength);
-    }
-
-    public byte[] Key() {
-        return k;
     }
 
     public byte[] getKey() {
-        byte[] key = new byte[kLength];
-        System.arraycopy(k, 0, key, 0, kLength);
         return key;
     }
 
-    public void setKey(byte[] key) {
-        kLength = key.length;
-        k = new byte[kLength];
-        System.arraycopy(key, 0, k, 0, kLength);
+    public KVMetadata getMetadata() {
+        return metadata;
     }
 
-//    public byte[] getHVal() {
-//        return hVal;
-//    }
-//
-//    public void setHVal(byte[] hVal) {
-//        this.hVal = hVal;
-//    }
-//
-//    public int getVLength() {
-//        return vLength;
-//    }
-//
-//    public void setVLength(int vLength) {
-//        this.vLength = vLength;
-//    }
-//
-//    public long getVOff() {
-//        return vOff;
-//    }
-//
-//    public void setVOff(long vOff) {
-//        this.vOff = vOff;
-//    }
+    public byte[] getHVal() {
+        return hVal;
+    }
 
-    public byte[] digest() {
-        byte[] b = new byte[kLength + Consts.SHA256_SIZE];
+    public int getVLength() {
+        return vLength;
+    }
 
-        System.arraycopy(k, 0, b, 0, kLength);
-        System.arraycopy(hVal, 0, b, kLength, hVal.length);
+    public byte[] digestFor(int version) {
+        switch (version) {
+            case 0: return digest_v0();
+            case 1: return digest_v1();
+        }
+
+        throw new RuntimeException("unsupported tx header version");
+    }
+
+    public byte[] digest_v0() {
+        if (metadata != null) {
+            throw new RuntimeException("metadata is unsupported when in 1.1 compatibility mode");
+        }
+
+        byte[] b = new byte[key.length + Consts.SHA256_SIZE];
+
+        System.arraycopy(key, 0, b, 0, key.length);
+        System.arraycopy(hVal, 0, b, key.length, hVal.length);
 
         return CryptoUtils.sha256Sum(b);
+    }
+
+    public byte[] digest_v1() {
+        byte[] mdbs = null;
+        int mdLen = 0;
+
+        if (metadata != null) {
+            mdbs = metadata.serialize();
+            mdLen = mdbs.length;
+        }
+
+        ByteBuffer bytes =  ByteBuffer.allocate(2 + mdLen + 2 + key.length + Consts.SHA256_SIZE);
+        bytes.order(ByteOrder.BIG_ENDIAN);
+        
+        bytes.putShort((short)mdLen);
+        if (mdLen > 0) {
+            bytes.put(mdbs);
+        }
+       
+        bytes.putShort((short)key.length);
+        bytes.put(key);
+        
+        bytes.put(hVal);
+
+        return CryptoUtils.sha256Sum(bytes.array());
     }
 
 }

@@ -1,5 +1,5 @@
 /*
-Copyright 2021 CodeNotary, Inc. All rights reserved.
+Copyright 2022 CodeNotary, Inc. All rights reserved.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -42,7 +42,7 @@ public class SetAllAndGetAllTest extends ImmuClientIntegrationTest {
 
         KVList kvList = KVList.newBuilder().addAll(kvs).build();
         try {
-            TxMetadata txMd = immuClient.setAll(kvList);
+            TxHeader txMd = immuClient.setAll(kvList);
             Assert.assertNotNull(txMd);
         } catch (CorruptedDataException e) {
             Assert.fail("Failed at SetAll.", e);

@@ -1,5 +1,5 @@
 /*
-Copyright 2021 CodeNotary, Inc. All rights reserved.
+Copyright 2022 CodeNotary, Inc. All rights reserved.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -18,6 +18,7 @@ package io.codenotary.immudb4j.crypto;
 import com.google.protobuf.ByteString;
 import io.codenotary.immudb4j.Consts;
 import io.codenotary.immudb4j.KV;
+import io.codenotary.immudb4j.KVMetadata;
 import io.codenotary.immudb4j.KVPair;
 import io.codenotary.immudb4j.Utils;
 
@@ -87,22 +88,24 @@ public class CryptoUtils {
         return wrapWithPrefix(key, Consts.SET_KEY_PREFIX);
     }
 
-    public static KV encodeKV(byte[] key, byte[] value) {
+    public static KV encodeKV(byte[] key, KVMetadata metadata, byte[] value) {
         return new KVPair(
                 wrapWithPrefix(key, Consts.SET_KEY_PREFIX),
+                metadata,
                 wrapWithPrefix(value, Consts.PLAIN_VALUE_PREFIX)
         );
     }
 
-    public static KV encodeReference(byte[] key, byte[] referencedKey, long atTx) {
+    public static KV encodeReference(byte[] key, KVMetadata metadata, byte[] referencedKey, long atTx) {
         return new KVPair(
                 wrapWithPrefix(key, Consts.SET_KEY_PREFIX),
+                metadata,
                 wrapReferenceValueAt(wrapWithPrefix(referencedKey, Consts.SET_KEY_PREFIX), atTx)
         );
     }
 
     public static KV encodeZAdd(byte[] set, double score, byte[] key, long atTx) {
-        return new KVPair(wrapZAddReferenceAt(set, score, key, atTx), null);
+        return new KVPair(wrapZAddReferenceAt(set, score, key, atTx), null, null);
     }
 
     private static byte[] wrapWithPrefix(byte[] b, byte prefix) {
@@ -155,65 +158,65 @@ public class CryptoUtils {
 //        System.out.printf("[dbg] verifyDualProof > dualProof:%s, sourceTxId:%d, targetTxId:%d, sourceAlh:%s, targetAlh:%s\n",
 //                proof, sourceTxId, targetTxId, Utils.toStringAsBase64Value(sourceAlh), Utils.toStringAsBase64Value(targetAlh));
 
-        if (proof == null || proof.sourceTxMetadata == null || proof.targetTxMetadata == null
-                || proof.sourceTxMetadata.id != sourceTxId || proof.targetTxMetadata.id != targetTxId) {
+        if (proof == null || proof.sourceTxHeader == null || proof.targetTxHeader == null
+                || proof.sourceTxHeader.id != sourceTxId || proof.targetTxHeader.id != targetTxId) {
             return false;
         }
 
-        if (proof.sourceTxMetadata.id == 0 || proof.sourceTxMetadata.id > proof.targetTxMetadata.id) {
+        if (proof.sourceTxHeader.id == 0 || proof.sourceTxHeader.id > proof.targetTxHeader.id) {
             return false;
         }
 
-        if (!Arrays.equals(sourceAlh, proof.sourceTxMetadata.alh()) || !Arrays.equals(targetAlh, proof.targetTxMetadata.alh())) {
+        if (!Arrays.equals(sourceAlh, proof.sourceTxHeader.alh()) || !Arrays.equals(targetAlh, proof.targetTxHeader.alh())) {
 //            System.out.println("[dbg] false 3");
 //            System.out.println("[dbg] sourceAlh: " + Utils.toStringAsBase64Value(sourceAlh) +
-//                    "   proof.sourceTxMetadata.alh(): " + Utils.toStringAsBase64Value(proof.sourceTxMetadata.alh()));
+//                    "   proof.sourceTxHeader.alh(): " + Utils.toStringAsBase64Value(proof.sourceTxHeader.alh()));
 //            System.out.println("[dbg] targetAlh: " + Utils.toStringAsBase64Value(targetAlh) +
-//                    "   proof.targetTxMetadata.alh(): " + Utils.toStringAsBase64Value(proof.targetTxMetadata.alh()));
+//                    "   proof.targetTxHeader.alh(): " + Utils.toStringAsBase64Value(proof.targetTxHeader.alh()));
             return false;
         }
 
-        if (sourceTxId < proof.targetTxMetadata.blTxId) {
+        if (sourceTxId < proof.targetTxHeader.blTxId) {
             if (!CryptoUtils.verifyInclusion(
                     proof.inclusionProof,
                     sourceTxId,
-                    proof.targetTxMetadata.blTxId,
+                    proof.targetTxHeader.blTxId,
                     leafFor(sourceAlh),
-                    proof.targetTxMetadata.blRoot)) {
+                    proof.targetTxHeader.blRoot)) {
 //                System.out.println("[dbg] verifIncl false");
                 return false;
             }
         }
 
-        if (proof.sourceTxMetadata.blTxId > 0) {
+        if (proof.sourceTxHeader.blTxId > 0) {
             if (!CryptoUtils.verifyConsistency(
                     proof.consistencyProof,
-                    proof.sourceTxMetadata.blTxId,
-                    proof.targetTxMetadata.blTxId,
-                    proof.sourceTxMetadata.blRoot,
-                    proof.targetTxMetadata.blRoot
+                    proof.sourceTxHeader.blTxId,
+                    proof.targetTxHeader.blTxId,
+                    proof.sourceTxHeader.blRoot,
+                    proof.targetTxHeader.blRoot
             )) {
 //                System.out.println("[dbg] verifConsistency false");
                 return false;
             }
         }
 
-        if (proof.targetTxMetadata.blTxId > 0) {
+        if (proof.targetTxHeader.blTxId > 0) {
             if (!verifyLastInclusion(
                     proof.lastInclusionProof,
-                    proof.targetTxMetadata.blTxId,
+                    proof.targetTxHeader.blTxId,
                     leafFor(proof.targetBlTxAlh),
-                    proof.targetTxMetadata.blRoot
+                    proof.targetTxHeader.blRoot
             )) {
 //                System.out.println("[dbg] verifLastIncl false");
                 return false;
             }
         }
 
-        if (sourceTxId < proof.targetTxMetadata.blTxId) {
+        if (sourceTxId < proof.targetTxHeader.blTxId) {
 //            System.out.println("[dbg] ret verifLinearProof 1");
             return verifyLinearProof(proof.linearProof,
-                    proof.targetTxMetadata.blTxId, targetTxId, proof.targetBlTxAlh, targetAlh);
+                    proof.targetTxHeader.blTxId, targetTxId, proof.targetBlTxAlh, targetAlh);
         }
 //        System.out.println("[dbg] ret verifLinearProof 2");
         return verifyLinearProof(proof.linearProof, sourceTxId, targetTxId, sourceAlh, targetAlh);
@@ -308,10 +311,6 @@ public class CryptoUtils {
             i1 >>= 1;
         }
         return root;
-    }
-
-    public static boolean verifyInclusion(InclusionProof proof, KV kv, byte[] root) {
-        return verifyInclusion(proof, kv.digest(), root);
     }
 
     public static boolean verifyInclusion(InclusionProof proof, byte[] digest, byte[] root) {

@@ -23,7 +23,7 @@ public class KVPairTest {
 
         Assert.assertEquals(kv1, kv2);
 
-        Assert.assertEquals(kv1.digest().length, Consts.SHA256_SIZE);
+        Assert.assertEquals(kv1.digestFor(0).length, Consts.SHA256_SIZE);
 
         long txId = 123;
         KV kv3 = new KVPair(key, val, txId);

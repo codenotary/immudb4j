@@ -1,5 +1,5 @@
 /*
-Copyright 2021 CodeNotary, Inc. All rights reserved.
+Copyright 2022 CodeNotary, Inc. All rights reserved.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -36,29 +36,29 @@ public class TxTest extends ImmuClientIntegrationTest {
         String key = "test-txid";
         byte[] val = "test-txid-value".getBytes(StandardCharsets.UTF_8);
 
-        TxMetadata txMd = null;
+        TxHeader txHdr = null;
         try {
-            txMd = immuClient.verifiedSet(key, val);
+            txHdr = immuClient.verifiedSet(key, val);
         } catch (VerificationException e) {
             Assert.fail("Failed at verifiedSet", e);
         }
 
         Tx tx = null;
         try {
-            tx = immuClient.txById(txMd.id);
+            tx = immuClient.txById(txHdr.id);
         } catch (MaxWidthExceededException | NoSuchAlgorithmException e) {
             Assert.fail("Failed at txById", e);
         }
 
-        Assert.assertEquals(txMd.id, tx.metadata().id);
+        Assert.assertEquals(txHdr.id, tx.getHeader().id);
 
         try {
-            tx = immuClient.verifiedTxById(txMd.id);
+            tx = immuClient.verifiedTxById(txHdr.id);
         } catch (VerificationException e) {
             Assert.fail("Failed at verifiedTxById", e);
         }
 
-        Assert.assertEquals(txMd.id, tx.metadata().id);
+        Assert.assertEquals(txHdr.id, tx.getHeader().id);
 
         immuClient.logout();
     }
@@ -75,11 +75,11 @@ public class TxTest extends ImmuClientIntegrationTest {
 
         long initialTxId = 1;
         try {
-            TxMetadata txMd = immuClient.set(key, val1);
-            Assert.assertNotNull(txMd);
-            initialTxId = txMd.id;
-            txMd = immuClient.set(key, val2);
-            Assert.assertNotNull(txMd);
+            TxHeader txHdr = immuClient.set(key, val1);
+            Assert.assertNotNull(txHdr);
+            initialTxId = txHdr.id;
+            txHdr = immuClient.set(key, val2);
+            Assert.assertNotNull(txHdr);
         } catch (CorruptedDataException e) {
             Assert.fail("Failed at set.", e);
         }

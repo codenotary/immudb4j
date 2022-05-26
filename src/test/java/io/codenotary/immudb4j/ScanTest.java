@@ -1,5 +1,5 @@
 /*
-Copyright 2021 CodeNotary, Inc. All rights reserved.
+Copyright 2022 CodeNotary, Inc. All rights reserved.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -72,10 +72,10 @@ public class ScanTest extends ImmuClientIntegrationTest {
             Assert.fail("Failed at set.", e);
         }
 
-        TxMetadata set1TxMd = null;
+        TxHeader set1TxHdr = null;
         try {
             immuClient.zAdd("set1", 1, "zadd1");
-            set1TxMd = immuClient.zAdd("set1", 2, "zadd2");
+            set1TxHdr = immuClient.zAdd("set1", 2, "zadd2");
 
             immuClient.zAdd("set2", 2, "zadd1");
             immuClient.zAdd("set2", 1, "zadd2");
@@ -83,9 +83,9 @@ public class ScanTest extends ImmuClientIntegrationTest {
             Assert.fail("Failed to zAdd", e);
         }
 
-        Assert.assertNotNull(set1TxMd);
+        Assert.assertNotNull(set1TxHdr);
 
-        List<KV> zScan1 = immuClient.zScan("set1", set1TxMd.id, 5, false);
+        List<KV> zScan1 = immuClient.zScan("set1", set1TxHdr.id, 5, false);
 
         //Assert.assertEquals(zScan1.size(), 2);
         Assert.assertEquals(zScan1.size(), 3);
