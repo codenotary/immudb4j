@@ -1,3 +1,5 @@
+import java.util.concurrent.TimeUnit
+
 /*
 Copyright 2022 CodeNotary, Inc. All rights reserved.
 
@@ -123,12 +125,21 @@ task immudbStart {
     // if you want to use an existing immudb server, without starting and stopping
     // the locally used immudb version (stored in `immudb` directory and controlled
     // through the scripts). Just make sure immudb server has the proper version.
-    ProcessBuilder pb = new ProcessBuilder("./start.sh")
-    pb.directory(new File("immudb"))
+    ProcessBuilder pb = new ProcessBuilder()
+    pb.command("/bin/bash", "immudb/clean.sh")
+    Process procClean = pb.start()
+    procClean.waitFor()
+
+    pb = new ProcessBuilder()
+    pb.command("/bin/bash", "immudb/start.sh")
     Process proc = pb.start()
-    proc.waitFor()
-    if (proc.exitValue() == 0) {
+
+    proc.waitFor(10, TimeUnit.SECONDS)
+
+    if (proc.isAlive()) {
         println "immudb has been started."
+    } else {
+        throw new GradleException("Process exit bad: " + proc.exitValue())
     }
 }
 
@@ -139,8 +150,8 @@ task immudbStop(type: Exec) {
     // through the scripts). Just make sure immudb server has the proper version.
     workingDir 'immudb'
     commandLine './clean.sh'
-//     commandLine 'echo'
 }
+
 
 idea {
     module {
@@ -151,6 +162,9 @@ idea {
 
 test {
     useTestNG()
+    beforeTest { descriptor ->
+        logger.lifecycle("Running test: " + descriptor)
+    }
     // Run the unit tests sequentially.
     maxParallelForks = 1
 }
@@ -180,6 +194,7 @@ jacocoTestReport {
 coveralls {
     jacocoReportPath 'build/reports/jacoco/test/jacocoTestReport.xml'
 }
+
 
 publishing {
     repositories {

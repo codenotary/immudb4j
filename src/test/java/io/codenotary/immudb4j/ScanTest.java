@@ -33,15 +33,17 @@ public class ScanTest extends ImmuClientIntegrationTest {
 
         byte[] value1 = {0, 1, 2, 3};
         byte[] value2 = {4, 5, 6, 7};
-
+        long sinceTx = 1;
         try {
             immuClient.set("scan1", value1);
-            immuClient.set("scan2", value2);
+            TxHeader header = immuClient.set("scan2", value2);
+            sinceTx = header.id;
         } catch (CorruptedDataException e) {
             Assert.fail("Failed at set.", e);
         }
 
-        List<KV> scanResult = immuClient.scan("scan", 1, 5, false);
+        List<KV> scanResult = immuClient.scan("scan", sinceTx, 5, false);
+        System.out.println(scanResult.size());
 
         Assert.assertEquals(scanResult.size(), 2);
         Assert.assertEquals(scanResult.get(0).getKey(), "scan1".getBytes(StandardCharsets.UTF_8));
