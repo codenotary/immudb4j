@@ -1,6 +1,12 @@
 #!/bin/bash
+set -e
 
 cd "$(dirname "$0")"
+
+if [ -z "$OSTYPE" ]
+then
+      OSTYPE="linux-gnu"
+fi
 
 if [ ! -e immudb ]
 then
@@ -21,8 +27,5 @@ fi
 
 echo "Starting immudb..."
 
-./immudb --pidfile pid -d
+./immudb --pidfile pid
 
-sleep 1
-
-echo "Done."
