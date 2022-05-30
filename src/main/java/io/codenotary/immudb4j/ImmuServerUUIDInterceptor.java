@@ -31,7 +31,6 @@ public class ImmuServerUUIDInterceptor implements ClientInterceptor {
                         String serverUuid = headers.get(Metadata.Key.of(SERVER_UUID, Metadata.ASCII_STRING_MARSHALLER));
                         if (serverUuid != null && !serverUuid.equals(client.getCurrentServerUuid())) {
                             client.setCurrentServerUuid(serverUuid);
-                            // System.out.printf(">>> ImmuServerUUIDInterceptor > Updated currentServerUuid to '%s'.\n", serverUuid);
                         }
                         super.onHeaders(headers);
                     }

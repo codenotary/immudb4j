@@ -26,7 +26,6 @@ public class BasicsTest {
 
     @Test(testName = "Pair and Triple tests")
     public void t1() {
-
         String pa = "Snoop";
         String pb = "Dog";
         Pair<?, ?> pair = Pair.of(pa, pb);
@@ -54,11 +53,9 @@ public class BasicsTest {
         Assert.assertTrue(triple.toString().contains("("));
         System.out.println("BasicsTest > t1 triple hashCode=" + triple.hashCode());
 
-
         Assert.assertNotEquals(triple, null);
         Assert.assertEquals(triple, triple);
         Assert.assertNotEquals(triple, Triple.of("aDifferent", "", ""));
-
     }
 
 }

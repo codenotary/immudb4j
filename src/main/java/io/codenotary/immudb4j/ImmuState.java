@@ -44,6 +44,10 @@ public class ImmuState {
     // This method should remain visible within this immudb4j package
     // (and not `public`) since this is its usage scope.
     boolean checkSignature(PublicKey pubKey) {
+        if (pubKey == null) {
+            return true;
+        }
+
         if (signature != null && signature.length > 0) {
             try {
                 Signature sig = Signature.getInstance("SHA256withECDSA");
@@ -51,12 +55,12 @@ public class ImmuState {
                 sig.update(toBytes());
                 return sig.verify(signature);
             } catch (Exception e) {
-                System.err.println("checkSignature > e: " + e.getMessage());
+                return false;
             }
         }
+
         return false;
     }
-
 
     private byte[] toBytes() {
         byte[] b = new byte[4 + database.length() + 8 + Consts.SHA256_SIZE];
@@ -69,18 +73,6 @@ public class ImmuState {
         i += 8;
         Utils.copy(txHash, b, i);
         return b;
-    }
-
-
-    @Override
-    public String toString() {
-        Base64.Encoder enc = Base64.getEncoder();
-        return "ImmuState{ " +
-                "database='" + database + '\'' +
-                ", txId=" + txId +
-                ", txHash(base64)=" + enc.encodeToString(txHash) +
-                ", signature(base64)=" + enc.encodeToString(signature) +
-                " }";
     }
 
     // This method is not public. It is visible only within the immudb4j package

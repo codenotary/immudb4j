@@ -30,28 +30,6 @@ public class InclusionProof {
         this.terms = terms;
     }
 
-    @Override
-    public String toString() {
-        return String.format("InclusionProof{ leaf: %d, width: %d, terms(b16): %s }", leaf, width,
-                termsToBase16());
-    }
-
-    private String termsToBase16() {
-
-        if (terms == null) {
-            return "null";
-        }
-        StringBuilder sb = new StringBuilder("[");
-        for (int i = 0; i < terms.length; i++) {
-            sb.append(Utils.convertBase16(terms[i]));
-            if (i < terms.length - 1) {
-                sb.append(" ");
-            }
-        }
-        sb.append("]");
-        return sb.toString();
-    }
-
     public static InclusionProof valueOf(ImmudbProto.InclusionProof proof) {
         return new InclusionProof(proof.getLeaf(), proof.getWidth(), CryptoUtils.digestsFrom(proof.getTermsList()));
     }

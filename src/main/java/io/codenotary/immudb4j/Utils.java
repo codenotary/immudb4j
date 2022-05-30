@@ -17,71 +17,61 @@ package io.codenotary.immudb4j;
 
 import com.google.protobuf.ByteString;
 
-import io.codenotary.immudb.ImmudbProto;
-
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
-import java.util.Base64;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 
 public class Utils {
 
-    public static final KVMetadata kvMetadataFromProto(ImmudbProto.KVMetadata md) {
-        KVMetadata metadata = new KVMetadata();
-
-        metadata.asDeleted(md.getDeleted());
-
-        if (md.hasExpiration()) {
-            metadata.expiresAt(md.getExpiration().getExpiresAt());
+    public static ByteString toByteString(String str) {
+        if (str == null) {
+            return com.google.protobuf.ByteString.EMPTY;
         }
-        
-        metadata.asNonIndexable(md.getNonIndexable());
-        
-        return metadata;
+
+        return ByteString.copyFrom(str, StandardCharsets.UTF_8);
     }
 
-    public static int countBits(int number) {
-
-        if (number == 0) {
-            return 0;
+    public static ByteString toByteString(byte[] b) {
+        if (b == null) {
+            return com.google.protobuf.ByteString.EMPTY;
         }
-        // log function in base 2 & take only integer part.
-        return (int) (Math.log(number) / Math.log(2) + 1);
+
+        return ByteString.copyFrom(b);
     }
 
-    private final static char[] HEX = new char[]{'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D',
-            'E', 'F'};
+    public static byte[] toByteArray(String str) {
+        if (str == null) {
+            return null;
+        }
 
-    /**
-     * Convert the bytes to a base 16 string.
-     */
-    public static String convertBase16(byte[] byteArray) {
-
-        StringBuilder hexBuffer = new StringBuilder(byteArray.length * 2);
-        for (byte b : byteArray)
-            for (int j = 1; j >= 0; j--)
-                hexBuffer.append(HEX[(b >> (j * 4)) & 0xF]);
-        return hexBuffer.toString();
+        return str.getBytes(StandardCharsets.UTF_8);
     }
 
-    public static String toString(byte[] data) {
-
-        StringBuilder sb = new StringBuilder("{");
-        for (int i = 0; i < data.length; i++) {
-            sb.append(data[i]);
-            if (i < data.length - 1) {
-                sb.append(", ");
-            }
+    public static byte[] wrapWithPrefix(byte[] b, byte prefix) {
+        if (b == null) {
+            return null;
         }
-        sb.append("}");
-        return sb.toString();
+        byte[] wb = new byte[b.length + 1];
+        wb[0] = prefix;
+        System.arraycopy(b, 0, wb, 1, b.length);
+        return wb;
+    }
+
+    public static byte[] wrapReferenceValueAt(byte[] key, long atTx) {
+        byte[] refVal = new byte[1 + 8 + key.length];
+        refVal[0] = Consts.REFERENCE_VALUE_PREFIX;
+
+        Utils.putUint64(atTx, refVal, 1);
+
+        System.arraycopy(key, 0, refVal, 1 + 8, key.length);
+        return refVal;
     }
 
     /**
      * Convert the list of SHA256 (32-length) bytes to a primitive byte[][].
      */
     public static byte[][] convertSha256ListToBytesArray(List<ByteString> data) {
-
         if (data == null) {
             return null;
         }
@@ -93,7 +83,6 @@ public class Utils {
         }
         return result;
     }
-
 
     public static void putUint32(int value, byte[] dest, int destPos) {
         // Considering gRPC's generated code that maps Go's uint32 and int32 to Java's int,
@@ -115,39 +104,15 @@ public class Utils {
         System.arraycopy(valueBytes, 0, dest, destPos, valueBytes.length);
     }
 
-    public static String toStringAsBase64Values(byte[][] data) {
-        if (data == null) {
-            return null;
-        }
-        StringBuilder sb = new StringBuilder("[");
-        for (int i = 0; i < data.length; i++) {
-            sb.append(Base64.getEncoder().encodeToString(data[i]));
-            if (i < data.length - 1) {
-                sb.append(", ");
-            }
-        }
-        sb.append("]");
-        return sb.toString();
-    }
-
-    public static String asBase64(byte[] data) {
-        if (data == null) {
-            return null;
-        }
-        return Base64.getEncoder().encodeToString(data);
-    }
-
     public static void copy(byte[] src, byte[] dest) {
         System.arraycopy(src, 0, dest, 0, src.length);
     }
 
     public static void copy(byte[] src, byte[] dest, int destPos) {
-        // System.arraycopy(src, 0, dest, destPos, src.length);
         copy(src, 0, src.length, dest, destPos);
     }
 
     public static void copy(byte[] src, int srcPos, int length, byte[] dest) {
-        // System.arraycopy(src, srcPos, dest, 0, length);
         copy(src, 0, length, dest, 0);
     }
 

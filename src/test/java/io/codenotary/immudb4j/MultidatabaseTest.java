@@ -51,30 +51,21 @@ public class MultidatabaseTest extends ImmuClientIntegrationTest {
 
         immuClient.useDatabase("db1");
 
-        byte[] gv0 = null;
-        try {
-            gv0 = immuClient.get("k0");
-        } catch (Exception e) {
-            Assert.fail("Failed at get.", e);
-        }
-        Assert.assertEquals(v0, gv0);
+        Entry entry1 = immuClient.get("k0");
+        Assert.assertNotNull(entry1);
+        Assert.assertEquals(entry1.getValue(), v0);
 
-        Entry ev0 = immuClient.verifiedGet("k0");
-        Assert.assertNotNull(ev0);
-        Assert.assertEquals(ev0.kv.getValue(), v0);
+        Entry ventry1 = immuClient.verifiedGet("k0");
+        Assert.assertNotNull(ventry1);
+        Assert.assertEquals(ventry1.getValue(), v0);
 
         immuClient.useDatabase("db2");
 
-        byte[] gv1 = null;
-        try {
-            gv1 = immuClient.get("k1");
-        } catch (Exception e) {
-            Assert.fail("Failed at get.", e);
-        }
-        Assert.assertEquals(v1, gv1);
+        Entry entry2 = immuClient.get("k1");
+        Assert.assertEquals(entry2.getValue(), v1);
 
-        Entry evgv1 = immuClient.verifiedGet("k1");
-        Assert.assertEquals(evgv1.kv.getValue(), v1);
+        Entry ventry2 = immuClient.verifiedGet("k1");
+        Assert.assertEquals(ventry2.getValue(), v1);
 
         List<String> dbs = immuClient.databases();
         Assert.assertNotNull(dbs);

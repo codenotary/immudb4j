@@ -19,18 +19,40 @@ import io.codenotary.immudb.ImmudbProto;
 
 public class Reference {
 
-    public final long tx;
-    public final byte[] key;
-    public final long atTx;
+    private long tx;
+    private byte[] key;
+    private long atTx;
 
-    public Reference(long tx, byte[] key, long atTx) {
-        this.tx = tx;
-        this.key = key;
-        this.atTx = atTx;
-    }
+    private KVMetadata metadata;
+
+    private Reference() {}
 
     public static Reference valueOf(ImmudbProto.Reference ref) {
-        return new Reference(ref.getTx(), ref.getKey().toByteArray(), ref.getAtTx());
+        final Reference reference = new Reference();
+        reference.tx = ref.getTx();
+        reference.key = ref.getKey().toByteArray();
+        reference.atTx = ref.getAtTx();
+
+        if (ref.hasMetadata()) {
+            reference.metadata = KVMetadata.valueOf(ref.getMetadata());
+        }
+
+        return reference;
+    }
+
+    public long getTx() {
+        return tx;
+    }
+
+    public byte[] getKey() {
+        return key;
+    }
+
+    public long getAtTx() {
+        return atTx;
+    }
+    public KVMetadata getMetadata() {
+        return metadata;
     }
 
 }

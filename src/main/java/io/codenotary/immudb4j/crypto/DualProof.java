@@ -57,17 +57,4 @@ public class DualProof {
         );
     }
 
-    @Override
-    public String toString() {
-        return "DualProof{" +
-                "sourceTxHeader=" + sourceTxHeader +
-                ", targetTxHeader=" + targetTxHeader +
-                ", inclusionProof=" + Utils.toStringAsBase64Values(inclusionProof) +
-                ", consistencyProof=" + Utils.toStringAsBase64Values(consistencyProof) +
-                ", targetBlTxAlh=" + Utils.asBase64(targetBlTxAlh) +
-                ", lastInclusionProof=" + Utils.toStringAsBase64Values(lastInclusionProof) +
-                ", linearProof=" + linearProof +
-                '}';
-    }
-
 }

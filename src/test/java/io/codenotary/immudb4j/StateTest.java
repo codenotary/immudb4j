@@ -27,25 +27,6 @@ public class StateTest extends ImmuClientIntegrationTest {
 
     private static final String publicKeyResource = "test_public_key.pem";
 
-    @Test(testName = "state")
-    public void t1() {
-
-        immuClient.login("immudb", "immudb");
-        immuClient.useDatabase("defaultdb");
-
-        ImmuState state = immuClient.state();
-
-        Assert.assertNotNull(state);
-        // System.out.println(">>> t1 > state: " + state.toString());
-
-        String stateStr = state.toString();
-        Assert.assertTrue(stateStr.contains("ImmuState{"));
-        Assert.assertTrue(stateStr.contains("txHash(base64)"));
-        Assert.assertTrue(stateStr.contains("signature(base64)"));
-
-        immuClient.logout();
-    }
-
     @Test(testName = "currentState")
     public void t2() {
 

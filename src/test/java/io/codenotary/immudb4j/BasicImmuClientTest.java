@@ -29,51 +29,40 @@ import java.util.List;
 public class BasicImmuClientTest extends ImmuClientIntegrationTest {
 
     @Test(testName = "set, get")
-    public void t1() throws VerificationException {
-
+    public void t1() throws VerificationException, CorruptedDataException {
         immuClient.login("immudb", "immudb");
         immuClient.useDatabase("defaultdb");
 
         byte[] v0 = new byte[]{0, 1, 2, 3};
         byte[] v1 = new byte[]{3, 2, 1, 0};
 
-        try {
-            immuClient.set("k0", v0);
-            immuClient.set("k1", v1);
-        } catch (CorruptedDataException e) {
-            Assert.fail("Failed at set.", e);
-        }
+       immuClient.set("k0", v0);
+       immuClient.set("k1", v1);
 
-        byte[] rv0 = null;
-        byte[] rv1 = null;
-        try {
-            rv0 = immuClient.get("k0");
-            rv1 = immuClient.get("k1");
-        } catch (Exception e) {
-            Assert.fail("Failed at get.", e);
-        }
+        Entry entry1 = immuClient.get("k0");
+        Entry entry2 = immuClient.get("k1");
 
-        Assert.assertEquals(v0, rv0);
-        Assert.assertEquals(v1, rv1);
+        Assert.assertEquals(entry1.getValue(), v0);
+        Assert.assertEquals(entry2.getValue(), v1);
 
-        Entry sv0 = immuClient.verifiedGet("k0");
-        Entry sv1 = immuClient.verifiedGet("k1");
+        Entry ventry1 = immuClient.verifiedGet("k0");
+        Entry ventry2 = immuClient.verifiedGet("k1");
 
-        Assert.assertEquals(sv0.kv.getValue(), v0);
-        Assert.assertEquals(sv1.kv.getValue(), v1);
+        Assert.assertEquals(ventry1.getValue(), v0);
+        Assert.assertEquals(ventry2.getValue(), v1);
 
         byte[] v2 = new byte[]{0, 1, 2, 3};
 
         immuClient.verifiedSet("k2", v2);
-        Entry sv2 = immuClient.verifiedGet("k2");
-        Assert.assertEquals(v2, sv2.kv.getValue());
+
+        Entry ventry22 = immuClient.verifiedGet("k2");
+        Assert.assertEquals(v2, ventry22.getValue());
 
         immuClient.logout();
     }
 
     @Test(testName = "setAll, getAll")
     public void t2() {
-
         immuClient.login("immudb", "immudb");
         immuClient.useDatabase("defaultdb");
 
@@ -99,25 +88,20 @@ public class BasicImmuClientTest extends ImmuClientIntegrationTest {
             Assert.fail("Failed at setAll.", e);
         }
 
-        List<KV> getAllResult = immuClient.getAll(keys);
+        List<Entry> getAllResult = immuClient.getAll(keys);
 
         Assert.assertNotNull(getAllResult);
         Assert.assertEquals(keys.size(), getAllResult.size());
 
         for (int i = 0; i < getAllResult.size(); i++) {
-            KV kv = getAllResult.get(i);
-            Assert.assertEquals(kv.getKey(), keys.get(i).getBytes(Charsets.UTF_8));
-            Assert.assertEquals(kv.getValue(), values.get(i));
+            Entry entry = getAllResult.get(i);
+            Assert.assertEquals(entry.getKey(), keys.get(i).getBytes(Charsets.UTF_8));
+            Assert.assertEquals(entry.getValue(), values.get(i));
         }
 
         for (int i = 0; i < keys.size(); i++) {
-            byte[] v = new byte[0];
-            try {
-                v = immuClient.get(keys.get(i));
-            } catch (Exception e) {
-                Assert.fail("Failed at get.", e);
-            }
-            Assert.assertEquals(v, values.get(i));
+            Entry entry = immuClient.get(keys.get(i));
+            Assert.assertEquals(entry.getValue(), values.get(i));
         }
 
         immuClient.logout();

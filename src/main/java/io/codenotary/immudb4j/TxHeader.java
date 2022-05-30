@@ -125,25 +125,4 @@ public class TxHeader {
         return CryptoUtils.sha256Sum(bytes.array());
     }
 
-    @Override
-    public String toString() {
-        Base64.Encoder enc = Base64.getEncoder();
-        byte[] alh = alh();
-        return "TxHeader{" +
-                "version=" + version +
-                ", id=" + id +
-                ", prevAlh=" + enc.encodeToString(prevAlh) +
-                ", prevAlh=" + Utils.toString(prevAlh) +
-                ", ts=" + ts +
-                ", nEntries=" + nEntries +
-                ", eh=" + enc.encodeToString(eh) +
-                ", eh=" + Utils.toString(eh) +
-                ", blTxId=" + blTxId +
-                ", blRoot=" + enc.encodeToString(blRoot) +
-                ", blRoot=" + Utils.toString(blRoot) +
-                ", alh=" + enc.encodeToString(alh) +
-                ", alh=" + Utils.toString(alh) +
-                '}';
-    }
-
 }

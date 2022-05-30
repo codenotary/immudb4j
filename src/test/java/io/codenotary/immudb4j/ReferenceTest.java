@@ -49,17 +49,13 @@ public class ReferenceTest extends ImmuClientIntegrationTest {
         }
         Assert.assertNotNull(ref1TxHdr);
 
-
         TxHeader ref2TxHdr = null;
         try {
-            ref2TxHdr = immuClient.setReferenceAt(ref2Key, key, setTxHdr.id);
+            ref2TxHdr = immuClient.setReference(ref2Key, key, setTxHdr.id);
         } catch (CorruptedDataException e) {
             Assert.fail("Failed at setReferenceAt.", e);
         }
         Assert.assertNotNull(ref2TxHdr);
-
-        // And `verifiedSetReference` & `verifiedSetReferenceAt` tests are included `VerifiedSetAndGetTest`.
-
 
         immuClient.logout();
     }

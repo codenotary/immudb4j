@@ -44,33 +44,22 @@ public class ZAddTest extends ImmuClientIntegrationTest {
         }
 
         TxHeader txHdr = null;
-        long initialTxId = 1;
         try {
-            txHdr = immuClient.zAdd(set, 10, key1);
+            txHdr = immuClient.zAdd(set, key1, 10);
             Assert.assertNotNull(txHdr);
-            initialTxId = txHdr.id;
-            txHdr = immuClient.zAdd(set, 4, key2);
+
+            txHdr = immuClient.zAdd(set, key2, 4);
             Assert.assertNotNull(txHdr);
         } catch (CorruptedDataException e) {
             Assert.fail("Failed at zAdd.", e);
         }
 
         try {
-            txHdr = immuClient.verifiedZAdd(set, 8, key2);
+            txHdr = immuClient.verifiedZAdd(set, key2, 8);
         } catch (VerificationException e) {
             Assert.fail("Failed at verifiedZAdd", e);
         }
         Assert.assertNotNull(txHdr);
-
-
-//        TODO: Temporary commented, it needs investigation.
-//              Currently it throws this gRPC issue:
-//              io.grpc.StatusRuntimeException: UNKNOWN: illegal arguments
-//        try {
-//            immuClient.verifiedZAddAt(set, 12, key1, initialTxId);
-//        } catch (VerificationException e) {
-//            Assert.fail("Failed at verifiedZAddAt");
-//        }
 
         immuClient.logout();
     }

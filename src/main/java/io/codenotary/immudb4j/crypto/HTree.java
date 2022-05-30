@@ -30,24 +30,27 @@ import io.codenotary.immudb4j.Utils;
  * @author dxps
  */
 public class HTree {
-
     private final byte[][][] levels;
     private final int maxWidth;
     private int width;
     private byte[] root;
 
     public HTree(int maxWidth) throws IllegalArgumentException {
-
         if (maxWidth < 1) {
             throw new IllegalArgumentException("maxWidth must be greater or equal to 1");
         }
+
         this.maxWidth = maxWidth;
+
         int lw = 1;
         while (lw < maxWidth) {
             lw = lw << 1;
         }
+
         int height = BigInteger.valueOf(maxWidth - 1).bitLength() + 1;
+
         levels = new byte[height][][];
+
         for (int l = 0; l < height; l++) {
             levels[l] = new byte[lw >> l][32];
         }
@@ -60,6 +63,7 @@ public class HTree {
             throw new IllegalArgumentException(
                     "Provided digests must be non-null and have a length greater than 0.");
         }
+
         if (digests.length > maxWidth) {
             throw new MaxWidthExceededException(String.format(
                     "Provided digests' length of %d is bigger than tree's maxWidth of %d.",
@@ -79,20 +83,25 @@ public class HTree {
         while (w > 1) {
             byte[] b = new byte[65]; // 65 = 2 x 32 (sha256.Size) + 1
             b[0] = Consts.NODE_PREFIX;
+
             int wn = 0;
+
             for (int i = 0; i + 1 < w; i += 2) {
                 System.arraycopy(levels[l][i], 0, b, 1, levels[l][i].length);
                 System.arraycopy(levels[l][i + 1], 0, b, 33, levels[l][i].length);
                 levels[l + 1][wn] = CryptoUtils.sha256Sum(b);
                 wn++;
             }
+
             if (w % 2 == 1) {
                 levels[l + 1][wn] = levels[l][w - 1];
                 wn++;
             }
+
             l++;
             w = wn;
         }
+
         width = digests.length;
         root = levels[l][0];
     }
@@ -118,7 +127,6 @@ public class HTree {
      * @param i Index of the node from which the inclusion proof will be provided.
      */
     public InclusionProof inclusionProof(int i) throws IllegalArgumentException {
-
         if (i >= width) {
             throw new IllegalArgumentException(String
                     .format("Provided index (%d) is higher then the tree's width (%d).", i, width));
@@ -134,8 +142,9 @@ public class HTree {
 
         byte[][] terms = new byte[0][32];
         while (true) {
-            int d = Utils.countBits(n - 1);
+            int d = countBits(n - 1);
             int k = 1 << (d - 1);
+
             if (m < k) {
                 l = offset + k;
                 r = offset + n - 1;
@@ -147,7 +156,7 @@ public class HTree {
                 n = n - k;
                 offset += k;
             }
-            int layer = Utils.countBits(r - l);
+            int layer = countBits(r - l);
             int index = l / (1 << layer);
 
             byte[][] newterms = new byte[1 + terms.length][32];
@@ -161,21 +170,12 @@ public class HTree {
         }
     }
 
-
-
-    @Override
-    public String toString() {
-        StringBuilder sb = new StringBuilder();
-        String tab;
-        for (int i = levels.length - 1; i >= 0; i--) {
-            sb.append(Strings.repeat("  ", (1 << i) - 1));
-            tab = Strings.repeat("  ", (1 << (i + 1)) - 1);
-            for (int j = 0; j < levels[i].length; j++) {
-                sb.append(String.format("%s%s", Utils.convertBase16(levels[i][j]), tab));
-            }
-            sb.append("\n");
+    private static int countBits(int number) {
+        if (number == 0) {
+            return 0;
         }
-        return sb.toString();
+        // log function in base 2 & take only integer part.
+        return (int) (Math.log(number) / Math.log(2) + 1);
     }
 
 }
