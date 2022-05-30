@@ -20,7 +20,6 @@ import org.testng.Assert;
 import org.testng.annotations.Test;
 
 import java.nio.charset.StandardCharsets;
-import java.util.Arrays;
 import java.util.List;
 
 public class ScanTest extends ImmuClientIntegrationTest {
@@ -33,16 +32,15 @@ public class ScanTest extends ImmuClientIntegrationTest {
 
         byte[] value1 = {0, 1, 2, 3};
         byte[] value2 = {4, 5, 6, 7};
-        long sinceTx = 1;
+
         try {
             immuClient.set("scan1", value1);
-            TxHeader header = immuClient.set("scan2", value2);
-            sinceTx = header.id;
+            immuClient.set("scan2", value2);
         } catch (CorruptedDataException e) {
             Assert.fail("Failed at set.", e);
         }
 
-        List<KV> scanResult = immuClient.scan("scan", sinceTx, 5, false);
+        List<Entry> scanResult = immuClient.scan("scan", 5, false);
         System.out.println(scanResult.size());
 
         Assert.assertEquals(scanResult.size(), 2);
@@ -53,7 +51,7 @@ public class ScanTest extends ImmuClientIntegrationTest {
 
         Assert.assertTrue(immuClient.scan("scan").size() > 0);
 
-        Assert.assertEquals(immuClient.scan("scan", "scan1", 1, 5, false).size(), 1);
+        Assert.assertEquals(immuClient.scan("scan", "scan1", 1, false).size(), 1);
 
         immuClient.logout();
     }
@@ -74,29 +72,23 @@ public class ScanTest extends ImmuClientIntegrationTest {
             Assert.fail("Failed at set.", e);
         }
 
-        TxHeader set1TxHdr = null;
         try {
-            immuClient.zAdd("set1", 1, "zadd1");
-            set1TxHdr = immuClient.zAdd("set1", 2, "zadd2");
+            immuClient.zAdd("set1", "zadd1", 1);
+            immuClient.zAdd("set1", "zadd2", 2);
 
-            immuClient.zAdd("set2", 2, "zadd1");
-            immuClient.zAdd("set2", 1, "zadd2");
+            immuClient.zAdd("set2", "zadd1", 2);
+            immuClient.zAdd("set2", "zadd2", 1);
         } catch (CorruptedDataException e) {
             Assert.fail("Failed to zAdd", e);
         }
 
-        Assert.assertNotNull(set1TxHdr);
-
-        List<KV> zScan1 = immuClient.zScan("set1", set1TxHdr.id, 5, false);
-
-        //Assert.assertEquals(zScan1.size(), 2);
-        Assert.assertEquals(zScan1.size(), 3);
+        List<ZEntry> zScan1 = immuClient.zScan("set1", 5, false);
+        Assert.assertEquals(zScan1.size(), 2);
 
         Assert.assertEquals(zScan1.get(0).getKey(), "zadd1".getBytes(StandardCharsets.UTF_8));
-        Assert.assertEquals(zScan1.get(0).getValue(), value1);
+        Assert.assertEquals(zScan1.get(0).getEntry().getValue(), value1);
 
-        List<KV> zScan2 = immuClient.zScan("set2", 5, false);
-
+        List<ZEntry> zScan2 = immuClient.zScan("set2", 5, false);
         Assert.assertEquals(zScan2.size(), 2);
 
         immuClient.logout();

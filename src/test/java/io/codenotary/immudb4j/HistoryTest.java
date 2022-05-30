@@ -16,6 +16,7 @@ limitations under the License.
 package io.codenotary.immudb4j;
 
 import io.codenotary.immudb4j.exceptions.CorruptedDataException;
+import io.grpc.StatusRuntimeException;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
@@ -44,7 +45,7 @@ public class HistoryTest extends ImmuClientIntegrationTest {
             Assert.fail("Failed at set.", e);
         }
 
-        List<KV> historyResponse1 = immuClient.history("history1", 10, 0, false);
+        List<Entry> historyResponse1 = immuClient.history("history1", 10, 0, false);
 
         Assert.assertEquals(historyResponse1.size(), 2);
 
@@ -54,7 +55,7 @@ public class HistoryTest extends ImmuClientIntegrationTest {
         Assert.assertEquals(historyResponse1.get(1).getKey(), "history1".getBytes(StandardCharsets.UTF_8));
         Assert.assertEquals(historyResponse1.get(1).getValue(), value2);
 
-        List<KV> historyResponse2 = immuClient.history("history2", 10, 0, false);
+        List<Entry> historyResponse2 = immuClient.history("history2", 10, 0, false);
 
         Assert.assertEquals(historyResponse2.size(), 3);
 
@@ -67,12 +68,16 @@ public class HistoryTest extends ImmuClientIntegrationTest {
         Assert.assertEquals(historyResponse2.get(2).getKey(), "history2".getBytes(StandardCharsets.UTF_8));
         Assert.assertEquals(historyResponse2.get(2).getValue(), value3);
 
-        historyResponse2 = immuClient.history("history2", 10, 2, false, 5);
+        historyResponse2 = immuClient.history("history2", 10, 2, false);
         Assert.assertNotNull(historyResponse2);
         Assert.assertEquals(historyResponse2.size(), 1);
 
-        List<KV> nonExisting = immuClient.history("nonExisting", 10, 0, false);
-        Assert.assertTrue(nonExisting.isEmpty());
+        try {
+            immuClient.history("nonExisting", 10, 0, false);
+            Assert.fail("key not found exception expected");
+        } catch (StatusRuntimeException e) {
+            Assert.assertTrue(e.getMessage().contains("key not found"));
+        }
 
         immuClient.logout();
     }

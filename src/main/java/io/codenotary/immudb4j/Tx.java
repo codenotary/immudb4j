@@ -49,7 +49,7 @@ public class Tx {
                 KVMetadata md = null;
 
                 if (txe.hasMetadata()) {
-                    md = Utils.kvMetadataFromProto(txe.getMetadata());
+                    md = KVMetadata.valueOf(txe.getMetadata());
                 }
 
                 entries.add(

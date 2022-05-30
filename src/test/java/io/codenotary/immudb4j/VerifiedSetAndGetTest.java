@@ -46,7 +46,7 @@ public class VerifiedSetAndGetTest extends ImmuClientIntegrationTest {
             Assert.fail("Failed at verifiedGet", e);
         }
 
-        Assert.assertEquals(val, vEntry.kv.getValue());
+        Assert.assertEquals(val, vEntry.getValue());
 
         immuClient.logout();
     }
@@ -75,23 +75,15 @@ public class VerifiedSetAndGetTest extends ImmuClientIntegrationTest {
         } catch (VerificationException e) {
             Assert.fail("Failed at verifiedGet. Cause: " + e.getMessage(), e);
         }
-        Assert.assertEquals(val, vEntry.kv.getValue());
+        Assert.assertEquals(val, vEntry.getValue());
 
         // verifiedGetAt
         try {
-            vEntry = immuClient.verifiedGetAt(key, vEntry.txId);
+            vEntry = immuClient.verifiedGet(key, vEntry.getTx());
         } catch (VerificationException e) {
             Assert.fail("Failed at verifiedGetAt. Cause: " + e.getMessage(), e);
         }
-        Assert.assertEquals(val, vEntry.kv.getValue());
-
-        // verifiedGetSince
-        try {
-            vEntry = immuClient.verifiedGetSince(key, vEntry.txId);
-        } catch (VerificationException e) {
-            Assert.fail("Failed at verifiedGetSince. Cause: " + e.getMessage(), e);
-        }
-        Assert.assertEquals(val, vEntry.kv.getValue());
+        Assert.assertEquals(val, vEntry.getValue());
 
         // verifiedSetReference
         byte[] refKey = "vsgRef".getBytes(StandardCharsets.UTF_8);

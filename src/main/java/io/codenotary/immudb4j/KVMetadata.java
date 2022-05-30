@@ -15,6 +15,8 @@ limitations under the License.
 */
 package io.codenotary.immudb4j;
 
+import io.codenotary.immudb.ImmudbProto;
+
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.util.HashMap;
@@ -37,6 +39,20 @@ public class KVMetadata {
 
     public KVMetadata() {
         attributes  = new HashMap<Byte,MetadataAttribute>();
+    }
+
+    public static KVMetadata valueOf(ImmudbProto.KVMetadata md) {
+        KVMetadata metadata = new KVMetadata();
+
+        metadata.asDeleted(md.getDeleted());
+
+        if (md.hasExpiration()) {
+            metadata.expiresAt(md.getExpiration().getExpiresAt());
+        }
+
+        metadata.asNonIndexable(md.getNonIndexable());
+
+        return metadata;
     }
 
     public void asDeleted(boolean deleted) {

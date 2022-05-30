@@ -15,8 +15,13 @@ limitations under the License.
 */
 package io.codenotary.immudb4j;
 
+import io.codenotary.immudb4j.crypto.CryptoUtils;
+
 import java.io.BufferedWriter;
 import java.io.IOException;
+import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;

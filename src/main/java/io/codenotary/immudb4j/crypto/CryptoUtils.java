@@ -17,9 +17,6 @@ package io.codenotary.immudb4j.crypto;
 
 import com.google.protobuf.ByteString;
 import io.codenotary.immudb4j.Consts;
-import io.codenotary.immudb4j.KV;
-import io.codenotary.immudb4j.KVMetadata;
-import io.codenotary.immudb4j.KVPair;
 import io.codenotary.immudb4j.Utils;
 
 import java.io.DataInputStream;
@@ -84,79 +81,9 @@ public class CryptoUtils {
         return d;
     }
 
-    public static byte[] encodeKey(byte[] key) {
-        return wrapWithPrefix(key, Consts.SET_KEY_PREFIX);
-    }
-
-    public static KV encodeKV(byte[] key, KVMetadata metadata, byte[] value) {
-        return new KVPair(
-                wrapWithPrefix(key, Consts.SET_KEY_PREFIX),
-                metadata,
-                wrapWithPrefix(value, Consts.PLAIN_VALUE_PREFIX)
-        );
-    }
-
-    public static KV encodeReference(byte[] key, KVMetadata metadata, byte[] referencedKey, long atTx) {
-        return new KVPair(
-                wrapWithPrefix(key, Consts.SET_KEY_PREFIX),
-                metadata,
-                wrapReferenceValueAt(wrapWithPrefix(referencedKey, Consts.SET_KEY_PREFIX), atTx)
-        );
-    }
-
-    public static KV encodeZAdd(byte[] set, double score, byte[] key, long atTx) {
-        return new KVPair(wrapZAddReferenceAt(set, score, key, atTx), null, null);
-    }
-
-    private static byte[] wrapWithPrefix(byte[] b, byte prefix) {
-        if (b == null) {
-            return null;
-        }
-        byte[] wb = new byte[b.length + 1];
-        wb[0] = prefix;
-        System.arraycopy(b, 0, wb, 1, b.length);
-        return wb;
-    }
-
-    private static byte[] wrapReferenceValueAt(byte[] key, long atTx) {
-        byte[] refVal = new byte[1 + 8 + key.length];
-        refVal[0] = Consts.REFERENCE_VALUE_PREFIX;
-
-        Utils.putUint64(atTx, refVal, 1);
-
-        System.arraycopy(key, 0, refVal, 1 + 8, key.length);
-        return refVal;
-    }
-
-    private static byte[] wrapZAddReferenceAt(byte[] set, double score, byte[] key, long atTx) {
-
-        byte[] zKey = new byte[1 + Consts.SET_LEN_LEN + set.length + Consts.SCORE_LEN
-                + Consts.KEY_LEN_LEN + key.length + Consts.TX_ID_SIZE];
-        int zi = 0;
-
-        zKey[0] = Consts.SORTED_SET_KEY_PREFIX;
-        zi++;
-        Utils.putUint64(set.length, zKey, zi);
-        zi += Consts.SET_LEN_LEN;
-        Utils.copy(set, zKey, zi);
-        zi += set.length;
-        Utils.putUint64(Double.doubleToRawLongBits(score), zKey, zi);
-        zi += Consts.SCORE_LEN;
-        Utils.putUint64(key.length, zKey, zi);
-        zi += Consts.KEY_LEN_LEN;
-        Utils.copy(key, zKey, zi);
-        zi += key.length;
-        Utils.putUint64(atTx, zKey, zi);
-
-        return zKey;
-    }
-
     public static boolean verifyDualProof(DualProof proof,
                                           long sourceTxId, long targetTxId,
                                           byte[] sourceAlh, byte[] targetAlh) {
-
-//        System.out.printf("[dbg] verifyDualProof > dualProof:%s, sourceTxId:%d, targetTxId:%d, sourceAlh:%s, targetAlh:%s\n",
-//                proof, sourceTxId, targetTxId, Utils.toStringAsBase64Value(sourceAlh), Utils.toStringAsBase64Value(targetAlh));
 
         if (proof == null || proof.sourceTxHeader == null || proof.targetTxHeader == null
                 || proof.sourceTxHeader.id != sourceTxId || proof.targetTxHeader.id != targetTxId) {
@@ -168,11 +95,6 @@ public class CryptoUtils {
         }
 
         if (!Arrays.equals(sourceAlh, proof.sourceTxHeader.alh()) || !Arrays.equals(targetAlh, proof.targetTxHeader.alh())) {
-//            System.out.println("[dbg] false 3");
-//            System.out.println("[dbg] sourceAlh: " + Utils.toStringAsBase64Value(sourceAlh) +
-//                    "   proof.sourceTxHeader.alh(): " + Utils.toStringAsBase64Value(proof.sourceTxHeader.alh()));
-//            System.out.println("[dbg] targetAlh: " + Utils.toStringAsBase64Value(targetAlh) +
-//                    "   proof.targetTxHeader.alh(): " + Utils.toStringAsBase64Value(proof.targetTxHeader.alh()));
             return false;
         }
 
@@ -183,7 +105,6 @@ public class CryptoUtils {
                     proof.targetTxHeader.blTxId,
                     leafFor(sourceAlh),
                     proof.targetTxHeader.blRoot)) {
-//                System.out.println("[dbg] verifIncl false");
                 return false;
             }
         }
@@ -196,7 +117,6 @@ public class CryptoUtils {
                     proof.sourceTxHeader.blRoot,
                     proof.targetTxHeader.blRoot
             )) {
-//                System.out.println("[dbg] verifConsistency false");
                 return false;
             }
         }
@@ -208,17 +128,15 @@ public class CryptoUtils {
                     leafFor(proof.targetBlTxAlh),
                     proof.targetTxHeader.blRoot
             )) {
-//                System.out.println("[dbg] verifLastIncl false");
                 return false;
             }
         }
 
         if (sourceTxId < proof.targetTxHeader.blTxId) {
-//            System.out.println("[dbg] ret verifLinearProof 1");
             return verifyLinearProof(proof.linearProof,
                     proof.targetTxHeader.blTxId, targetTxId, proof.targetBlTxAlh, targetAlh);
         }
-//        System.out.println("[dbg] ret verifLinearProof 2");
+
         return verifyLinearProof(proof.linearProof, sourceTxId, targetTxId, sourceAlh, targetAlh);
     }
 
@@ -349,10 +267,6 @@ public class CryptoUtils {
     }
 
     public static boolean verifyConsistency(byte[][] cProof, long i, long j, byte[] iRoot, byte[] jRoot) {
-//        System.out.println(">>> verifyConsistency > i:" + i + " j:" + j + " cProof.length:" + cProof.length
-//                + " iRoot(b64):" + Utils.toStringAsBase64Value(iRoot)
-//                + " jRoot(b64):" + Utils.toStringAsBase64Value(jRoot));
-
         if (i > j || i == 0 || (i < j && cProof.length == 0)) {
             return false;
         }
@@ -364,9 +278,6 @@ public class CryptoUtils {
         byte[][] result = evalConsistency(cProof, i, j);
         byte[] ciRoot = result[0];
         byte[] cjRoot = result[1];
-
-//        System.out.println(">>> verifyConsistency > ciRoot(b64): " + Utils.toStringAsBase64Value(ciRoot)
-//                + " cjRoot(b64): " + Utils.toStringAsBase64Value(cjRoot));
 
         return Arrays.equals(iRoot, ciRoot) && Arrays.equals(jRoot, cjRoot);
     }

@@ -40,22 +40,13 @@ public class SetAndGetTest extends ImmuClientIntegrationTest {
         }
         Assert.assertNotNull(txHdr);
 
-        byte[] got = new byte[0];
-        try {
-            got = immuClient.get(key);
-        } catch (Exception e) {
-            Assert.fail("Failed at get.", e);
-        }
+        Entry entry1 = immuClient.get(key);
+        Assert.assertNotNull(entry1);
+        Assert.assertEquals(entry1.getValue(), val);
 
-        Assert.assertEquals(val, got);
-
-        KV kv = immuClient.getAt(key, txHdr.id);
-        Assert.assertNotNull(kv);
-        Assert.assertEquals(kv.getValue(), val);
-
-        kv = immuClient.getSince(key, txHdr.id);
-        Assert.assertNotNull(kv);
-        Assert.assertEquals(kv.getValue(), val);
+        Entry entry1At = immuClient.get(key, txHdr.id);
+        Assert.assertNotNull(entry1At);
+        Assert.assertEquals(entry1At.getValue(), val);
 
         immuClient.logout();
     }

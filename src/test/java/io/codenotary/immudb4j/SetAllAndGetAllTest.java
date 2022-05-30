@@ -19,7 +19,6 @@ import io.codenotary.immudb4j.exceptions.CorruptedDataException;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
-import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.List;
 
@@ -38,7 +37,7 @@ public class SetAllAndGetAllTest extends ImmuClientIntegrationTest {
         String key3 = "sga-key3";
         byte[] val3 = new byte[] { 3, 4, 5 };
 
-        List<KV> kvs = Arrays.asList(new KVPair(key1, val1), new KVPair(key2, val2), new KVPair(key3, val3));
+        List<KV> kvs = Arrays.asList(new KV(key1, val1), new KV(key2, val2), new KV(key3, val3));
 
         KVList kvList = KVList.newBuilder().addAll(kvs).build();
         try {
@@ -49,12 +48,12 @@ public class SetAllAndGetAllTest extends ImmuClientIntegrationTest {
         }
 
         List<String> keys = Arrays.asList(key1, key2, key3);
-        List<KV> got = immuClient.getAll(keys);
+        List<Entry> got = immuClient.getAll(keys);
 
         Assert.assertEquals(kvList.entries().size(), got.size());
 
         for (int i = 0; i < kvs.size(); i++) {
-            Assert.assertEquals(kvs.get(i), got.get(i), String.format("Expected: %s got: %s", kvs.get(i), got.get(i)));
+            Assert.assertEquals(got.get(i).getValue(), kvs.get(i).getValue(), String.format("Expected: %s got: %s", kvs.get(i), got.get(i)));
         }
 
         immuClient.logout();

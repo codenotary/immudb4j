@@ -54,7 +54,7 @@ public class KVList {
         }
 
         public KVListBuilder add(byte[] key, byte[] value) {
-            add(new KVPair(key, null, value));
+            add(new KV(key, null, value));
             return this;
         }
 
