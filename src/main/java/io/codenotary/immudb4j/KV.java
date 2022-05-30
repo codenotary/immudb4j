@@ -4,7 +4,6 @@ import io.codenotary.immudb4j.crypto.CryptoUtils;
 
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
-import java.nio.charset.StandardCharsets;
 
 /**
  * KV represents a key value pair.
@@ -15,14 +14,6 @@ class KV {
     private final KVMetadata metadata;
 
     private final byte[] value;
-
-    KV(String key, byte[] value) {
-        this(key.getBytes(StandardCharsets.UTF_8), null, value);
-    }
-
-    KV(byte[] key, byte[] value) {
-        this(key, null, value);
-    }
 
     KV(byte[] key, KVMetadata metadata, byte[] value) {
         this.key = key;

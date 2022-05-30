@@ -74,16 +74,14 @@ public class BasicImmuClientTest extends ImmuClientIntegrationTest {
         values.add(new byte[]{0, 1, 0, 1});
         values.add(new byte[]{1, 0, 1, 0});
 
-        KVList.KVListBuilder kvListBuilder = KVList.newBuilder();
+        KVListBuilder kvListBuilder = KVListBuilder.newBuilder();
 
         for (int i = 0; i < keys.size(); i++) {
             kvListBuilder.add(keys.get(i), values.get(i));
         }
 
-        KVList kvList = kvListBuilder.addAll(new LinkedList<>()).build();
-
         try {
-            immuClient.setAll(kvList);
+            immuClient.setAll(kvListBuilder.entries());
         } catch (CorruptedDataException e) {
             Assert.fail("Failed at setAll.", e);
         }
