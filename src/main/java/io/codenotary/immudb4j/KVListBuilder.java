@@ -15,60 +15,45 @@ limitations under the License.
 */
 package io.codenotary.immudb4j;
 
-import com.google.common.base.Charsets;
-
 import java.util.LinkedList;
 import java.util.List;
 
-public class KVList {
+public class KVListBuilder {
 
-    private final List<KV> kvList;
+        private final List<KVPair> kvList;
 
-    private KVList(KVListBuilder builder) {
-        kvList = builder.kvList;
-    }
-
-    public List<KV> entries() {
-        return this.kvList;
-    }
-
-    public static KVListBuilder newBuilder() {
-        return new KVListBuilder();
-    }
-
-    public static class KVListBuilder {
-
-        private final List<KV> kvList;
+        public static final KVListBuilder newBuilder() {
+            return new KVListBuilder();
+        }
 
         private KVListBuilder() {
             kvList = new LinkedList<>();
         }
 
-        public KVList build() {
-            return new KVList(this);
-        }
-
         public KVListBuilder add(String key, byte[] value) {
-            add(key.getBytes(Charsets.UTF_8), value);
+            add(Utils.toByteArray(key), value);
             return this;
         }
 
         public KVListBuilder add(byte[] key, byte[] value) {
-            add(new KV(key, null, value));
+            add(new KVPair(key, value));
             return this;
         }
 
-        public KVListBuilder add(KV kv) {
+        public KVListBuilder add(KVPair kv) {
             this.kvList.add(kv);
             return this;
         }
 
-        public KVListBuilder addAll(List<KV> kvs) {
-            for (KV kv : kvs) {
+        public KVListBuilder addAll(List<KVPair> kvs) {
+            for (KVPair kv : kvs) {
                 add(kv);
             }
             return this;
         }
-    }
+
+        public List<KVPair> entries() {
+            return this.kvList;
+        }
 
 }

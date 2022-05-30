@@ -37,11 +37,14 @@ public class SetAllAndGetAllTest extends ImmuClientIntegrationTest {
         String key3 = "sga-key3";
         byte[] val3 = new byte[] { 3, 4, 5 };
 
-        List<KV> kvs = Arrays.asList(new KV(key1, val1), new KV(key2, val2), new KV(key3, val3));
+        final List<KVPair> kvs = KVListBuilder.newBuilder()
+                .add(new KVPair(key1, val1))
+                .add(new KVPair(key2, val2))
+                .add(new KVPair(key3, val3))
+                .entries();
 
-        KVList kvList = KVList.newBuilder().addAll(kvs).build();
         try {
-            TxHeader txMd = immuClient.setAll(kvList);
+            TxHeader txMd = immuClient.setAll(kvs);
             Assert.assertNotNull(txMd);
         } catch (CorruptedDataException e) {
             Assert.fail("Failed at SetAll.", e);
@@ -50,7 +53,7 @@ public class SetAllAndGetAllTest extends ImmuClientIntegrationTest {
         List<String> keys = Arrays.asList(key1, key2, key3);
         List<Entry> got = immuClient.getAll(keys);
 
-        Assert.assertEquals(kvList.entries().size(), got.size());
+        Assert.assertEquals(kvs.size(), got.size());
 
         for (int i = 0; i < kvs.size(); i++) {
             Assert.assertEquals(got.get(i).getValue(), kvs.get(i).getValue(), String.format("Expected: %s got: %s", kvs.get(i), got.get(i)));

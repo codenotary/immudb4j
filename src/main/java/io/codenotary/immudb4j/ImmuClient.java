@@ -437,10 +437,10 @@ public class ImmuClient {
         return TxHeader.valueOf(txHdr);
     }
 
-    public TxHeader setAll(KVList kvList) throws CorruptedDataException {
+    public TxHeader setAll(List<KVPair> kvList) throws CorruptedDataException {
         final ImmudbProto.SetRequest.Builder reqBuilder = ImmudbProto.SetRequest.newBuilder();
         
-        for (KV kv : kvList.entries()) {
+        for (KVPair kv : kvList) {
             ImmudbProto.KeyValue.Builder kvBuilder = ImmudbProto.KeyValue.newBuilder();
 
             kvBuilder.setKey(Utils.toByteString(kv.getKey()));
@@ -451,7 +451,7 @@ public class ImmuClient {
 
         final ImmudbProto.TxHeader txHdr = getStub().set(reqBuilder.build());
 
-        if (txHdr.getNentries() != kvList.entries().size()) {
+        if (txHdr.getNentries() != kvList.size()) {
             throw new CorruptedDataException();
         }
 

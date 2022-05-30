@@ -157,7 +157,7 @@ may be used when validations can be postponed.
 ```java
     client.set("k123", new byte[]{1, 2, 3});
     
-    byte[] v = client.get("k123");
+    byte[] v = client.get("k123").getValue();
 ```
 
 ### Verified or Safe Read and Write
@@ -170,7 +170,7 @@ read or write operation:
     try {
         client.verifiedSet("k123", new byte[]{1, 2, 3});
     
-        byte[] v = client.verifiedGet("k123");
+        byte[] v = client.verifiedGet("k123").getValue();
 
     } (catch VerificationException e) {
 
@@ -186,18 +186,13 @@ Transactional multi-key read and write operations are supported by immudb and im
 Atomic multi-key write (all entries are persisted or none):
 
 ```java
-        String key1 = "sga-key1";
-        byte[] val1 = new byte[] { 1 };
-        String key2 = "sga-key2";
-        byte[] val2 = new byte[] { 2, 3 };
+        final List<KVPair> kvs = KVListBuilder.newBuilder()
+            .add(new KVPair("sga-key1", new byte[] {1, 2}))
+            .add(new KVPair("sga-key2", new byte[] {3, 4}))
+            .entries();
 
-        List<KV> kvs = Arrays.asList(
-                        new KVPair(key1, val1), 
-                        new KVPair(key2, val2));
-
-        KVList kvList = KVList.newBuilder().addAll(kvs).build();
         try {
-            immuClient.setAll(kvList);
+            immuClient.setAll(kvs);
         } catch (CorruptedDataException e) {
             // ...
         }
