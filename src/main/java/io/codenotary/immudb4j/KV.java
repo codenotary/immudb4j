@@ -42,7 +42,7 @@ class KV {
         throw new RuntimeException("unsupported tx header version");
     }
 
-    public byte[] digest_v0() {
+    byte[] digest_v0() {
         if (metadata != null) {
             throw new RuntimeException("metadata is unsupported when in 1.1 compatibility mode");
         }
@@ -57,7 +57,7 @@ class KV {
         return CryptoUtils.sha256Sum(b);
     }
 
-    public byte[] digest_v1() {
+    byte[] digest_v1() {
         byte[] mdbs = null;
         int mdLen = 0;
 

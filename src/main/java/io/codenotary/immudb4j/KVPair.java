@@ -3,7 +3,7 @@ package io.codenotary.immudb4j;
 /**
  * KVPair represents a key value pair.
  */
-class KVPair {
+public class KVPair {
     private final byte[] key;
 
     private final byte[] value;
