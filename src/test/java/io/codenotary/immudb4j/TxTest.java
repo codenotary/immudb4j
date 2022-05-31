@@ -16,7 +16,6 @@ limitations under the License.
 package io.codenotary.immudb4j;
 
 import io.codenotary.immudb4j.exceptions.CorruptedDataException;
-import io.codenotary.immudb4j.exceptions.MaxWidthExceededException;
 import io.codenotary.immudb4j.exceptions.VerificationException;
 import org.testng.Assert;
 import org.testng.annotations.Test;
@@ -46,7 +45,7 @@ public class TxTest extends ImmuClientIntegrationTest {
         Tx tx = null;
         try {
             tx = immuClient.txById(txHdr.id);
-        } catch (MaxWidthExceededException | NoSuchAlgorithmException e) {
+        } catch (NoSuchAlgorithmException e) {
             Assert.fail("Failed at txById", e);
         }
 

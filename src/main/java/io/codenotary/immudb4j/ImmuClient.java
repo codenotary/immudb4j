@@ -23,9 +23,7 @@ import io.codenotary.immudb.ImmudbProto.ScanRequest;
 import io.codenotary.immudb4j.crypto.CryptoUtils;
 import io.codenotary.immudb4j.crypto.DualProof;
 import io.codenotary.immudb4j.crypto.InclusionProof;
-import io.codenotary.immudb4j.exceptions.CorruptedDataException;
-import io.codenotary.immudb4j.exceptions.MaxWidthExceededException;
-import io.codenotary.immudb4j.exceptions.VerificationException;
+import io.codenotary.immudb4j.exceptions.*;
 import io.codenotary.immudb4j.user.Permission;
 import io.codenotary.immudb4j.user.User;
 import io.grpc.ManagedChannel;
@@ -211,19 +209,19 @@ public class ImmuClient {
     // ========== GET ==========
     //
 
-    public Entry get(String key) {
+    public Entry get(String key) throws KeyNotFoundException {
         return get(Utils.toByteArray(key));
     }
 
-    public Entry get(byte[] key) {
+    public Entry get(byte[] key) throws KeyNotFoundException {
         return get(key, 0);
     }
 
-    public Entry get(String key, long atTx) {
+    public Entry get(String key, long atTx) throws KeyNotFoundException {
         return get(Utils.toByteArray(key), atTx);
     }
 
-    public Entry get(byte[] key, long atTx) {
+    public Entry get(byte[] key, long atTx) throws KeyNotFoundException {
         final ImmudbProto.KeyRequest req =ImmudbProto.KeyRequest.newBuilder()
                         .setKey(Utils.toByteString(key))
                         .setAtTx(atTx)
@@ -233,7 +231,7 @@ public class ImmuClient {
             return Entry.valueOf(getStub().get(req));
         } catch (StatusRuntimeException e) {
             if (e.getMessage().contains("key not found")) {
-                throw new RuntimeException("key not found");
+                throw new KeyNotFoundException();
             }
 
             throw e;
@@ -259,23 +257,23 @@ public class ImmuClient {
         return result;
     }
 
-    public Entry verifiedGet(String key) throws VerificationException {
+    public Entry verifiedGet(String key) throws KeyNotFoundException, VerificationException {
         return verifiedGet(key, 0);
     }
 
-    public Entry verifiedGet(byte[] key) throws VerificationException {
+    public Entry verifiedGet(byte[] key) throws KeyNotFoundException, VerificationException {
         return verifiedGet(key, 0);
     }
 
-    public Entry verifiedGet(String key, long atTx) throws VerificationException {
+    public Entry verifiedGet(String key, long atTx) throws KeyNotFoundException, VerificationException {
         return verifiedGet(Utils.toByteArray(key), atTx);
     }
 
-    public Entry verifiedGet(byte[] key, long atTx) throws VerificationException {
+    public Entry verifiedGet(byte[] key, long atTx) throws KeyNotFoundException, VerificationException {
         return verifiedGet(key, atTx, state());
     }
 
-    public Entry verifiedGet(byte[] key, long atTx, ImmuState state) throws VerificationException {
+    public Entry verifiedGet(byte[] key, long atTx, ImmuState state) throws KeyNotFoundException, VerificationException {
         final ImmudbProto.KeyRequest keyReq = ImmudbProto.KeyRequest.newBuilder()
                 .setKey(Utils.toByteString(key))
                 .setAtTx(atTx)
@@ -361,20 +359,28 @@ public class ImmuClient {
     // ========== HISTORY ==========
     //
 
-    public List<Entry> history(String key, int limit, long offset, boolean desc) {
+    public List<Entry> history(String key, int limit, long offset, boolean desc) throws KeyNotFoundException {
         return history(Utils.toByteArray(key), limit, offset, desc);
     }
 
-    public List<Entry> history(byte[] key, int limit, long offset, boolean desc) {
-        ImmudbProto.Entries entries = getStub().history(ImmudbProto.HistoryRequest.newBuilder()
-                    .setKey(Utils.toByteString(key))
-                    .setLimit(limit)
-                    .setOffset(offset)
-                    .setDesc(desc)
-                    .build()
-        );
+    public List<Entry> history(byte[] key, int limit, long offset, boolean desc) throws KeyNotFoundException {
+        try {
+            ImmudbProto.Entries entries = getStub().history(ImmudbProto.HistoryRequest.newBuilder()
+                        .setKey(Utils.toByteString(key))
+                        .setLimit(limit)
+                        .setOffset(offset)
+                        .setDesc(desc)
+                        .build()
+            );
 
-        return buildList(entries);
+            return buildList(entries);
+        } catch (StatusRuntimeException e) {
+            if (e.getMessage().contains("key not found")) {
+                throw new KeyNotFoundException();
+            }
+
+            throw e;
+        }
     }
 
     //
@@ -761,19 +767,37 @@ public class ImmuClient {
     // ========== TX ==========
     //
 
-    public Tx txById(long txId) throws MaxWidthExceededException, NoSuchAlgorithmException {
-        final ImmudbProto.Tx tx = getStub().txById(ImmudbProto.TxRequest.newBuilder().setTx(txId).build());
-        return Tx.valueOf(tx);
+    public Tx txById(long txId) throws TxNotFoundException, NoSuchAlgorithmException {
+        try {
+            final ImmudbProto.Tx tx = getStub().txById(ImmudbProto.TxRequest.newBuilder().setTx(txId).build());
+            return Tx.valueOf(tx);
+        } catch (StatusRuntimeException e) {
+            if (e.getMessage().contains("tx not found")) {
+                throw new TxNotFoundException();
+            }
+
+            throw e;
+        }
     }
 
-    public Tx verifiedTxById(long txId) throws VerificationException {
+    public Tx verifiedTxById(long txId) throws TxNotFoundException, VerificationException {
         final ImmuState state = state();
         final ImmudbProto.VerifiableTxRequest vTxReq = ImmudbProto.VerifiableTxRequest.newBuilder()
                 .setTx(txId)
                 .setProveSinceTx(state.txId)
                 .build();
         
-        final ImmudbProto.VerifiableTx vtx = getStub().verifiableTxById(vTxReq);
+        final ImmudbProto.VerifiableTx vtx;
+
+        try {
+            vtx = getStub().verifiableTxById(vTxReq);
+        } catch (StatusRuntimeException e) {
+            if (e.getMessage().contains("tx not found")) {
+                throw new TxNotFoundException();
+            }
+
+            throw e;
+        }
 
         final DualProof dualProof = DualProof.valueOf(vtx.getDualProof());
 

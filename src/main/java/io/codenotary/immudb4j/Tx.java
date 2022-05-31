@@ -19,7 +19,6 @@ import io.codenotary.immudb.ImmudbProto;
 import io.codenotary.immudb4j.crypto.CryptoUtils;
 import io.codenotary.immudb4j.crypto.HTree;
 import io.codenotary.immudb4j.crypto.InclusionProof;
-import io.codenotary.immudb4j.exceptions.MaxWidthExceededException;
 
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
@@ -39,7 +38,7 @@ public class Tx {
         this.htree = htree;
     }
 
-    public static Tx valueOf(ImmudbProto.Tx stx) throws NoSuchAlgorithmException, MaxWidthExceededException {
+    public static Tx valueOf(ImmudbProto.Tx stx) throws NoSuchAlgorithmException {
         final TxHeader header = TxHeader.valueOf(stx.getHeader());
 
         final List<TxEntry> entries = new ArrayList<>(stx.getEntriesCount());
@@ -80,7 +79,7 @@ public class Tx {
         return header;
     }
 
-    public void buildHashTree() throws MaxWidthExceededException, NoSuchAlgorithmException {
+    public void buildHashTree() throws NoSuchAlgorithmException {
         byte[][] digests = new byte[entries.size()][Consts.SHA256_SIZE];
         for (int i = 0; i < entries.size(); i++) {
             digests[i] = entries.get(i).digestFor(header.getVersion());
