@@ -15,12 +15,14 @@ limitations under the License.
 */
 package io.codenotary.immudb4j.exceptions;
 
-public class MaxWidthExceededException extends Exception {
+import java.util.NoSuchElementException;
 
-    private static final long serialVersionUID = 1L;
+public class KeyNotFoundException extends NoSuchElementException {
 
-    public MaxWidthExceededException(String message) {
-        super(message);
-    }
+  private static final long serialVersionUID = 1L;
+
+  public KeyNotFoundException() {
+    super();
+  }
 
 }

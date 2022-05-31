@@ -18,10 +18,7 @@ package io.codenotary.immudb4j.crypto;
 import java.math.BigInteger;
 import java.security.NoSuchAlgorithmException;
 
-import com.google.common.base.Strings;
 import io.codenotary.immudb4j.Consts;
-import io.codenotary.immudb4j.exceptions.MaxWidthExceededException;
-import io.codenotary.immudb4j.Utils;
 
 /**
  * This is a hash tree implementation.
@@ -57,7 +54,7 @@ public class HTree {
     }
 
     public void buildWith(byte[][] digests)
-            throws IllegalArgumentException, NoSuchAlgorithmException, MaxWidthExceededException {
+            throws NoSuchAlgorithmException {
 
         if (digests == null || digests.length == 0) {
             throw new IllegalArgumentException(
@@ -65,7 +62,7 @@ public class HTree {
         }
 
         if (digests.length > maxWidth) {
-            throw new MaxWidthExceededException(String.format(
+            throw new IllegalArgumentException(String.format(
                     "Provided digests' length of %d is bigger than tree's maxWidth of %d.",
                     digests.length, maxWidth));
         }

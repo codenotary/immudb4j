@@ -24,7 +24,6 @@ import org.testng.annotations.Test;
 import io.codenotary.immudb4j.crypto.CryptoUtils;
 import io.codenotary.immudb4j.crypto.HTree;
 import io.codenotary.immudb4j.crypto.InclusionProof;
-import io.codenotary.immudb4j.exceptions.MaxWidthExceededException;
 
 public class HTreeTest {
 
@@ -61,7 +60,7 @@ public class HTreeTest {
 
         try {
             tree.buildWith(digests);
-        } catch (IllegalArgumentException | MaxWidthExceededException | NoSuchAlgorithmException e) {
+        } catch (Exception e) {
             Assert.fail("Got exception while building the tree.", e);
         }
 
@@ -100,17 +99,17 @@ public class HTreeTest {
             Assert.fail("Tree buildWith(null) did not throw an exception.");
         } catch (IllegalArgumentException e) {
             // all good if it got here.
-        } catch (MaxWidthExceededException | NoSuchAlgorithmException e) {
+        } catch (Exception e) {
             Assert.fail("Tree buildWith(null) threw a wrong exception.");
         }
 
         try {
             tree.buildWith(new byte[maxWidth + 1][32]);
             Assert.fail("Tree buildWith(maxWidth+1) must throw an exception.");
-        } catch (IllegalArgumentException | NoSuchAlgorithmException e) {
-            Assert.fail("Tree buildWith(maxWidth+1) threw a wrong exception.");
-        } catch (MaxWidthExceededException e) {
+        } catch (IllegalArgumentException e) {
             // all good if it got here.
+        } catch (Exception e) {
+            Assert.fail("Tree buildWith(null) threw a wrong exception.");
         }
 
         try {
