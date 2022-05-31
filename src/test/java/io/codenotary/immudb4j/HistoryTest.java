@@ -16,6 +16,7 @@ limitations under the License.
 package io.codenotary.immudb4j;
 
 import io.codenotary.immudb4j.exceptions.CorruptedDataException;
+import io.codenotary.immudb4j.exceptions.KeyNotFoundException;
 import io.grpc.StatusRuntimeException;
 import org.testng.Assert;
 import org.testng.annotations.Test;
@@ -75,8 +76,8 @@ public class HistoryTest extends ImmuClientIntegrationTest {
         try {
             immuClient.history("nonExisting", 10, 0, false);
             Assert.fail("key not found exception expected");
-        } catch (StatusRuntimeException e) {
-            Assert.assertTrue(e.getMessage().contains("key not found"));
+        } catch (KeyNotFoundException e) {
+            // exception is expected here
         }
 
         immuClient.logout();
