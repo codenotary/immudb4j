@@ -18,6 +18,7 @@ package io.codenotary.immudb4j;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 
+import io.codenotary.immudb.ImmudbProto;
 import io.codenotary.immudb4j.crypto.CryptoUtils;
 
 public class TxEntry {
@@ -27,7 +28,7 @@ public class TxEntry {
     private int vLength;
     private byte[] hVal;
 
-    public TxEntry(byte[] key, KVMetadata metadata, int vLength, byte[] hVal) {
+    private TxEntry(byte[] key, KVMetadata metadata, int vLength, byte[] hVal) {
         this.key = new byte[key.length];
         System.arraycopy(key, 0, this.key, 0, key.length);
 
@@ -35,6 +36,21 @@ public class TxEntry {
 
         this.vLength = vLength;
         this.hVal = hVal;
+    }
+
+    public static TxEntry valueOf(ImmudbProto.TxEntry txe) {
+        KVMetadata md = null;
+
+        if (txe.hasMetadata()) {
+            md = KVMetadata.valueOf(txe.getMetadata());
+        }
+
+        return new TxEntry(
+                        txe.getKey().toByteArray(),
+                        md,
+                        txe.getVLen(),
+                        CryptoUtils.digestFrom(txe.getHValue().toByteArray())
+                );
     }
 
     public byte[] getKey() {

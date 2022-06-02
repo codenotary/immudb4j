@@ -45,7 +45,7 @@ public class SetAndGetTest extends ImmuClientIntegrationTest {
         Assert.assertNotNull(entry1);
         Assert.assertEquals(entry1.getValue(), val);
 
-        Entry entry1At = immuClient.getAtTx(key, txHdr.id);
+        Entry entry1At = immuClient.getAtTx(key, txHdr.getId());
         Assert.assertNotNull(entry1At);
         Assert.assertEquals(entry1At.getValue(), val);
 
@@ -54,18 +54,18 @@ public class SetAndGetTest extends ImmuClientIntegrationTest {
         try {
             immuClient.get(key);
             Assert.fail("key not found exception expected");
-        } catch (KeyNotFoundException _) {
+        } catch (KeyNotFoundException e) {
             // expected
-        } catch (Exception _) {
+        } catch (Exception e) {
             Assert.fail("key not found exception expected");
         }
 
         try {
             immuClient.delete(key);
             Assert.fail("key not found exception expected");
-        } catch (KeyNotFoundException _) {
+        } catch (KeyNotFoundException e) {
             // expected
-        } catch (Exception _) {
+        } catch (Exception e) {
             Assert.fail("key not found exception expected");
         }
 

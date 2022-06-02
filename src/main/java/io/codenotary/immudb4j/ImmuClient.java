@@ -142,7 +142,7 @@ public class ImmuClient {
      * Get the locally saved state of the current database.
      * If nothing exists already, it is fetched from the server and save it locally.
      */
-    public ImmuState state() {
+    public ImmuState state() throws VerificationException {
         ImmuState state = stateHolder.getState(currentServerUuid, currentDb);
         if (state == null) {
             state = currentState();
@@ -156,14 +156,14 @@ public class ImmuClient {
      * It may throw a RuntimeException if server's state signature verification fails
      * (if this feature is enabled on the client side, at least).
      */
-    public ImmuState currentState() {
+    public ImmuState currentState() throws VerificationException {
         final Empty empty = com.google.protobuf.Empty.getDefaultInstance();
         final ImmudbProto.ImmutableState state = getStub().currentState(empty);
 
         final ImmuState immuState = ImmuState.valueOf(state);
 
         if (!immuState.checkSignature(serverSigningKey)) {
-            throw new RuntimeException("State signature verification failed");
+            throw new VerificationException("State signature verification failed");
         }
 
         return immuState;
@@ -349,10 +349,20 @@ public class ImmuClient {
     private Entry verifiedGet(ImmudbProto.KeyRequest keyReq, ImmuState state) throws KeyNotFoundException, VerificationException {
         final ImmudbProto.VerifiableGetRequest vGetReq = ImmudbProto.VerifiableGetRequest.newBuilder()
                 .setKeyRequest(keyReq)
-                .setProveSinceTx(state.txId)
+                .setProveSinceTx(state.getTxId())
                 .build();
         
-        final ImmudbProto.VerifiableEntry vEntry = getStub().verifiableGet(vGetReq);
+        final ImmudbProto.VerifiableEntry vEntry;
+
+        try {
+            vEntry = getStub().verifiableGet(vGetReq);
+        } catch (StatusRuntimeException e) {
+            if (e.getMessage().contains("key not found")) {
+                throw new KeyNotFoundException();
+            }
+
+            throw e;
+        }
 
         final InclusionProof inclusionProof = InclusionProof.valueOf(vEntry.getInclusionProof());
         final DualProof dualProof = DualProof.valueOf(vEntry.getVerifiableTx().getDualProof());
@@ -365,27 +375,27 @@ public class ImmuClient {
         final Entry entry = Entry.valueOf(vEntry.getEntry());
 
         if (entry.getReferenceBy() == null && !Arrays.equals(keyReq.getKey().toByteArray(), entry.getKey())) {
-            throw new RuntimeException("Data is corrupted: entry does not belong to specified key");
+            throw new VerificationException("Data is corrupted: entry does not belong to specified key");
         }
 
         if (entry.getReferenceBy() != null && !Arrays.equals(keyReq.getKey().toByteArray(), entry.getReferenceBy().getKey())) {
-            throw new RuntimeException("Data is corrupted: entry does not belong to specified key");
+            throw new VerificationException("Data is corrupted: entry does not belong to specified key");
         }
 
         if (entry.getMetadata() != null && entry.getMetadata().deleted()) {
-            throw new RuntimeException("Data is corrupted: entry is marked as deleted");
+            throw new VerificationException("Data is corrupted: entry is marked as deleted");
         }
 
         if (keyReq.getAtTx() != 0 && entry.getTx() != keyReq.getAtTx()) {
-            throw new RuntimeException("Data is corrupted: entry does not belong to specified tx");
+            throw new VerificationException("Data is corrupted: entry does not belong to specified tx");
         }
 
-        if (state.txId <= entry.getTx()) {
+        if (state.getTxId() <= entry.getTx()) {
             final byte[] digest = vEntry.getVerifiableTx().getDualProof().getTargetTxHeader().getEH().toByteArray();
             eh = CryptoUtils.digestFrom(digest);
 
-            sourceId = state.txId;
-            sourceAlh = CryptoUtils.digestFrom(state.txHash);
+            sourceId = state.getTxId();
+            sourceAlh = CryptoUtils.digestFrom(state.getTxHash());
             targetId = entry.getTx();
             targetAlh = dualProof.targetTxHeader.alh();
         } else {
@@ -394,8 +404,8 @@ public class ImmuClient {
 
             sourceId = entry.getTx();
             sourceAlh = dualProof.sourceTxHeader.alh();
-            targetId = state.txId;
-            targetAlh = CryptoUtils.digestFrom(state.txHash);
+            targetId = state.getTxId();
+            targetAlh = CryptoUtils.digestFrom(state.getTxHash());
         }
 
         final byte[] kvDigest = entry.digestFor(vEntry.getVerifiableTx().getTx().getHeader().getVersion());
@@ -404,7 +414,7 @@ public class ImmuClient {
             throw new VerificationException("Inclusion verification failed.");
         }
 
-        if (state.txId > 0) {
+        if (state.getTxId() > 0) {
             if (!CryptoUtils.verifyDualProof(
                     dualProof,
                     sourceId,
@@ -423,7 +433,7 @@ public class ImmuClient {
                 vEntry.getVerifiableTx().getSignature().toByteArray());
 
         if (!newState.checkSignature(serverSigningKey)) {
-            throw new RuntimeException("State signature verification failed");
+            throw new VerificationException("State signature verification failed");
         }
 
         stateHolder.setState(currentServerUuid, newState);
@@ -622,7 +632,7 @@ public class ImmuClient {
         
         final ImmudbProto.VerifiableSetRequest vSetReq = ImmudbProto.VerifiableSetRequest.newBuilder()
                 .setSetRequest(ImmudbProto.SetRequest.newBuilder().addKVs(kv).build())
-                .setProveSinceTx(state.txId)
+                .setProveSinceTx(state.getTxId())
                 .build();
         
         final ImmudbProto.VerifiableTx vtx = getStub().verifiableSet(vSetReq);
@@ -660,7 +670,7 @@ public class ImmuClient {
         final ImmuState newState = verifyDualProof(vtx, tx, state);
 
         if (!newState.checkSignature(serverSigningKey)) {
-            throw new RuntimeException("State signature verification failed");
+            throw new VerificationException("State signature verification failed");
         }
 
         stateHolder.setState(currentServerUuid, newState);
@@ -685,7 +695,7 @@ public class ImmuClient {
 
         final ImmudbProto.VerifiableReferenceRequest vRefReq = ImmudbProto.VerifiableReferenceRequest.newBuilder()
                 .setReferenceRequest(refReq)
-                .setProveSinceTx(state.txId)
+                .setProveSinceTx(state.getTxId())
                 .build();
 
         final ImmudbProto.VerifiableTx vtx = getStub().verifiableSetReference(vRefReq);
@@ -728,7 +738,7 @@ public class ImmuClient {
         final ImmuState newState = verifyDualProof(vtx, tx, state);
 
         if (!newState.checkSignature(serverSigningKey)) {
-            throw new RuntimeException("State signature verification failed");
+            throw new VerificationException("State signature verification failed");
         }
 
         stateHolder.setState(currentServerUuid, newState);
@@ -739,12 +749,12 @@ public class ImmuClient {
     private ImmuState verifyDualProof(ImmudbProto.VerifiableTx vtx, Tx tx, ImmuState state)
             throws VerificationException {
 
-        final long sourceId = state.txId;
+        final long sourceId = state.getTxId();
         final long targetId = tx.getHeader().getId();
-        final byte[] sourceAlh = CryptoUtils.digestFrom(state.txHash);
+        final byte[] sourceAlh = CryptoUtils.digestFrom(state.getTxHash());
         final byte[] targetAlh = tx.getHeader().alh();
 
-        if (state.txId > 0) {
+        if (state.getTxId() > 0) {
             if (!CryptoUtils.verifyDualProof(
                     DualProof.valueOf(vtx.getDualProof()),
                     sourceId,
@@ -815,7 +825,7 @@ public class ImmuClient {
         
         final ImmudbProto.VerifiableZAddRequest vZAddReq = ImmudbProto.VerifiableZAddRequest.newBuilder()
                 .setZAddRequest(zAddReq)
-                .setProveSinceTx(state.txId)
+                .setProveSinceTx(state.getTxId())
                 .build();
         
         final ImmudbProto.VerifiableTx vtx = getStub().verifiableZAdd(vZAddReq);
@@ -854,7 +864,7 @@ public class ImmuClient {
         final ImmuState newState = verifyDualProof(vtx, tx, state);
 
         if (!newState.checkSignature(serverSigningKey)) {
-            throw new RuntimeException("State signature verification failed");
+            throw new VerificationException("State signature verification failed");
         }
 
         stateHolder.setState(currentServerUuid, newState);
@@ -900,7 +910,7 @@ public class ImmuClient {
         final ImmuState state = state();
         final ImmudbProto.VerifiableTxRequest vTxReq = ImmudbProto.VerifiableTxRequest.newBuilder()
                 .setTx(txId)
-                .setProveSinceTx(state.txId)
+                .setProveSinceTx(state.getTxId())
                 .build();
         
         final ImmudbProto.VerifiableTx vtx;
@@ -922,19 +932,19 @@ public class ImmuClient {
         byte[] sourceAlh;
         byte[] targetAlh;
 
-        if (state.txId <= txId) {
-            sourceId = state.txId;
-            sourceAlh = CryptoUtils.digestFrom(state.txHash);
+        if (state.getTxId() <= txId) {
+            sourceId = state.getTxId();
+            sourceAlh = CryptoUtils.digestFrom(state.getTxHash());
             targetId = txId;
             targetAlh = dualProof.targetTxHeader.alh();
         } else {
             sourceId = txId;
             sourceAlh = dualProof.sourceTxHeader.alh();
-            targetId = state.txId;
-            targetAlh = CryptoUtils.digestFrom(state.txHash);
+            targetId = state.getTxId();
+            targetAlh = CryptoUtils.digestFrom(state.getTxHash());
         }
 
-        if (state.txId > 0) {
+        if (state.getTxId() > 0) {
             if (!CryptoUtils.verifyDualProof(
                     DualProof.valueOf(vtx.getDualProof()),
                     sourceId,
@@ -956,7 +966,7 @@ public class ImmuClient {
         final ImmuState newState = new ImmuState(currentDb, targetId, targetAlh, vtx.getSignature().getSignature().toByteArray());
 
         if (!newState.checkSignature(serverSigningKey)) {
-            throw new RuntimeException("State signature verification failed");
+            throw new VerificationException("State signature verification failed");
         }
 
         stateHolder.setState(currentServerUuid, newState);

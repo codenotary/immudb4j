@@ -55,12 +55,12 @@ Just include immudb4j as a dependency in your project:
   <dependency>
       <groupId>io.codenotary</groupId>
       <artifactId>immudb4j</artifactId>
-      <version>0.9.10.0</version>
+      <version>0.9.10.2</version>
   </dependency> 
   ```
 - if using Gradle:
   ```groovy
-  compile 'io.codenotary:immudb4j:0.9.10.0'
+  compile 'io.codenotary:immudb4j:0.9.10.2'
   ```
 
 `immudb4j` is currently hosted on both [Maven Central] and [Github Packages].

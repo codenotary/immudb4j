@@ -15,13 +15,8 @@ limitations under the License.
 */
 package io.codenotary.immudb4j;
 
-import io.codenotary.immudb4j.crypto.CryptoUtils;
-
 import java.io.BufferedWriter;
 import java.io.IOException;
-import java.nio.ByteBuffer;
-import java.nio.ByteOrder;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -71,14 +66,14 @@ public class FileImmuStateHolder implements ImmuStateHolder {
     @Override
     public synchronized void setState(String serverUuid, ImmuState state) throws IllegalStateException {
 
-        ImmuState currentState = stateHolder.getState(serverUuid, state.database);
-        if (currentState != null && currentState.txId >= state.txId) {
+        ImmuState currentState = stateHolder.getState(serverUuid, state.getDatabase());
+        if (currentState != null && currentState.getTxId() >= state.getTxId()) {
             return;
         }
 
         stateHolder.setState(serverUuid, state);
 
-        Path newStateFile = statesFolder.resolve("state_" + serverUuid + "_" + state.database + "_" + System.nanoTime());
+        Path newStateFile = statesFolder.resolve("state_" + serverUuid + "_" + state.getDatabase() + "_" + System.nanoTime());
 
         if (Files.exists(newStateFile)) {
             throw new RuntimeException("Failed attempting to create a new state file. Please retry.");

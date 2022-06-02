@@ -22,7 +22,6 @@ import org.testng.Assert;
 import org.testng.annotations.Test;
 
 import java.util.ArrayList;
-import java.util.LinkedList;
 import java.util.List;
 
 
@@ -36,27 +35,35 @@ public class BasicImmuClientTest extends ImmuClientIntegrationTest {
         byte[] v0 = new byte[]{0, 1, 2, 3};
         byte[] v1 = new byte[]{3, 2, 1, 0};
 
-       immuClient.set("k0", v0);
-       immuClient.set("k1", v1);
+        TxHeader hdr0 = immuClient.set("k0", v0);
+        Assert.assertNotNull(hdr0);
 
-        Entry entry1 = immuClient.get("k0");
-        Entry entry2 = immuClient.get("k1");
+        TxHeader hdr1 = immuClient.set("k1", v1);
+        Assert.assertNotNull(hdr1);
 
-        Assert.assertEquals(entry1.getValue(), v0);
-        Assert.assertEquals(entry2.getValue(), v1);
+        Entry entry0 = immuClient.get("k0");
+        Assert.assertEquals(entry0.getValue(), v0);
 
-        Entry ventry1 = immuClient.verifiedGet("k0");
-        Entry ventry2 = immuClient.verifiedGet("k1");
+        Entry entry1 = immuClient.get("k1");
+        Assert.assertEquals(entry1.getValue(), v1);
 
-        Assert.assertEquals(ventry1.getValue(), v0);
-        Assert.assertEquals(ventry2.getValue(), v1);
+        Entry ventry0 = immuClient.verifiedGet("k0");
+        Assert.assertEquals(ventry0.getValue(), v0);
+
+        Entry ventry1 = immuClient.verifiedGet("k1");
+        Assert.assertEquals(ventry1.getValue(), v1);
 
         byte[] v2 = new byte[]{0, 1, 2, 3};
 
-        immuClient.verifiedSet("k2", v2);
+        TxHeader hdr2 = immuClient.verifiedSet("k2", v2);
+        Assert.assertNotNull(hdr2);
 
-        Entry ventry22 = immuClient.verifiedGet("k2");
-        Assert.assertEquals(v2, ventry22.getValue());
+        Entry ventry2 = immuClient.verifiedGet("k2");
+        Assert.assertEquals(v2, ventry2.getValue());
+
+        Entry e = immuClient.getSinceTx("k2", hdr2.getId());
+        Assert.assertNotNull(e);
+        Assert.assertEquals(e.getValue(), v2);
 
         immuClient.logout();
     }

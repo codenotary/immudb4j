@@ -44,20 +44,20 @@ public class TxTest extends ImmuClientIntegrationTest {
 
         Tx tx = null;
         try {
-            tx = immuClient.txById(txHdr.id);
+            tx = immuClient.txById(txHdr.getId());
         } catch (NoSuchAlgorithmException e) {
             Assert.fail("Failed at txById", e);
         }
 
-        Assert.assertEquals(txHdr.id, tx.getHeader().id);
+        Assert.assertEquals(txHdr.getId(), tx.getHeader().getId());
 
         try {
-            tx = immuClient.verifiedTxById(txHdr.id);
+            tx = immuClient.verifiedTxById(txHdr.getId());
         } catch (VerificationException e) {
             Assert.fail("Failed at verifiedTxById", e);
         }
 
-        Assert.assertEquals(txHdr.id, tx.getHeader().id);
+        Assert.assertEquals(txHdr.getId(), tx.getHeader().getId());
 
         immuClient.logout();
     }
@@ -76,7 +76,7 @@ public class TxTest extends ImmuClientIntegrationTest {
         try {
             TxHeader txHdr = immuClient.set(key, val1);
             Assert.assertNotNull(txHdr);
-            initialTxId = txHdr.id;
+            initialTxId = txHdr.getId();
             txHdr = immuClient.set(key, val2);
             Assert.assertNotNull(txHdr);
         } catch (CorruptedDataException e) {

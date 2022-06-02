@@ -16,6 +16,7 @@ limitations under the License.
 package io.codenotary.immudb4j;
 
 import io.codenotary.immudb4j.crypto.CryptoUtils;
+import io.codenotary.immudb4j.exceptions.VerificationException;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
@@ -28,7 +29,7 @@ public class StateTest extends ImmuClientIntegrationTest {
     private static final String publicKeyResource = "test_public_key.pem";
 
     @Test(testName = "currentState")
-    public void t2() {
+    public void t2() throws VerificationException {
 
         immuClient.login("immudb", "immudb");
         immuClient.useDatabase("defaultdb");
@@ -57,7 +58,7 @@ public class StateTest extends ImmuClientIntegrationTest {
         Assert.assertFalse(currState.checkSignature(publicKey));
 
         // Again, "covering" `checkSignature` when there is a `signature` attached.
-        ImmuState someState = new ImmuState(currState.database, currState.txId, currState.txHash, new byte[1]);
+        ImmuState someState = new ImmuState(currState.getDatabase(), currState.getTxId(), currState.getTxHash(), new byte[1]);
         Assert.assertFalse(someState.checkSignature(publicKey));
 
         immuClient.logout();
@@ -87,11 +88,10 @@ public class StateTest extends ImmuClientIntegrationTest {
         immuClient.login("immudb", "immudb");
         immuClient.useDatabase("defaultdb");
 
-        ImmuState state = null;
         try {
-            state = immuClient.currentState();
+            immuClient.currentState();
             Assert.fail("Did not fail as it should in this case when the signingKey is provisioned only on the client side");
-        } catch (RuntimeException ignored) {
+        } catch (VerificationException ignored) {
             // Expected this since in the current tests setup, immudb does not have that state signature feature active.
             // (this feature is active when starting it like: `immudb --signingKey test_private_key.pem`).
         }
@@ -136,7 +136,7 @@ public class StateTest extends ImmuClientIntegrationTest {
             // In this case, it should be ok as long as the immudb server has been started accordingly
             // from `immudb` directory (on this repo root) using: `./immudb --signingKey test_private_key.pem`
             Assert.assertNotNull(state);
-        } catch (RuntimeException e) {
+        } catch (VerificationException e) {
             Assert.fail(e.getMessage(), e.getCause());
         }
 

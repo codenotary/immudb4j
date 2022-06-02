@@ -22,7 +22,6 @@ public class Reference {
     private long tx;
     private byte[] key;
     private long atTx;
-
     private KVMetadata metadata;
 
     private Reference() {}
@@ -51,6 +50,7 @@ public class Reference {
     public long getAtTx() {
         return atTx;
     }
+
     public KVMetadata getMetadata() {
         return metadata;
     }

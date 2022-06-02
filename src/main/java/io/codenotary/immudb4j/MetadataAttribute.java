@@ -20,5 +20,6 @@ public interface MetadataAttribute {
     static final int AttrCodeSize = 1;
 
     byte code();
+
 	byte[] serialize();
 }

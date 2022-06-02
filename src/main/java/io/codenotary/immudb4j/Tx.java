@@ -16,7 +16,6 @@ limitations under the License.
 package io.codenotary.immudb4j;
 
 import io.codenotary.immudb.ImmudbProto;
-import io.codenotary.immudb4j.crypto.CryptoUtils;
 import io.codenotary.immudb4j.crypto.HTree;
 import io.codenotary.immudb4j.crypto.InclusionProof;
 
@@ -43,24 +42,7 @@ public class Tx {
 
         final List<TxEntry> entries = new ArrayList<>(stx.getEntriesCount());
 
-        stx.getEntriesList().forEach(txe -> 
-            {
-                KVMetadata md = null;
-
-                if (txe.hasMetadata()) {
-                    md = KVMetadata.valueOf(txe.getMetadata());
-                }
-
-                entries.add(
-                    new TxEntry(
-                        txe.getKey().toByteArray(),
-                        md,
-                        txe.getVLen(),
-                        CryptoUtils.digestFrom(txe.getHValue().toByteArray())
-                    )
-                );
-            }
-        );
+        stx.getEntriesList().forEach(txe -> { entries.add(TxEntry.valueOf(txe)); });
 
         final  HTree hTree = new HTree(entries.size());
 
@@ -68,7 +50,7 @@ public class Tx {
 
         tx.buildHashTree();
 
-        if (!Arrays.equals(tx.header.eh, hTree.root())) {
+        if (!Arrays.equals(tx.header.getEh(), hTree.root())) {
             throw new RuntimeException("corrupted data, eh doesn't match expected value");
         }
 
@@ -77,6 +59,10 @@ public class Tx {
 
     public TxHeader getHeader() {
         return header;
+    }
+
+    public List<TxEntry> getEntries() {
+        return new ArrayList<>(entries);
     }
 
     public void buildHashTree() throws NoSuchAlgorithmException {

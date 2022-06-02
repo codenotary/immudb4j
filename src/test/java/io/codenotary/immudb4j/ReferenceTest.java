@@ -51,7 +51,7 @@ public class ReferenceTest extends ImmuClientIntegrationTest {
 
         TxHeader ref2TxHdr = null;
         try {
-            ref2TxHdr = immuClient.setReference(ref2Key, key, setTxHdr.id);
+            ref2TxHdr = immuClient.setReference(ref2Key, key, setTxHdr.getId());
         } catch (CorruptedDataException e) {
             Assert.fail("Failed at setReferenceAt.", e);
         }

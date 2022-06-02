@@ -52,7 +52,7 @@ public class SerializableImmuStateHolder implements ImmuStateHolder {
 
     @Override
     public void setState(String serverUuid, ImmuState state) {
-        this.statesMap.put(serverUuid + "_" + state.database, state);
+        this.statesMap.put(serverUuid + "_" + state.getDatabase(), state);
     }
 
 }
