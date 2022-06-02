@@ -159,11 +159,14 @@ message ZEntries {
 
 message ScanRequest {
   bytes seekKey = 1;
+  bytes endKey = 7;
   bytes prefix = 2;
   bool desc = 3;
   uint64 limit = 4;
   uint64 sinceTx = 5;
   bool  noWait = 6;
+  bool inclusiveSeek = 8;
+  bool inclusiveEnd = 9;
 }
 
 message KeyPrefix {
@@ -271,6 +274,7 @@ message KeyRequest {
   uint64 atTx = 2;
   uint64 sinceTx = 3;
   bool  noWait = 4;
+  int64 atRevision = 5;
 }
 
 message KeyListRequest {

@@ -79,7 +79,7 @@ public class VerifiedSetAndGetTest extends ImmuClientIntegrationTest {
 
         // verifiedGetAt
         try {
-            vEntry = immuClient.verifiedGet(key, vEntry.getTx());
+            vEntry = immuClient.verifiedGetAtTx(key, vEntry.getTx());
         } catch (VerificationException e) {
             Assert.fail("Failed at verifiedGetAt. Cause: " + e.getMessage(), e);
         }

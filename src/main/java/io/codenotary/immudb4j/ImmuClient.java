@@ -214,18 +214,60 @@ public class ImmuClient {
     }
 
     public Entry get(byte[] key) throws KeyNotFoundException {
-        return get(key, 0);
+        return getAtTx(key, 0);
     }
 
-    public Entry get(String key, long atTx) throws KeyNotFoundException {
-        return get(Utils.toByteArray(key), atTx);
+    public Entry getAtTx(String key, long tx) throws KeyNotFoundException {
+        return getAtTx(Utils.toByteArray(key), tx);
     }
 
-    public Entry get(byte[] key, long atTx) throws KeyNotFoundException {
+    public Entry getAtTx(byte[] key, long tx) throws KeyNotFoundException {
         final ImmudbProto.KeyRequest req =ImmudbProto.KeyRequest.newBuilder()
                         .setKey(Utils.toByteString(key))
-                        .setAtTx(atTx)
+                        .setAtTx(tx)
                         .build();
+
+        try {
+            return Entry.valueOf(getStub().get(req));
+        } catch (StatusRuntimeException e) {
+            if (e.getMessage().contains("key not found")) {
+                throw new KeyNotFoundException();
+            }
+
+            throw e;
+        }
+    }
+
+    public Entry getSinceTx(String key, long tx) throws KeyNotFoundException {
+        return getSinceTx(Utils.toByteArray(key), tx);
+    }
+
+    public Entry getSinceTx(byte[] key, long tx) throws KeyNotFoundException {
+        final ImmudbProto.KeyRequest req =ImmudbProto.KeyRequest.newBuilder()
+                .setKey(Utils.toByteString(key))
+                .setSinceTx(tx)
+                .build();
+
+        try {
+            return Entry.valueOf(getStub().get(req));
+        } catch (StatusRuntimeException e) {
+            if (e.getMessage().contains("key not found")) {
+                throw new KeyNotFoundException();
+            }
+
+            throw e;
+        }
+    }
+
+    public Entry getAtRevision(String key, long rev) throws KeyNotFoundException {
+        return getAtRevision(Utils.toByteArray(key), rev);
+    }
+
+    public Entry getAtRevision(byte[] key, long rev) throws KeyNotFoundException {
+        final ImmudbProto.KeyRequest req =ImmudbProto.KeyRequest.newBuilder()
+                .setKey(Utils.toByteString(key))
+                .setAtRevision(rev)
+                .build();
 
         try {
             return Entry.valueOf(getStub().get(req));
@@ -258,27 +300,53 @@ public class ImmuClient {
     }
 
     public Entry verifiedGet(String key) throws KeyNotFoundException, VerificationException {
-        return verifiedGet(key, 0);
+        return verifiedGetAtTx(key, 0);
     }
 
     public Entry verifiedGet(byte[] key) throws KeyNotFoundException, VerificationException {
-        return verifiedGet(key, 0);
+        return verifiedGetAtTx(key, 0);
     }
 
-    public Entry verifiedGet(String key, long atTx) throws KeyNotFoundException, VerificationException {
-        return verifiedGet(Utils.toByteArray(key), atTx);
+    public Entry verifiedGetAtTx(String key, long tx) throws KeyNotFoundException, VerificationException {
+        return verifiedGetAtTx(Utils.toByteArray(key), tx);
     }
 
-    public Entry verifiedGet(byte[] key, long atTx) throws KeyNotFoundException, VerificationException {
-        return verifiedGet(key, atTx, state());
-    }
-
-    public Entry verifiedGet(byte[] key, long atTx, ImmuState state) throws KeyNotFoundException, VerificationException {
+    public Entry verifiedGetAtTx(byte[] key, long tx) throws KeyNotFoundException, VerificationException {
         final ImmudbProto.KeyRequest keyReq = ImmudbProto.KeyRequest.newBuilder()
                 .setKey(Utils.toByteString(key))
-                .setAtTx(atTx)
+                .setAtTx(tx)
                 .build();
 
+        return verifiedGet(keyReq, state());
+    }
+
+    public Entry verifiedGetSinceTx(String key, long tx) throws KeyNotFoundException, VerificationException {
+        return verifiedGetSinceTx(Utils.toByteArray(key), tx);
+    }
+
+    public Entry verifiedGetSinceTx(byte[] key, long tx) throws KeyNotFoundException, VerificationException {
+        final ImmudbProto.KeyRequest keyReq = ImmudbProto.KeyRequest.newBuilder()
+                .setKey(Utils.toByteString(key))
+                .setSinceTx(tx)
+                .build();
+
+        return verifiedGet(keyReq, state());
+    }
+
+    public Entry verifiedGetAtRevision(String key, long rev) throws KeyNotFoundException, VerificationException {
+        return verifiedGetAtRevision(Utils.toByteArray(key), rev);
+    }
+
+    public Entry verifiedGetAtRevision(byte[] key, long rev) throws KeyNotFoundException, VerificationException {
+        final ImmudbProto.KeyRequest keyReq = ImmudbProto.KeyRequest.newBuilder()
+                .setKey(Utils.toByteString(key))
+                .setAtRevision(rev)
+                .build();
+
+        return verifiedGet(keyReq, state());
+    }
+
+    private Entry verifiedGet(ImmudbProto.KeyRequest keyReq, ImmuState state) throws KeyNotFoundException, VerificationException {
         final ImmudbProto.VerifiableGetRequest vGetReq = ImmudbProto.VerifiableGetRequest.newBuilder()
                 .setKeyRequest(keyReq)
                 .setProveSinceTx(state.txId)
@@ -295,6 +363,14 @@ public class ImmuClient {
         byte[] targetAlh;
         
         final Entry entry = Entry.valueOf(vEntry.getEntry());
+
+        if (entry.getReferenceBy() == null && !Arrays.equals(keyReq.getKey().toByteArray(), entry.getKey())) {
+            throw new RuntimeException("Data is corrupted: entry does not belong to specified key");
+        }
+
+        if (entry.getReferenceBy() != null && !Arrays.equals(keyReq.getKey().toByteArray(), entry.getReferenceBy().getKey())) {
+            throw new RuntimeException("Data is corrupted: entry does not belong to specified key");
+        }
 
         if (entry.getMetadata() != null && entry.getMetadata().deleted()) {
             throw new RuntimeException("Data is corrupted: entry is marked as deleted");
@@ -356,6 +432,30 @@ public class ImmuClient {
     }
 
     //
+    // ========== DELETE ==========
+    //
+
+    public TxHeader delete(String key) throws KeyNotFoundException {
+        return delete(Utils.toByteArray(key));
+    }
+
+    public TxHeader delete(byte[] key) throws KeyNotFoundException {
+        try {
+            final ImmudbProto.DeleteKeysRequest req = ImmudbProto.DeleteKeysRequest.newBuilder()
+                    .addKeys(Utils.toByteString(key))
+                    .build();
+
+            return TxHeader.valueOf(getStub().delete(req));
+        } catch (StatusRuntimeException e) {
+            if (e.getMessage().contains("key not found")) {
+                throw new KeyNotFoundException();
+            }
+
+            throw e;
+        }
+    }
+
+    //
     // ========== HISTORY ==========
     //
 
@@ -407,10 +507,26 @@ public class ImmuClient {
         return scan(Utils.toByteArray(prefix), Utils.toByteArray(seekKey), limit, desc);
     }
 
+    public List<Entry> scan(String prefix, String seekKey, String endKey, long limit, boolean desc) {
+        return scan(Utils.toByteArray(prefix), Utils.toByteArray(seekKey), Utils.toByteArray(endKey), limit, desc);
+    }
+
     public List<Entry> scan(byte[] prefix, byte[] seekKey, long limit, boolean desc) {
+        return scan(prefix, seekKey, null, limit, desc);
+    }
+
+    public List<Entry> scan(byte[] prefix, byte[] seekKey, byte[] endKey, long limit, boolean desc) {
+        return scan(prefix, seekKey, endKey, false, false, limit, desc);
+    }
+
+    public List<Entry> scan(byte[] prefix, byte[] seekKey, byte[] endKey, boolean inclusiveSeek, boolean inclusiveEnd,
+                            long limit, boolean desc) {
         final ImmudbProto.ScanRequest req = ScanRequest.newBuilder()
                 .setPrefix(Utils.toByteString(prefix))
                 .setSeekKey(Utils.toByteString(seekKey))
+                .setEndKey(Utils.toByteString(endKey))
+                .setInclusiveSeek(inclusiveSeek)
+                .setInclusiveEnd(inclusiveEnd)
                 .setLimit(limit)
                 .setDesc(desc)
                 .build();
@@ -928,11 +1044,19 @@ public class ImmuClient {
     }
 
     //
-    // ========== USER MGMT ==========
+    // ========== INDEX MGMT ==========
     //
 
+    public void flushIndex(float cleanupPercentage, boolean synced) {
+        ImmudbProto.FlushIndexRequest req = ImmudbProto.FlushIndexRequest.newBuilder()
+                .setCleanupPercentage(cleanupPercentage)
+                .setSynced(synced)
+                .build();
+
+        getStub().flushIndex(req);
+    }
+
     public void compactIndex() {
-        //noinspection ResultOfMethodCallIgnored
         getStub().compactIndex(Empty.getDefaultInstance());
     }
 

@@ -40,13 +40,13 @@ apply plugin: 'signing'
 
 group = 'io.codenotary'
 archivesBaseName = 'immudb4j'
-version = '0.9.10.1'
+version = '0.9.10.2'
 
 sourceCompatibility = 1.8
 targetCompatibility = 1.8
 
 def protocVersion = '3.19.4'
-def grpcVersion = '1.43.2'
+def grpcVersion = '1.44.1'
 
 protobuf {
     protoc {

@@ -16,6 +16,7 @@ limitations under the License.
 package io.codenotary.immudb4j;
 
 import io.codenotary.immudb4j.exceptions.CorruptedDataException;
+import io.codenotary.immudb4j.exceptions.KeyNotFoundException;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
@@ -29,7 +30,7 @@ public class SetAndGetTest extends ImmuClientIntegrationTest {
         immuClient.login("immudb", "immudb");
         immuClient.useDatabase("defaultdb");
 
-        byte[] key = "key1".getBytes(StandardCharsets.UTF_8);
+        String key = "key1";
         byte[] val = new byte[]{1, 2, 3, 4, 5};
 
         TxHeader txHdr = null;
@@ -44,9 +45,29 @@ public class SetAndGetTest extends ImmuClientIntegrationTest {
         Assert.assertNotNull(entry1);
         Assert.assertEquals(entry1.getValue(), val);
 
-        Entry entry1At = immuClient.get(key, txHdr.id);
+        Entry entry1At = immuClient.getAtTx(key, txHdr.id);
         Assert.assertNotNull(entry1At);
         Assert.assertEquals(entry1At.getValue(), val);
+
+        immuClient.delete(key);
+
+        try {
+            immuClient.get(key);
+            Assert.fail("key not found exception expected");
+        } catch (KeyNotFoundException _) {
+            // expected
+        } catch (Exception _) {
+            Assert.fail("key not found exception expected");
+        }
+
+        try {
+            immuClient.delete(key);
+            Assert.fail("key not found exception expected");
+        } catch (KeyNotFoundException _) {
+            // expected
+        } catch (Exception _) {
+            Assert.fail("key not found exception expected");
+        }
 
         immuClient.logout();
     }
