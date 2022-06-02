@@ -202,11 +202,11 @@ Atomic multi-key read (all entries are retrieved or none):
 
 ```java
     List<String> keys = Arrays.asList(key1, key2, key3);
-    List<KV> result = immuClient.getAll(keys);
+    List<Entry> result = immuClient.getAll(keys);
 
-    for (KV kv : result) {
-        byte[] key = kv.getKey();
-        byte[] value = kv.getValue();
+    for (Entry entry : result) {
+        byte[] key = entry.getKey();
+        byte[] value = entry.getValue();
         // ...
     }
 ```
