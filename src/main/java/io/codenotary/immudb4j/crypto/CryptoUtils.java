@@ -86,11 +86,11 @@ public class CryptoUtils {
                                           byte[] sourceAlh, byte[] targetAlh) {
 
         if (proof == null || proof.sourceTxHeader == null || proof.targetTxHeader == null
-                || proof.sourceTxHeader.id != sourceTxId || proof.targetTxHeader.id != targetTxId) {
+                || proof.sourceTxHeader.getId() != sourceTxId || proof.targetTxHeader.getId() != targetTxId) {
             return false;
         }
 
-        if (proof.sourceTxHeader.id == 0 || proof.sourceTxHeader.id > proof.targetTxHeader.id) {
+        if (proof.sourceTxHeader.getId() == 0 || proof.sourceTxHeader.getId() > proof.targetTxHeader.getId()) {
             return false;
         }
 
@@ -98,43 +98,43 @@ public class CryptoUtils {
             return false;
         }
 
-        if (sourceTxId < proof.targetTxHeader.blTxId) {
+        if (sourceTxId < proof.targetTxHeader.getBlTxId()) {
             if (!CryptoUtils.verifyInclusion(
                     proof.inclusionProof,
                     sourceTxId,
-                    proof.targetTxHeader.blTxId,
+                    proof.targetTxHeader.getBlTxId(),
                     leafFor(sourceAlh),
-                    proof.targetTxHeader.blRoot)) {
+                    proof.targetTxHeader.getBlRoot())) {
                 return false;
             }
         }
 
-        if (proof.sourceTxHeader.blTxId > 0) {
+        if (proof.sourceTxHeader.getBlTxId() > 0) {
             if (!CryptoUtils.verifyConsistency(
                     proof.consistencyProof,
-                    proof.sourceTxHeader.blTxId,
-                    proof.targetTxHeader.blTxId,
-                    proof.sourceTxHeader.blRoot,
-                    proof.targetTxHeader.blRoot
+                    proof.sourceTxHeader.getBlTxId(),
+                    proof.targetTxHeader.getBlTxId(),
+                    proof.sourceTxHeader.getBlRoot(),
+                    proof.targetTxHeader.getBlRoot()
             )) {
                 return false;
             }
         }
 
-        if (proof.targetTxHeader.blTxId > 0) {
+        if (proof.targetTxHeader.getBlTxId() > 0) {
             if (!verifyLastInclusion(
                     proof.lastInclusionProof,
-                    proof.targetTxHeader.blTxId,
+                    proof.targetTxHeader.getBlTxId(),
                     leafFor(proof.targetBlTxAlh),
-                    proof.targetTxHeader.blRoot
+                    proof.targetTxHeader.getBlRoot()
             )) {
                 return false;
             }
         }
 
-        if (sourceTxId < proof.targetTxHeader.blTxId) {
+        if (sourceTxId < proof.targetTxHeader.getBlTxId()) {
             return verifyLinearProof(proof.linearProof,
-                    proof.targetTxHeader.blTxId, targetTxId, proof.targetBlTxAlh, targetAlh);
+                    proof.targetTxHeader.getBlTxId(), targetTxId, proof.targetBlTxAlh, targetAlh);
         }
 
         return verifyLinearProof(proof.linearProof, sourceTxId, targetTxId, sourceAlh, targetAlh);

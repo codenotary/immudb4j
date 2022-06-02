@@ -37,7 +37,7 @@ public class KVMetadata {
 
     private HashMap<Byte,MetadataAttribute> attributes;
 
-    public KVMetadata() {
+    private KVMetadata() {
         attributes  = new HashMap<Byte,MetadataAttribute>();
     }
 
@@ -55,7 +55,7 @@ public class KVMetadata {
         return metadata;
     }
 
-    public void asDeleted(boolean deleted) {
+    private void asDeleted(boolean deleted) {
         if (!deleted) {
             attributes.remove(deletedAttrCode);
             return;
@@ -72,7 +72,7 @@ public class KVMetadata {
         return attributes.containsKey(deletedAttrCode);
     }
 
-    public void asNonIndexable(boolean nonIndexable) {
+    private void asNonIndexable(boolean nonIndexable) {
         if (!nonIndexable) {
             attributes.remove(nonIndexableAttrCode);
             return;
@@ -89,7 +89,7 @@ public class KVMetadata {
         return attributes.containsKey(nonIndexableAttrCode);
     }
 
-    public void expiresAt(long expirationTime) {
+    private void expiresAt(long expirationTime) {
         ExpiresAtAttribute expiresAt;
 
         if (attributes.containsKey(expiresAtAttrCode)) {

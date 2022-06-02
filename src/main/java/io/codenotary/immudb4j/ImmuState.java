@@ -20,7 +20,6 @@ import io.codenotary.immudb.ImmudbProto;
 import java.nio.charset.StandardCharsets;
 import java.security.PublicKey;
 import java.security.Signature;
-import java.util.Base64;
 
 /**
  * ImmuState represents the state within a database.
@@ -29,12 +28,12 @@ import java.util.Base64;
  */
 public class ImmuState {
 
-    public final String database;
-    public final long txId;
-    public final byte[] txHash;
-    public final byte[] signature;
+    private final String database;
+    private final long txId;
+    private final byte[] txHash;
+    private final byte[] signature;
 
-    public ImmuState(String database, long txId, byte[] txHash, byte[] signature) {
+    ImmuState(String database, long txId, byte[] txHash, byte[] signature) {
         this.database = database;
         this.txId = txId;
         this.txHash = txHash;
@@ -60,6 +59,22 @@ public class ImmuState {
         }
 
         return false;
+    }
+
+    public String getDatabase() {
+        return database;
+    }
+
+    public long getTxId() {
+        return txId;
+    }
+
+    public byte[] getTxHash() {
+        return txHash;
+    }
+
+    public byte[] getSignature() {
+        return signature;
     }
 
     private byte[] toBytes() {

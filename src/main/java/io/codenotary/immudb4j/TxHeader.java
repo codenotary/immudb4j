@@ -23,15 +23,14 @@ import java.nio.ByteOrder;
 import java.util.Base64;
 
 public class TxHeader {
-
     private final int version;
-    public  final long id;
-    public  final byte[] prevAlh;
-    public  final long ts;
-    public  final int nEntries;
-    public  final byte[] eh;
-    public  final long blTxId;
-    public  final byte[] blRoot;
+    private  final long id;
+    private  final byte[] prevAlh;
+    private  final long ts;
+    private  final int nEntries;
+    private  final byte[] eh;
+    private  final long blTxId;
+    private  final byte[] blRoot;
 
     private static final int TS_SIZE = 8;
     private static final int SHORT_SSIZE = 2;
@@ -72,8 +71,28 @@ public class TxHeader {
         return id;
     }
 
+    public int getNEntries() {
+        return nEntries;
+    }
+
     public byte[] getEh() {
         return eh;
+    }
+
+    public long getTs() {
+        return ts;
+    }
+
+    public long getBlTxId() {
+        return blTxId;
+    }
+
+    public byte[] getBlRoot() {
+        return blRoot;
+    }
+
+    public byte[] getPrevAlh() {
+        return prevAlh;
     }
 
     public byte[] alh() {
