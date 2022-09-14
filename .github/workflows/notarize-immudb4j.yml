@@ -1,0 +1,66 @@
+name: Notarize immudb4j
+
+on:
+  pull_request:
+    branches:
+      - main
+      - develop
+
+jobs:
+  notarize-source-code:
+    runs-on: [self-hosted, linux]
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+
+      - name: Get latest released cas version
+        id: cas-version
+        run: >
+          echo "::set-output name=latest::$(
+          curl -s -H 'Accept: application/vnd.github+json'
+          -H 'Authorization: token ${{ secrets.GITHUB_TOKEN }}'
+          https://api.github.com/repos/codenotary/cas/releases/latest | jq -r '.name'
+          )"
+
+      - name: Cache cas binary
+        id: cache-cas
+        uses: actions/cache@v3
+        with:
+          path: cas
+          key: cas-${{ steps.cas-version.outputs.latest }}
+
+      - name: Download cas
+        if: steps.cache-cas.outputs.cache-hit != 'true'
+        run: |
+          curl -s -o cas -L https://github.com/codenotary/cas/releases/download/${{ steps.cas-version.outputs.latest }}/cas-${{ steps.cas-version.outputs.latest }}-linux-amd64-static
+          chmod +x cas
+
+      - name: Notarize immudb4j git repository with cas
+        run: ./cas n git://$GITHUB_WORKSPACE --api-key ${{ secrets.CAS_API_KEY_ATTEST }} --host=cas.codenotary.com
+
+      - name: Get latest released vcn version
+        id: vcn-version
+        run: >
+          echo "::set-output name=latest::$(
+          curl -s -H 'Accept: application/vnd.github+json'
+          -H 'Authorization: token ${{ secrets.GITHUB_TOKEN }}'
+          https://api.github.com/repos/codenotary/vcn-enterprise/releases/latest | jq -r '.name'
+          )"
+
+      - name: Cache vcn binary
+        id: cache-vcn
+        uses: actions/cache@v3
+        with:
+          path: vcn
+          key: vcn-${{ steps.vcn-version.outputs.latest }}
+
+      - name: Download vcn
+        if: steps.cache-vcn.outputs.cache-hit != 'true'
+        run: |
+          curl -s -o vcn -L https://vcn-releases.codenotary.com/vcn-latest-linux-amd64-static
+          chmod +x vcn
+
+      - name: Notarize immudb4j git repository with vcn
+        run: >
+          ./vcn n git://$GITHUB_WORKSPACE --bom --lc-host cnc-ci.codenotary.io
+          --lc-api-key ${{secrets.CICD_LEDGER1_ACTION_KEY}}
