@@ -1,4 +1,4 @@
-name: Notarize immudb-py
+name: Notarize immudb4j
 
 on:
   pull_request:
