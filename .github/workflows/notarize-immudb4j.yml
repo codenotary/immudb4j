@@ -1,0 +1,18 @@
+name: Notarize immudb4j
+
+on:
+  pull_request:
+    branches:
+      - main
+      - develop
+    types:
+      - closed
+
+jobs:
+  notarize-repository:
+    name: Notarize immudb4j repository with cas and vcn
+    uses: codenotary/notarize-with-cas-and-vcn/.github/workflows/notarize-with-cas-and-vcn.yml@main
+    secrets:
+      cas-api-key: ${{ secrets.CAS_API_KEY_ATTEST }}
+      vcn-api-key: ${{ secrets.CICD_LEDGER1_ACTION_KEY }}
+      vcn-host: ${{ secrets.CI_TEST_HOST }}
