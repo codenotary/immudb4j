@@ -23,21 +23,17 @@ import org.testng.annotations.Test;
 
 import java.util.Collections;
 import java.util.List;
-import java.util.Optional;
-
 
 public class UserMgmtTest extends ImmuClientIntegrationTest {
 
     @Test(testName = "createUser, listUsers", priority = 100)
     public void t1() {
-
         String database = "defaultdb";
         String username = "testCreateUser";
         String password = "testTest123!";
         Permission permission = Permission.PERMISSION_RW;
 
-        immuClient.login("immudb", "immudb");
-        immuClient.useDatabase(database);
+        immuClient.openSession("immudb", "immudb", database);
 
         // Should not contain testCreateUser. Skipping it as not valid for the current unit tests setup
         // (where a clean immudb server is started for each Test class).
@@ -68,14 +64,12 @@ public class UserMgmtTest extends ImmuClientIntegrationTest {
 //        Assert.assertEquals(user.getCreatedBy(), "immudb");
 //        Assert.assertEquals(user.getPermissions().get(0), permission);
 
-        immuClient.logout();
+        immuClient.closeSession();
     }
 
     @Test(testName = "createUser, changePassword", priority = 101)
     public void t2() {
-
-        immuClient.login("immudb", "immudb");
-        immuClient.useDatabase("defaultdb");
+        immuClient.openSession("immudb", "immudb", "defaultdb");
 
         try {
             immuClient.createUser("testUser", "testTest123!", Permission.PERMISSION_ADMIN, "defaultdb");
@@ -86,18 +80,19 @@ public class UserMgmtTest extends ImmuClientIntegrationTest {
 
         immuClient.changePassword("testUser", "testTest123!", "newTestTest123!");
 
-        immuClient.logout();
+        immuClient.closeSession();
 
         // This must fail.
         try {
-            immuClient.login("testUser", "testTest123!");
-            Assert.fail("Login with wrong (old) password must fail.");
+            immuClient.openSession("testUser", "testTest123", "defaultdb");
+            Assert.fail("should fail with wrong (old) password must fail.");
         } catch (StatusRuntimeException e) {
             // Login failed, everything's fine.
         }
 
-        immuClient.login("testUser", "newTestTest123!");
-        immuClient.logout();
+        immuClient.openSession("testUser", "newTestTest123!", "defaultdb");
+
+        immuClient.closeSession();
 
         // Some basic test to temporary (until t1 test above can be used) increase the code coverage.
         User myUser = new User.UserBuilder().setUser("myUsername").setCreatedAt("someTimestamp").setCreatedBy("me")

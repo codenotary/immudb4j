@@ -29,9 +29,7 @@ public class MultithreadTest extends ImmuClientIntegrationTest {
 
     @Test(testName = "Multithread without key overlap")
     public void t1() throws InterruptedException, VerificationException {
-
-        immuClient.login("immudb", "immudb");
-        immuClient.useDatabase("defaultdb");
+        immuClient.openSession("immudb", "immudb", "defaultdb");
 
         final int threadCount = 10;
         final int keyCount = 100;
@@ -71,13 +69,13 @@ public class MultithreadTest extends ImmuClientIntegrationTest {
                 immuClient.verifiedGet("t" + i + "k" + i);
             }
         }
+
+        immuClient.closeSession();
     }
 
     @Test(testName = "Multithread with key overlap")
     public void t2() throws InterruptedException, VerificationException {
-
-        immuClient.login("immudb", "immudb");
-        immuClient.useDatabase("defaultdb");
+        immuClient.openSession("immudb", "immudb", "defaultdb");
 
         final int threadCount = 10;
         final int keyCount = 100;
@@ -118,6 +116,8 @@ public class MultithreadTest extends ImmuClientIntegrationTest {
                 immuClient.verifiedGet("k" + i);
             }
         }
+
+        immuClient.closeSession();
     }
 
 }

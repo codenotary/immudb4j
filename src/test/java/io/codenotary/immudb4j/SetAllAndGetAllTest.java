@@ -26,9 +26,7 @@ public class SetAllAndGetAllTest extends ImmuClientIntegrationTest {
 
     @Test(testName = "setAll & getAll")
     public void t1() {
-
-        immuClient.login("immudb", "immudb");
-        immuClient.useDatabase("defaultdb");
+        immuClient.openSession("immudb", "immudb", "defaultdb");
 
         String key1 = "sga-key1";
         byte[] val1 = new byte[] { 1 };
@@ -59,7 +57,7 @@ public class SetAllAndGetAllTest extends ImmuClientIntegrationTest {
             Assert.assertEquals(got.get(i).getValue(), kvs.get(i).getValue(), String.format("Expected: %s got: %s", kvs.get(i), got.get(i)));
         }
 
-        immuClient.logout();
+        immuClient.closeSession();
     }
 
 }

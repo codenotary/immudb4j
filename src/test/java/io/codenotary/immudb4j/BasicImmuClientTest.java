@@ -24,16 +24,14 @@ import org.testng.annotations.Test;
 import java.util.ArrayList;
 import java.util.List;
 
-
 public class BasicImmuClientTest extends ImmuClientIntegrationTest {
 
     @Test(testName = "set, get")
     public void t1() throws VerificationException, CorruptedDataException {
-        immuClient.login("immudb", "immudb");
-        immuClient.useDatabase("defaultdb");
+        immuClient.openSession("immudb", "immudb", "defaultdb");
 
-        byte[] v0 = new byte[]{0, 1, 2, 3};
-        byte[] v1 = new byte[]{3, 2, 1, 0};
+        byte[] v0 = new byte[] { 0, 1, 2, 3 };
+        byte[] v1 = new byte[] { 3, 2, 1, 0 };
 
         TxHeader hdr0 = immuClient.set("k0", v0);
         Assert.assertNotNull(hdr0);
@@ -53,7 +51,7 @@ public class BasicImmuClientTest extends ImmuClientIntegrationTest {
         Entry ventry1 = immuClient.verifiedGet("k1");
         Assert.assertEquals(ventry1.getValue(), v1);
 
-        byte[] v2 = new byte[]{0, 1, 2, 3};
+        byte[] v2 = new byte[] { 0, 1, 2, 3 };
 
         TxHeader hdr2 = immuClient.verifiedSet("k2", v2);
         Assert.assertNotNull(hdr2);
@@ -65,21 +63,20 @@ public class BasicImmuClientTest extends ImmuClientIntegrationTest {
         Assert.assertNotNull(e);
         Assert.assertEquals(e.getValue(), v2);
 
-        immuClient.logout();
+        immuClient.closeSession();
     }
 
     @Test(testName = "setAll, getAll")
     public void t2() {
-        immuClient.login("immudb", "immudb");
-        immuClient.useDatabase("defaultdb");
+        immuClient.openSession("immudb", "immudb", "defaultdb");
 
         List<String> keys = new ArrayList<>();
         keys.add("k0");
         keys.add("k1");
 
         List<byte[]> values = new ArrayList<>();
-        values.add(new byte[]{0, 1, 0, 1});
-        values.add(new byte[]{1, 0, 1, 0});
+        values.add(new byte[] { 0, 1, 0, 1 });
+        values.add(new byte[] { 1, 0, 1, 0 });
 
         KVListBuilder kvListBuilder = KVListBuilder.newBuilder();
 
@@ -109,7 +106,7 @@ public class BasicImmuClientTest extends ImmuClientIntegrationTest {
             Assert.assertEquals(entry.getValue(), values.get(i));
         }
 
-        immuClient.logout();
+        immuClient.closeSession();
     }
 
 }

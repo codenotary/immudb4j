@@ -17,7 +17,6 @@ package io.codenotary.immudb4j;
 
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
-import java.security.NoSuchAlgorithmException;
 
 import org.testng.Assert;
 import org.testng.annotations.Test;
@@ -29,13 +28,11 @@ public class HTreeTest {
 
     @Test(testName = "Empty HTree", expectedExceptions = IllegalArgumentException.class)
     public void t1() {
-
         new HTree(0);
     }
 
     @Test(testName = "HTree init & root", expectedExceptions = IllegalStateException.class)
     public void t2() {
-
         final int maxWidth = 1000;
 
         HTree tree = new HTree(maxWidth);
@@ -46,7 +43,6 @@ public class HTreeTest {
 
     @Test(testName = "HTree buildWith, root, inclusionProof, verifyInclusion")
     public void t3() {
-
         final int maxWidth = 1000;
 
         HTree tree = new HTree(maxWidth);

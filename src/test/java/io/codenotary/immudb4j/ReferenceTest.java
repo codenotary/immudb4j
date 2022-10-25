@@ -25,8 +25,7 @@ public class ReferenceTest extends ImmuClientIntegrationTest {
 
     @Test(testName = "set, setReference, setReferenceAt")
     public void t1() {
-        immuClient.login("immudb", "immudb");
-        immuClient.useDatabase("defaultdb");
+        immuClient.openSession("immudb", "immudb", "defaultdb");
 
         byte[] key = "testRef".getBytes(StandardCharsets.UTF_8);
         byte[] val = "abc".getBytes(StandardCharsets.UTF_8);
@@ -57,7 +56,7 @@ public class ReferenceTest extends ImmuClientIntegrationTest {
         }
         Assert.assertNotNull(ref2TxHdr);
 
-        immuClient.logout();
+        immuClient.closeSession();
     }
 
 }

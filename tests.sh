@@ -9,19 +9,20 @@ echo
 ## Unit Tests
 
 TESTS="${TESTS} BasicImmuClientTest"
+TESTS="${TESTS} HistoryTest"
 TESTS="${TESTS} HTreeTest"
 TESTS="${TESTS} ListDatabasesTest ListUsersTest"
-TESTS="${TESTS} LoginAndHealthCheckTest"
+TESTS="${TESTS} LoginAndHealthCheckAndCleanIndexTest"
 TESTS="${TESTS} MultidatabaseTest MultithreadTest"
 TESTS="${TESTS} ReferenceTest"
-TESTS="${TESTS} ScanAndHistoryTest"
-TESTS="${TESTS} SetAndGetTest SetAllAndGetAllTest"
-TESTS="${TESTS} ShutdownTest"
+TESTS="${TESTS} ScanTest"
+TESTS="${TESTS} SetAllAndGetAllTest SetAndGetTest"
 TESTS="${TESTS} StateTest"
 TESTS="${TESTS} TxTest"
-TESTS="${TESTS} UseDatabaseTest UserMgmtTest"
+TESTS="${TESTS} UserMgmtTest"
 TESTS="${TESTS} VerifiedSetAndGetTest"
 TESTS="${TESTS} ZAddTest"
+TESTS="${TESTS} ShutdownTest"
 
 # -----------------------------------------------------------------------------
 

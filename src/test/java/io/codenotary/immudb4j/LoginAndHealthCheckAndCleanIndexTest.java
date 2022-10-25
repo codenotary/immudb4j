@@ -21,23 +21,21 @@ import org.testng.annotations.Test;
 
 public class LoginAndHealthCheckAndCleanIndexTest extends ImmuClientIntegrationTest {
 
-    @Test(testName = "login (with default credentials), healthCheck, logout")
+    @Test(testName = "openSession (with default credentials), healthCheck, logout")
     public void t1() {
-
-        immuClient.login("immudb", "immudb");
+        immuClient.openSession("immudb", "immudb", "defaultdb");
 
         boolean isHealthy = immuClient.healthCheck();
         Assert.assertTrue(isHealthy);
 
-        immuClient.compactIndex();
+        immuClient.flushIndex(10.0f, true);
 
-        immuClient.logout();
+        immuClient.closeSession();
     }
 
-    @Test(testName = "login (with wrong credentials)", expectedExceptions = StatusRuntimeException.class)
+    @Test(testName = "openSession (with wrong credentials)", expectedExceptions = StatusRuntimeException.class)
     public void t2() {
-
-        immuClient.login("immudb", "incorrect_password");
+        immuClient.openSession("immudb", "incorrect_password", "defaultdb");
     }
 
 }
