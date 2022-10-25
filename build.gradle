@@ -134,7 +134,7 @@ task immudbStart {
     pb.command("/bin/bash", "immudb/start.sh")
     Process proc = pb.start()
 
-    proc.waitFor(10, TimeUnit.SECONDS)
+    proc.waitFor(5, TimeUnit.SECONDS)
 
     if (proc.isAlive()) {
         println "immudb has been started."
