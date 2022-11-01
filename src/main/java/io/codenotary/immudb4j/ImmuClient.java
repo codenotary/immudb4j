@@ -37,6 +37,8 @@ import java.security.PublicKey;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Timer;
+import java.util.TimerTask;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
@@ -50,16 +52,19 @@ public class ImmuClient {
 
     private final PublicKey serverSigningKey;
     private final ImmuStateHolder stateHolder;
+    private long keepAlivePeriod;
 
     private ManagedChannel channel;
 
     private final ImmuServiceGrpc.ImmuServiceBlockingStub stub;
 
     private Session session;
-
+    private Timer sessionHeartBeat;
+    
     public ImmuClient(Builder builder) {
         this.stateHolder = builder.getStateHolder();
         this.serverSigningKey = builder.getServerSigningKey();
+        this.keepAlivePeriod = builder.getKeepAlivePeriod();
         this.stub = createStubFrom(builder);
     }
 
@@ -117,13 +122,28 @@ public class ImmuClient {
 
         final ImmudbProto.OpenSessionResponse resp = this.stub.openSession(req);
 
-        this.session = new Session(resp.getSessionID(), username, database);
+        this.session = new Session(resp.getSessionID(), database);
+
+        this.sessionHeartBeat = new Timer();
+
+        this.sessionHeartBeat.schedule(new TimerTask() {
+            @Override
+            public void run() {
+                try {
+                    stub.keepAlive(Empty.getDefaultInstance());
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+        }, 0, keepAlivePeriod);
     }
 
     public synchronized void closeSession() {
         if (this.session == null) {
             throw new IllegalStateException("no open session");
         }
+
+        this.sessionHeartBeat.cancel();
 
         try {
             this.stub.closeSession(Empty.getDefaultInstance());
@@ -1133,7 +1153,7 @@ public class ImmuClient {
 
         private PublicKey serverSigningKey;
 
-        private boolean withAuth;
+        private long keepAlivePeriod;
 
         private ImmuStateHolder stateHolder;
 
@@ -1141,7 +1161,7 @@ public class ImmuClient {
             this.serverUrl = "localhost";
             this.serverPort = 3322;
             this.stateHolder = new SerializableImmuStateHolder();
-            this.withAuth = true;
+            this.keepAlivePeriod = 60 * 1000; // 1 minute
         }
 
         public ImmuClient build() {
@@ -1179,12 +1199,12 @@ public class ImmuClient {
             return this;
         }
 
-        public boolean isWithAuth() {
-            return withAuth;
+        public long getKeepAlivePeriod() {
+            return keepAlivePeriod;
         }
 
-        public Builder withAuth(boolean withAuth) {
-            this.withAuth = withAuth;
+        public Builder withKeepAlivePeriod(long keepAlivePeriod) {
+            this.keepAlivePeriod = keepAlivePeriod;
             return this;
         }
 

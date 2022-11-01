@@ -17,22 +17,16 @@ package io.codenotary.immudb4j;
 
 public class Session {
 
-    private String username;
     private String sessionID;
     private String database;
 
-    public Session(String sessionID, String username, String database) {
+    public Session(String sessionID, String database) {
         this.sessionID = sessionID;
-        this.username = username;
         this.database = database;
     }
 
     public String getSessionID() {
         return sessionID;
-    }
-    
-    public String getUsername() {
-        return username;
     }
 
     public String getDatabase() {
