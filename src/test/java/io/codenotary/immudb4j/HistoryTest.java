@@ -21,13 +21,14 @@ import org.testng.Assert;
 import org.testng.annotations.Test;
 
 import java.nio.charset.StandardCharsets;
+import java.util.Iterator;
 import java.util.List;
 
 public class HistoryTest extends ImmuClientIntegrationTest {
 
     @Test(testName = "set, history", priority = 2)
     public void t1() {
-        immuClient.openSession("immudb", "immudb", "defaultdb");
+        immuClient.openSession("defaultdb", "immudb", "immudb");
 
         byte[] value1 = {0, 1, 2, 3};
         byte[] value2 = {4, 5, 6, 7};
@@ -69,6 +70,12 @@ public class HistoryTest extends ImmuClientIntegrationTest {
         historyResponse2 = immuClient.history("history2", 10, 2, false);
         Assert.assertNotNull(historyResponse2);
         Assert.assertEquals(historyResponse2.size(), 1);
+
+        Iterator<Entry> entriesIt = immuClient.streamHistory("history2", 10, 2, false);
+        Assert.assertTrue(entriesIt.hasNext());
+
+        Entry entry = entriesIt.next();
+        Assert.assertNotNull(entry);
 
         try {
             immuClient.history("nonExisting", 10, 0, false);

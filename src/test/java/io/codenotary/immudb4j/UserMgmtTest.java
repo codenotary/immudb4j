@@ -69,7 +69,7 @@ public class UserMgmtTest extends ImmuClientIntegrationTest {
 
     @Test(testName = "createUser, changePassword", priority = 101)
     public void t2() {
-        immuClient.openSession("immudb", "immudb", "defaultdb");
+        immuClient.openSession("defaultdb", "immudb", "immudb");
 
         try {
             immuClient.createUser("testUser", "testTest123!", Permission.PERMISSION_ADMIN, "defaultdb");

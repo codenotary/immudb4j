@@ -26,7 +26,7 @@ public class VerifiedSetAndGetTest extends ImmuClientIntegrationTest {
 
     @Test(testName = "set, verifiedGet")
     public void t1() {
-        immuClient.openSession("immudb", "immudb", "defaultdb");
+        immuClient.openSession("defaultdb", "immudb", "immudb");
 
         String key = "vsg";
         byte[] val = "test-set-vget".getBytes(StandardCharsets.UTF_8);
@@ -51,7 +51,7 @@ public class VerifiedSetAndGetTest extends ImmuClientIntegrationTest {
 
     @Test(testName = "verifiedSet, verifiedGet, verifiedGetAt, verifiedGetSince")
     public void t2() {
-        immuClient.openSession("immudb", "immudb", "defaultdb");
+        immuClient.openSession("defaultdb", "immudb", "immudb");
 
         byte[] key = "vsg".getBytes(StandardCharsets.UTF_8);
         byte[] val = "test-vset-vget".getBytes(StandardCharsets.UTF_8);

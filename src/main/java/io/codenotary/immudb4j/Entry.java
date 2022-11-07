@@ -30,6 +30,11 @@ public class Entry {
 
     private Entry() {}
 
+    public Entry(byte[] key, byte[] value) {
+        this.key = key;
+        this.value = value;
+    }
+
     public static Entry valueOf(ImmudbProto.Entry e) {
         final Entry entry = new Entry();
 

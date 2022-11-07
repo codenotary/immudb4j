@@ -30,7 +30,7 @@ public class StateTest extends ImmuClientIntegrationTest {
 
     @Test(testName = "currentState")
     public void t2() throws VerificationException {
-        immuClient.openSession("immudb", "immudb", "defaultdb");
+        immuClient.openSession("defaultdb", "immudb", "immudb");
 
         ImmuState currState = immuClient.currentState();
 
@@ -82,7 +82,7 @@ public class StateTest extends ImmuClientIntegrationTest {
             return;
         }
 
-        immuClient.openSession("immudb", "immudb", "defaultdb");
+        immuClient.openSession("defaultdb", "immudb", "immudb");
 
         try {
             immuClient.currentState();
@@ -124,7 +124,7 @@ public class StateTest extends ImmuClientIntegrationTest {
             return;
         }
 
-        immuClient.openSession("immudb", "immudb", "defaultdb");
+        immuClient.openSession("defaultdb", "immudb", "immudb");
 
         try {
             ImmuState state = immuClient.currentState();

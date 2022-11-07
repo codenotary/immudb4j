@@ -21,7 +21,7 @@ public class ListUsersTest extends ImmuClientIntegrationTest {
 
   @Test(testName = "listUsers")
   public void t1() {
-    immuClient.openSession("immudb", "immudb", "defaultdb");
+    immuClient.openSession("defaultdb", "immudb", "immudb");
 
     immuClient.listUsers().forEach(user -> System.out.printf(">>> Got user %s", user));
 

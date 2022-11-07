@@ -28,7 +28,7 @@ public class TxTest extends ImmuClientIntegrationTest {
 
     @Test(testName = "verifiedSet, txById, verifiedTxById")
     public void t1() {
-        immuClient.openSession("immudb", "immudb", "defaultdb");
+        immuClient.openSession("defaultdb", "immudb", "immudb");
 
         String key = "test-txid";
         byte[] val = "test-txid-value".getBytes(StandardCharsets.UTF_8);
@@ -62,7 +62,7 @@ public class TxTest extends ImmuClientIntegrationTest {
 
     @Test(testName = "set, txScan")
     public void t2() {
-        immuClient.openSession("immudb", "immudb", "defaultdb");
+        immuClient.openSession("defaultdb", "immudb", "immudb");
 
         String key = "txtest-t2";
         byte[] val1 = "immuRocks!".getBytes(StandardCharsets.UTF_8);

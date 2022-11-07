@@ -26,7 +26,7 @@ public class SetAllAndGetAllTest extends ImmuClientIntegrationTest {
 
     @Test(testName = "setAll & getAll")
     public void t1() {
-        immuClient.openSession("immudb", "immudb", "defaultdb");
+        immuClient.openSession("defaultdb", "immudb", "immudb");
 
         String key1 = "sga-key1";
         byte[] val1 = new byte[] { 1 };
@@ -45,6 +45,13 @@ public class SetAllAndGetAllTest extends ImmuClientIntegrationTest {
             TxHeader txMd = immuClient.setAll(kvs);
             Assert.assertNotNull(txMd);
         } catch (CorruptedDataException e) {
+            Assert.fail("Failed at SetAll.", e);
+        }
+
+        try {
+            TxHeader txMd = immuClient.streamSetAll(kvs);
+            Assert.assertNotNull(txMd);
+        } catch (InterruptedException e) {
             Assert.fail("Failed at SetAll.", e);
         }
 

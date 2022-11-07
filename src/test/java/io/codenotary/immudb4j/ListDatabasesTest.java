@@ -23,7 +23,7 @@ public class ListDatabasesTest extends ImmuClientIntegrationTest {
 
   @Test(testName = "databases")
   public void t1() {
-    immuClient.openSession("immudb", "immudb", "defaultdb");
+    immuClient.openSession("defaultdb", "immudb", "immudb");
 
     List<String> databases = immuClient.databases();
     if (databases.size() > 0) {

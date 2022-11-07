@@ -20,13 +20,14 @@ import org.testng.Assert;
 import org.testng.annotations.Test;
 
 import java.nio.charset.StandardCharsets;
+import java.util.Iterator;
 import java.util.List;
 
 public class ScanTest extends ImmuClientIntegrationTest {
 
     @Test(testName = "scan", priority = 2)
     public void t1() {
-        immuClient.openSession("immudb", "immudb", "defaultdb");
+        immuClient.openSession("defaultdb", "immudb", "immudb");
 
         byte[] value1 = {0, 1, 2, 3};
         byte[] value2 = {4, 5, 6, 7};
@@ -56,7 +57,7 @@ public class ScanTest extends ImmuClientIntegrationTest {
 
     @Test(testName = "set, zAdd, zScan", priority = 3)
     public void t2() {
-        immuClient.openSession("immudb", "immudb", "defaultdb");
+        immuClient.openSession("defaultdb", "immudb", "immudb");
 
         byte[] value1 = {0, 1, 2, 3};
         byte[] value2 = {4, 5, 6, 7};

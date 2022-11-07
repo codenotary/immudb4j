@@ -13,22 +13,26 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
-package io.codenotary.immudb4j;
+package io.codenotary.immudb4j.basics;
 
-import io.grpc.StatusRuntimeException;
-import org.testng.Assert;
-import org.testng.annotations.Test;
+import java.util.concurrent.CountDownLatch;
 
-public class ShutdownTest extends ImmuClientIntegrationTest {
-
-  @Test(testName = "Login attempt after shutdown", expectedExceptions = StatusRuntimeException.class)
-  public void t1() throws InterruptedException {
-
-    Assert.assertFalse(immuClient.isShutdown());
-
-    immuClient.shutdown();
+public class LatchHolder<T> {
     
-    immuClient.openSession("defaultdb", "immudb", "immudb");
-  }
+    private T value;
+    private CountDownLatch doneLatch;
 
+    public LatchHolder() {
+        doneLatch = new CountDownLatch(1);
+    }
+
+    public T awaitValue() throws InterruptedException {
+        doneLatch.await();
+        return value;
+    }
+
+    public void doneWith(T value) {
+        this.value = value;
+        doneLatch.countDown();
+    }
 }

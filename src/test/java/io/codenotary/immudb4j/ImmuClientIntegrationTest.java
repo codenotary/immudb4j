@@ -38,7 +38,7 @@ public abstract class ImmuClientIntegrationTest {
   }
 
   @AfterClass
-  public static void afterClass() {
+  public static void afterClass() throws InterruptedException {
       immuClient.shutdown();
   }
 

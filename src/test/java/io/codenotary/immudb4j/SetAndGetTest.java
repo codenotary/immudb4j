@@ -26,7 +26,7 @@ public class SetAndGetTest extends ImmuClientIntegrationTest {
 
     @Test(testName = "set, get")
     public void t1() {
-        immuClient.openSession("immudb", "immudb", "defaultdb");
+        immuClient.openSession("defaultdb", "immudb", "immudb");
 
         String key = "key1";
         byte[] val = new byte[]{1, 2, 3, 4, 5};

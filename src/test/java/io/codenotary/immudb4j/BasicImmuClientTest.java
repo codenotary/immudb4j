@@ -27,8 +27,8 @@ import java.util.List;
 public class BasicImmuClientTest extends ImmuClientIntegrationTest {
 
     @Test(testName = "set, get")
-    public void t1() throws VerificationException, CorruptedDataException {
-        immuClient.openSession("immudb", "immudb", "defaultdb");
+    public void t1() throws VerificationException, CorruptedDataException, InterruptedException {
+        immuClient.openSession("defaultdb", "immudb", "immudb");
 
         byte[] v0 = new byte[] { 0, 1, 2, 3 };
         byte[] v1 = new byte[] { 3, 2, 1, 0 };
@@ -68,7 +68,7 @@ public class BasicImmuClientTest extends ImmuClientIntegrationTest {
 
     @Test(testName = "setAll, getAll")
     public void t2() {
-        immuClient.openSession("immudb", "immudb", "defaultdb");
+        immuClient.openSession("defaultdb", "immudb", "immudb");
 
         List<String> keys = new ArrayList<>();
         keys.add("k0");

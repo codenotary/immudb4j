@@ -23,7 +23,7 @@ public class LoginAndHealthCheckAndCleanIndexTest extends ImmuClientIntegrationT
 
     @Test(testName = "openSession (with default credentials), healthCheck, logout")
     public void t1() {
-        immuClient.openSession("immudb", "immudb", "defaultdb");
+        immuClient.openSession("defaultdb", "immudb", "immudb");
 
         boolean isHealthy = immuClient.healthCheck();
         Assert.assertTrue(isHealthy);
