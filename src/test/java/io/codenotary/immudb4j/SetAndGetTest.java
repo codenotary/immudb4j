@@ -20,8 +20,6 @@ import io.codenotary.immudb4j.exceptions.KeyNotFoundException;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
-import java.nio.charset.StandardCharsets;
-
 public class SetAndGetTest extends ImmuClientIntegrationTest {
 
     @Test(testName = "set, get")

@@ -560,11 +560,11 @@ public class ImmuClient {
     // ========== HISTORY ==========
     //
 
-    public List<Entry> history(String key, int limit, long offset, boolean desc) throws KeyNotFoundException {
-        return history(Utils.toByteArray(key), limit, offset, desc);
+    public List<Entry> historyAll(String key, int limit, long offset, boolean desc) throws KeyNotFoundException {
+        return historyAll(Utils.toByteArray(key), limit, offset, desc);
     }
 
-    public synchronized List<Entry> history(byte[] key, int limit, long offset, boolean desc)
+    public synchronized List<Entry> historyAll(byte[] key, int limit, long offset, boolean desc)
             throws KeyNotFoundException {
         try {
             ImmudbProto.Entries entries = blockingStub.history(ImmudbProto.HistoryRequest.newBuilder()
@@ -588,39 +588,39 @@ public class ImmuClient {
     // ========== SCAN ==========
     //
 
-    public List<Entry> scan(String prefix) {
-        return scan(Utils.toByteArray(prefix));
+    public List<Entry> scanAll(String prefix) {
+        return scanAll(Utils.toByteArray(prefix));
     }
 
-    public List<Entry> scan(byte[] prefix) {
-        return scan(prefix, 0, false);
+    public List<Entry> scanAll(byte[] prefix) {
+        return scanAll(prefix, 0, false);
     }
 
-    public List<Entry> scan(String prefix, long limit, boolean desc) {
-        return scan(Utils.toByteArray(prefix), limit, desc);
+    public List<Entry> scanAll(String prefix, long limit, boolean desc) {
+        return scanAll(Utils.toByteArray(prefix), limit, desc);
     }
 
-    public List<Entry> scan(byte[] prefix, long limit, boolean desc) {
-        return scan(prefix, null, limit, desc);
+    public List<Entry> scanAll(byte[] prefix, long limit, boolean desc) {
+        return scanAll(prefix, null, limit, desc);
     }
 
-    public List<Entry> scan(String prefix, String seekKey, long limit, boolean desc) {
-        return scan(Utils.toByteArray(prefix), Utils.toByteArray(seekKey), limit, desc);
+    public List<Entry> scanAll(String prefix, String seekKey, long limit, boolean desc) {
+        return scanAll(Utils.toByteArray(prefix), Utils.toByteArray(seekKey), limit, desc);
     }
 
-    public List<Entry> scan(String prefix, String seekKey, String endKey, long limit, boolean desc) {
-        return scan(Utils.toByteArray(prefix), Utils.toByteArray(seekKey), Utils.toByteArray(endKey), limit, desc);
+    public List<Entry> scanAll(String prefix, String seekKey, String endKey, long limit, boolean desc) {
+        return scanAll(Utils.toByteArray(prefix), Utils.toByteArray(seekKey), Utils.toByteArray(endKey), limit, desc);
     }
 
-    public List<Entry> scan(byte[] prefix, byte[] seekKey, long limit, boolean desc) {
-        return scan(prefix, seekKey, null, limit, desc);
+    public List<Entry> scanAll(byte[] prefix, byte[] seekKey, long limit, boolean desc) {
+        return scanAll(prefix, seekKey, null, limit, desc);
     }
 
-    public List<Entry> scan(byte[] prefix, byte[] seekKey, byte[] endKey, long limit, boolean desc) {
-        return scan(prefix, seekKey, endKey, false, false, limit, desc);
+    public List<Entry> scanAll(byte[] prefix, byte[] seekKey, byte[] endKey, long limit, boolean desc) {
+        return scanAll(prefix, seekKey, endKey, false, false, limit, desc);
     }
 
-    public synchronized List<Entry> scan(byte[] prefix, byte[] seekKey, byte[] endKey, boolean inclusiveSeek,
+    public synchronized List<Entry> scanAll(byte[] prefix, byte[] seekKey, byte[] endKey, boolean inclusiveSeek,
             boolean inclusiveEnd,
             long limit, boolean desc) {
         final ImmudbProto.ScanRequest req = ScanRequest.newBuilder()
@@ -963,11 +963,11 @@ public class ImmuClient {
         return TxHeader.valueOf(vtx.getTx().getHeader());
     }
 
-    public List<ZEntry> zScan(String set, long limit, boolean reverse) {
-        return zScan(Utils.toByteArray(set), limit, reverse);
+    public List<ZEntry> zScanAll(String set, long limit, boolean reverse) {
+        return zScanAll(Utils.toByteArray(set), limit, reverse);
     }
 
-    public synchronized List<ZEntry> zScan(byte[] set, long limit, boolean reverse) {
+    public synchronized List<ZEntry> zScanAll(byte[] set, long limit, boolean reverse) {
         final ImmudbProto.ZScanRequest req = ImmudbProto.ZScanRequest
                 .newBuilder()
                 .setSet(Utils.toByteString(set))
@@ -1066,13 +1066,13 @@ public class ImmuClient {
         return tx;
     }
 
-    public synchronized List<Tx> txScan(long initialTxId) {
+    public synchronized List<Tx> txScanAll(long initialTxId) {
         final ImmudbProto.TxScanRequest req = ImmudbProto.TxScanRequest.newBuilder().setInitialTx(initialTxId).build();
         final ImmudbProto.TxList txList = blockingStub.txScan(req);
         return buildList(txList);
     }
 
-    public synchronized List<Tx> txScan(long initialTxId, int limit, boolean desc) {
+    public synchronized List<Tx> txScanAll(long initialTxId, int limit, boolean desc) {
         final ImmudbProto.TxScanRequest req = ImmudbProto.TxScanRequest
                 .newBuilder()
                 .setInitialTx(initialTxId)

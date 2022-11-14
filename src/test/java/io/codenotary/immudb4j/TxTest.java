@@ -27,7 +27,7 @@ import java.util.List;
 public class TxTest extends ImmuClientIntegrationTest {
 
     @Test(testName = "verifiedSet, txById, verifiedTxById")
-    public void t1() {
+    public void t1() throws NoSuchAlgorithmException{
         immuClient.openSession("defaultdb", "immudb", "immudb");
 
         String key = "test-txid";
@@ -40,12 +40,7 @@ public class TxTest extends ImmuClientIntegrationTest {
             Assert.fail("Failed at verifiedSet", e);
         }
 
-        Tx tx = null;
-        try {
-            tx = immuClient.txById(txHdr.getId());
-        } catch (NoSuchAlgorithmException e) {
-            Assert.fail("Failed at txById", e);
-        }
+        Tx tx = immuClient.txById(txHdr.getId());
 
         Assert.assertEquals(txHdr.getId(), tx.getHeader().getId());
 
@@ -79,15 +74,15 @@ public class TxTest extends ImmuClientIntegrationTest {
             Assert.fail("Failed at set.", e);
         }
 
-        List<Tx> txs = immuClient.txScan(initialTxId, 1, false);
+        List<Tx> txs = immuClient.txScanAll(initialTxId, 1, false);
         Assert.assertNotNull(txs);
         Assert.assertEquals(txs.size(), 1);
 
-        txs = immuClient.txScan(initialTxId, 2, false);
+        txs = immuClient.txScanAll(initialTxId, 2, false);
         Assert.assertNotNull(txs);
         Assert.assertEquals(txs.size(), 2);
 
-        Assert.assertNotNull(immuClient.txScan(initialTxId));
+        Assert.assertNotNull(immuClient.txScanAll(initialTxId));
 
         immuClient.closeSession();
     }
