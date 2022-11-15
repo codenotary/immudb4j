@@ -68,7 +68,7 @@ public class ImmuClient {
 
     private Session session;
     private Timer sessionHeartBeat;
-    
+
     public ImmuClient(Builder builder) {
         stateHolder = builder.getStateHolder();
         serverSigningKey = builder.getServerSigningKey();
@@ -76,10 +76,10 @@ public class ImmuClient {
         chunkSize = builder.getChunkSize();
 
         channel = ManagedChannelBuilder
-                    .forAddress(builder.getServerUrl(), builder.getServerPort())
-                    .usePlaintext()
-                    .intercept(new ImmudbAuthRequestInterceptor(this))
-                    .build();
+                .forAddress(builder.getServerUrl(), builder.getServerPort())
+                .usePlaintext()
+                .intercept(new ImmudbAuthRequestInterceptor(this))
+                .build();
 
         blockingStub = ImmuServiceGrpc.newBlockingStub(channel);
         nonBlockingStub = ImmuServiceGrpc.newStub(channel);
@@ -88,7 +88,7 @@ public class ImmuClient {
     public static Builder newBuilder() {
         return new Builder();
     }
-    
+
     public synchronized void shutdown() throws InterruptedException {
         if (channel == null) {
             return;
@@ -223,7 +223,8 @@ public class ImmuClient {
     // if it has AutoLoad setting set to false or if it failed to load during
     // immudb startup.
     //
-    // This call requires SysAdmin permission level or admin permission to the database.
+    // This call requires SysAdmin permission level or admin permission to the
+    // database.
     public synchronized void loadDatabase(String database) {
         if (session == null) {
             throw new IllegalStateException("no open session");
@@ -236,10 +237,13 @@ public class ImmuClient {
         blockingStub.loadDatabase(req);
     }
 
-    // UnloadDatabase unloads database on the server. Such database becomes inaccessible
-    // by the client and server frees internal resources allocated for that database.
+    // UnloadDatabase unloads database on the server. Such database becomes
+    // inaccessible
+    // by the client and server frees internal resources allocated for that
+    // database.
     //
-    // This call requires SysAdmin permission level or admin permission to the database.
+    // This call requires SysAdmin permission level or admin permission to the
+    // database.
     public synchronized void unloadDatabase(String database) {
         if (session == null) {
             throw new IllegalStateException("no open session");
@@ -255,7 +259,8 @@ public class ImmuClient {
     // DeleteDatabase removes an unloaded database.
     // This also removes locally stored files used by the database.
     //
-    // This call requires SysAdmin permission level or admin permission to the database.
+    // This call requires SysAdmin permission level or admin permission to the
+    // database.
     public synchronized void deleteDatabase(String database) {
         if (session == null) {
             throw new IllegalStateException("no open session");
@@ -1092,12 +1097,12 @@ public class ImmuClient {
             @Override
             public void onCompleted() {
             }
-    
+
             @Override
             public void onError(Throwable cause) {
                 throw new RuntimeException(cause);
             }
-    
+
             @Override
             public void onNext(ImmudbProto.TxHeader hdr) {
                 latchHolder.doneWith(hdr);
@@ -1106,14 +1111,25 @@ public class ImmuClient {
     }
 
     private void chunkIt(byte[] bs, StreamObserver<Chunk> streamObserver) {
-        final ByteBuffer buf = ByteBuffer.allocate(Long.BYTES+bs.length).order(ByteOrder.BIG_ENDIAN);
+        final ByteBuffer buf = ByteBuffer.allocate(chunkSize).order(ByteOrder.BIG_ENDIAN);
 
         buf.putLong(bs.length);
-        buf.put(bs);
 
-        final Chunk chunk = Chunk.newBuilder().setContent(Utils.toByteString(buf.array())).build();
+        int i = 0;
 
-        streamObserver.onNext(chunk);
+        while (i < bs.length) {
+            final int remaining = buf.remaining();
+
+            buf.put(bs, i, remaining);
+
+            final Chunk chunk = Chunk.newBuilder().setContent(Utils.toByteString(buf.array())).build();
+
+            streamObserver.onNext(chunk);
+
+            buf.clear();
+
+            i += remaining;
+        }
     }
 
     private byte[] dechunkIt(Iterator<Chunk> chunks) {
@@ -1126,11 +1142,11 @@ public class ImmuClient {
 
         final ByteBuffer b = ByteBuffer.allocate(Long.BYTES).order(ByteOrder.BIG_ENDIAN);
         b.put(firstChunkContent, 0, Long.BYTES);
-        
+
         int payloadSize = (int) b.getLong(0);
 
         final ByteBuffer buf = ByteBuffer.allocate(payloadSize);
-        buf.put(firstChunkContent, Long.BYTES, firstChunkContent.length-Long.BYTES);
+        buf.put(firstChunkContent, Long.BYTES, firstChunkContent.length - Long.BYTES);
 
         while (buf.position() < payloadSize) {
             Chunk chunk = chunks.next();
@@ -1200,7 +1216,7 @@ public class ImmuClient {
 
         chunkIt(key, streamObserver);
         chunkIt(value, streamObserver);
-        
+
         streamObserver.onCompleted();
 
         return TxHeader.valueOf(latchHolder.awaitValue());
@@ -1248,40 +1264,40 @@ public class ImmuClient {
     //
     // ========== STREAM SCAN ==========
     //
-    
-    public Iterator<Entry> streamScan(String prefix) {
-        return streamScan(Utils.toByteArray(prefix));
+
+    public Iterator<Entry> scan(String prefix) {
+        return scan(Utils.toByteArray(prefix));
     }
 
-    public Iterator<Entry> streamScan(byte[] prefix) {
-        return streamScan(prefix, 0, false);
+    public Iterator<Entry> scan(byte[] prefix) {
+        return scan(prefix, 0, false);
     }
 
-    public Iterator<Entry> streamScan(String prefix, long limit, boolean desc) {
-        return streamScan(Utils.toByteArray(prefix), limit, desc);
+    public Iterator<Entry> scan(String prefix, long limit, boolean desc) {
+        return scan(Utils.toByteArray(prefix), limit, desc);
     }
 
-    public Iterator<Entry> streamScan(byte[] prefix, long limit, boolean desc) {
-        return streamScan(prefix, null, limit, desc);
+    public Iterator<Entry> scan(byte[] prefix, long limit, boolean desc) {
+        return scan(prefix, null, limit, desc);
     }
 
-    public Iterator<Entry> streamScan(String prefix, String seekKey, long limit, boolean desc) {
-        return streamScan(Utils.toByteArray(prefix), Utils.toByteArray(seekKey), limit, desc);
+    public Iterator<Entry> scan(String prefix, String seekKey, long limit, boolean desc) {
+        return scan(Utils.toByteArray(prefix), Utils.toByteArray(seekKey), limit, desc);
     }
 
-    public Iterator<Entry> streamScan(String prefix, String seekKey, String endKey, long limit, boolean desc) {
-        return streamScan(Utils.toByteArray(prefix), Utils.toByteArray(seekKey), Utils.toByteArray(endKey), limit, desc);
+    public Iterator<Entry> scan(String prefix, String seekKey, String endKey, long limit, boolean desc) {
+        return scan(Utils.toByteArray(prefix), Utils.toByteArray(seekKey), Utils.toByteArray(endKey), limit, desc);
     }
 
-    public Iterator<Entry> streamScan(byte[] prefix, byte[] seekKey, long limit, boolean desc) {
-        return streamScan(prefix, seekKey, null, limit, desc);
+    public Iterator<Entry> scan(byte[] prefix, byte[] seekKey, long limit, boolean desc) {
+        return scan(prefix, seekKey, null, limit, desc);
     }
 
-    public Iterator<Entry> streamScan(byte[] prefix, byte[] seekKey, byte[] endKey, long limit, boolean desc) {
-        return streamScan(prefix, seekKey, endKey, false, false, limit, desc);
+    public Iterator<Entry> scan(byte[] prefix, byte[] seekKey, byte[] endKey, long limit, boolean desc) {
+        return scan(prefix, seekKey, endKey, false, false, limit, desc);
     }
 
-    public synchronized Iterator<Entry> streamScan(byte[] prefix, byte[] seekKey, byte[] endKey, boolean inclusiveSeek,
+    public synchronized Iterator<Entry> scan(byte[] prefix, byte[] seekKey, byte[] endKey, boolean inclusiveSeek,
             boolean inclusiveEnd,
             long limit, boolean desc) {
         final ImmudbProto.ScanRequest req = ScanRequest.newBuilder()
@@ -1303,11 +1319,11 @@ public class ImmuClient {
     // ========== STREAM ZSCAN ==========
     //
 
-    public Iterator<ZEntry> streamZScan(String set, long limit, boolean reverse) {
-        return streamZScan(Utils.toByteArray(set), limit, reverse);
+    public Iterator<ZEntry> zScan(String set, long limit, boolean reverse) {
+        return zScan(Utils.toByteArray(set), limit, reverse);
     }
 
-    public synchronized Iterator<ZEntry> streamZScan(byte[] set, long limit, boolean reverse) {
+    public synchronized Iterator<ZEntry> zScan(byte[] set, long limit, boolean reverse) {
         final ImmudbProto.ZScanRequest req = ImmudbProto.ZScanRequest
                 .newBuilder()
                 .setSet(Utils.toByteString(set))
@@ -1319,16 +1335,16 @@ public class ImmuClient {
 
         return zentryIterator(chunks);
     }
- 
+
     //
     // ========== STREAM HISTORY ==========
     //
 
-    public Iterator<Entry> streamHistory(String key, int limit, long offset, boolean desc) throws KeyNotFoundException {
-        return streamHistory(Utils.toByteArray(key), limit, offset, desc);
+    public Iterator<Entry> history(String key, int limit, long offset, boolean desc) throws KeyNotFoundException {
+        return history(Utils.toByteArray(key), limit, offset, desc);
     }
 
-    public synchronized Iterator<Entry> streamHistory(byte[] key, int limit, long offset, boolean desc)
+    public synchronized Iterator<Entry> history(byte[] key, int limit, long offset, boolean desc)
             throws KeyNotFoundException {
         try {
             ImmudbProto.HistoryRequest req = ImmudbProto.HistoryRequest.newBuilder()
@@ -1453,10 +1469,10 @@ public class ImmuClient {
     // ========== INDEX MGMT ==========
     //
 
-    public synchronized void flushIndex(float cleanupPercentage, boolean synced) {
+    public synchronized void flushIndex(float cleanupPercentage) {
         ImmudbProto.FlushIndexRequest req = ImmudbProto.FlushIndexRequest.newBuilder()
                 .setCleanupPercentage(cleanupPercentage)
-                .setSynced(synced)
+                .setSynced(true)
                 .build();
 
         blockingStub.flushIndex(req);
@@ -1576,6 +1592,10 @@ public class ImmuClient {
         }
 
         public Builder withChunkSize(int chunkSize) {
+            if (chunkSize < Long.BYTES) {
+                throw new RuntimeException("invalid chunk size");
+            }
+
             this.chunkSize = chunkSize;
             return this;
         }

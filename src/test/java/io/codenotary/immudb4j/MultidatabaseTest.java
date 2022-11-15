@@ -26,6 +26,9 @@ public class MultidatabaseTest extends ImmuClientIntegrationTest {
 
     @Test(testName = "Interacting with multiple databases (creating them, setting, and getting, listing)")
     public void t1() throws VerificationException {
+
+        immuClient.createDatabase("db1");
+        
         immuClient.openSession("defaultdb", "immudb", "immudb");
 
         immuClient.createDatabase("db1");

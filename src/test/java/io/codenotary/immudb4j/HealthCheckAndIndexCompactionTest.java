@@ -34,7 +34,7 @@ public class HealthCheckAndIndexCompactionTest extends ImmuClientIntegrationTest
 
         Assert.assertTrue(immuClient.healthCheck());
 
-        immuClient.flushIndex(10.0f, true);
+        immuClient.flushIndex(10.0f);
 
         immuClient.closeSession();
     }
