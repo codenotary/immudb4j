@@ -17,6 +17,8 @@ package io.codenotary.immudb4j;
 
 import io.codenotary.immudb4j.exceptions.CorruptedDataException;
 import io.codenotary.immudb4j.exceptions.VerificationException;
+import io.grpc.StatusRuntimeException;
+
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
@@ -24,19 +26,38 @@ import java.util.List;
 
 public class MultidatabaseTest extends ImmuClientIntegrationTest {
 
-    @Test(testName = "Interacting with multiple databases (creating them, setting, and getting, listing)")
-    public void t1() throws VerificationException {
+    @Test(testName = "createDatabase without open session", expectedExceptions = IllegalStateException.class)
+    public void t1() {
+        immuClient.createDatabase("db1");
+    }
 
+    @Test(testName = "loadDatabase without open session", expectedExceptions = IllegalStateException.class)
+    public void t2() {
+        immuClient.loadDatabase("db1");
+    }
+
+    @Test(testName = "unloadDatabase without open session", expectedExceptions = IllegalStateException.class)
+    public void t3() {
+        immuClient.unloadDatabase("db1");
+    }
+
+    @Test(testName = "deleteDatabase without open session", expectedExceptions = IllegalStateException.class)
+    public void t4() {
+        immuClient.deleteDatabase("db1");
+    }
+
+    @Test(testName = "Interacting with multiple databases (creating them, setting, and getting, listing)")
+    public void t5() throws VerificationException {
         immuClient.openSession("defaultdb", "immudb", "immudb");
 
-        immuClient.createDatabase("db1");
-        immuClient.createDatabase("db2");
+        immuClient.createDatabase("db1", true);
+        immuClient.createDatabase("db2", true);
 
         immuClient.closeSession();
 
         immuClient.openSession("db1", "immudb", "immudb");
 
-        byte[] v0 = new byte[]{0, 1, 2, 3};
+        byte[] v0 = new byte[] { 0, 1, 2, 3 };
         try {
             immuClient.set("k0", v0);
         } catch (CorruptedDataException e) {
@@ -47,7 +68,7 @@ public class MultidatabaseTest extends ImmuClientIntegrationTest {
 
         immuClient.openSession("db2", "immudb", "immudb");
 
-        byte[] v1 = new byte[]{3, 2, 1, 0};
+        byte[] v1 = new byte[] { 3, 2, 1, 0 };
         try {
             immuClient.set("k1", v1);
         } catch (CorruptedDataException e) {
@@ -86,4 +107,23 @@ public class MultidatabaseTest extends ImmuClientIntegrationTest {
         immuClient.closeSession();
     }
 
+    @Test(testName = "create, unload and delete database")
+    public void t6() {
+        immuClient.openSession("defaultdb", "immudb", "immudb");
+
+        immuClient.createDatabase("manageddb");
+
+        immuClient.unloadDatabase("manageddb");
+
+        immuClient.deleteDatabase("manageddb");
+
+        try {
+            immuClient.loadDatabase("manageddb");
+            Assert.fail("exception expected");
+        } catch (StatusRuntimeException e) {
+            Assert.assertTrue(e.getMessage().contains("database does not exist"));
+        }
+        
+        immuClient.closeSession();
+    }
 }

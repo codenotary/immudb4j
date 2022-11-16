@@ -44,13 +44,8 @@ public class HealthCheckAndIndexCompactionTest extends ImmuClientIntegrationTest
         immuClient.openSession("defaultdb", "immudb", "incorrect_password");
     }
 
-    @Test(testName = "openSession (with wrong credentials)", expectedExceptions = StatusRuntimeException.class)
-    public void t3() {
-        immuClient.openSession("defaultdb");
-    }
-
     @Test(testName = "openSession with session already open", expectedExceptions = IllegalStateException.class)
-    public void t4() throws UnexpectedException {
+    public void t3() throws UnexpectedException {
         try {
             immuClient.openSession("defaultdb", "immudb", "immudb");
         } catch (Exception e) {
@@ -65,7 +60,7 @@ public class HealthCheckAndIndexCompactionTest extends ImmuClientIntegrationTest
     }
 
     @Test(testName = "openSession with no open session", expectedExceptions = IllegalStateException.class)
-    public void t5() {
+    public void t4() {
         immuClient.closeSession();
     }
 

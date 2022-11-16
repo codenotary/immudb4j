@@ -109,10 +109,6 @@ public class ImmuClient {
         return session;
     }
 
-    public synchronized void openSession(String database) {
-        openSession(database, "", "");
-    }
-
     public synchronized void openSession(String database, String username, String password) {
         if (session != null) {
             throw new IllegalStateException("session already opened");
@@ -211,13 +207,18 @@ public class ImmuClient {
     // ========== DATABASE ==========
     //
 
-    public synchronized void createDatabase(String database) {
+    public void createDatabase(String database) {
+        createDatabase(database, false);
+    }
+
+    public synchronized void createDatabase(String database, boolean ifNotExists) {
         if (session == null) {
             throw new IllegalStateException("no open session");
         }
 
         final ImmudbProto.CreateDatabaseRequest req = ImmudbProto.CreateDatabaseRequest.newBuilder()
                 .setName(database)
+                .setIfNotExists(ifNotExists)
                 .build();
 
         blockingStub.createDatabaseV2(req);
