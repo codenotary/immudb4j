@@ -81,7 +81,10 @@ public class ScanTest extends ImmuClientIntegrationTest {
         List<ZEntry> zScan1 = immuClient.zScanAll("set1", 5, false);
         Assert.assertEquals(zScan1.size(), 2);
 
+        Assert.assertEquals(zScan1.get(0).getSet(), "set1".getBytes(StandardCharsets.UTF_8));
         Assert.assertEquals(zScan1.get(0).getKey(), "zadd1".getBytes(StandardCharsets.UTF_8));
+        Assert.assertEquals(zScan1.get(0).getScore(), 1.0);
+        Assert.assertEquals(zScan1.get(0).getAtTx(), 0);
         Assert.assertEquals(zScan1.get(0).getEntry().getValue(), value1);
 
         List<ZEntry> zScan2 = immuClient.zScanAll("set2", 5, false);
