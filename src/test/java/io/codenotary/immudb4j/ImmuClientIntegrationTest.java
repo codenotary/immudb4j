@@ -18,7 +18,9 @@ package io.codenotary.immudb4j;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 
+import java.io.File;
 import java.io.IOException;
+import java.nio.file.Files;
 
 public abstract class ImmuClientIntegrationTest {
 
@@ -26,8 +28,11 @@ public abstract class ImmuClientIntegrationTest {
 
   @BeforeClass
   public static void beforeClass() throws IOException {
+    final File statesDir = Files.createTempDirectory("immudb_states").toFile();
+    statesDir.deleteOnExit();
+
     FileImmuStateHolder stateHolder = FileImmuStateHolder.newBuilder()
-            .withStatesFolder("immudb/states")
+            .withStatesFolder(statesDir.getAbsolutePath())
             .build();
 
     immuClient = ImmuClient.newBuilder()
