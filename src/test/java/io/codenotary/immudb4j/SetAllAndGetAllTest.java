@@ -42,16 +42,9 @@ public class SetAllAndGetAllTest extends ImmuClientIntegrationTest {
                 .entries();
 
         try {
-            TxHeader txMd = immuClient.setAll(kvs);
-            Assert.assertNotNull(txMd);
+            TxHeader txHdr = immuClient.setAll(kvs);
+            Assert.assertNotNull(txHdr);
         } catch (CorruptedDataException e) {
-            Assert.fail("Failed at SetAll.", e);
-        }
-
-        try {
-            TxHeader txMd = immuClient.streamSetAll(kvs);
-            Assert.assertNotNull(txMd);
-        } catch (InterruptedException e) {
             Assert.fail("Failed at SetAll.", e);
         }
 

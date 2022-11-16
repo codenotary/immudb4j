@@ -33,7 +33,7 @@ public class UserMgmtTest extends ImmuClientIntegrationTest {
         String password = "testTest123!";
         Permission permission = Permission.PERMISSION_RW;
 
-        immuClient.openSession("immudb", "immudb", database);
+        immuClient.openSession(database, "immudb", "immudb");
 
         // Should not contain testCreateUser. Skipping it as not valid for the current unit tests setup
         // (where a clean immudb server is started for each Test class).
@@ -90,7 +90,7 @@ public class UserMgmtTest extends ImmuClientIntegrationTest {
             // Login failed, everything's fine.
         }
 
-        immuClient.openSession("testUser", "newTestTest123!", "defaultdb");
+        immuClient.openSession("defaultdb", "testUser", "newTestTest123!");
 
         immuClient.closeSession();
 

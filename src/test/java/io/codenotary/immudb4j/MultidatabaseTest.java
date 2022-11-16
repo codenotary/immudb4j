@@ -27,8 +27,6 @@ public class MultidatabaseTest extends ImmuClientIntegrationTest {
     @Test(testName = "Interacting with multiple databases (creating them, setting, and getting, listing)")
     public void t1() throws VerificationException {
 
-        immuClient.createDatabase("db1");
-        
         immuClient.openSession("defaultdb", "immudb", "immudb");
 
         immuClient.createDatabase("db1");
@@ -36,7 +34,7 @@ public class MultidatabaseTest extends ImmuClientIntegrationTest {
 
         immuClient.closeSession();
 
-        immuClient.openSession("immudb", "immudb", "db1");
+        immuClient.openSession("db1", "immudb", "immudb");
 
         byte[] v0 = new byte[]{0, 1, 2, 3};
         try {
@@ -47,7 +45,7 @@ public class MultidatabaseTest extends ImmuClientIntegrationTest {
 
         immuClient.closeSession();
 
-        immuClient.openSession("immudb", "immudb", "db2");
+        immuClient.openSession("db2", "immudb", "immudb");
 
         byte[] v1 = new byte[]{3, 2, 1, 0};
         try {
@@ -58,7 +56,7 @@ public class MultidatabaseTest extends ImmuClientIntegrationTest {
 
         immuClient.closeSession();
 
-        immuClient.openSession("immudb", "immudb", "db1");
+        immuClient.openSession("db1", "immudb", "immudb");
 
         Entry entry1 = immuClient.get("k0");
         Assert.assertNotNull(entry1);
@@ -70,7 +68,7 @@ public class MultidatabaseTest extends ImmuClientIntegrationTest {
 
         immuClient.closeSession();
 
-        immuClient.openSession("immudb", "immudb", "db2");
+        immuClient.openSession("db2", "immudb", "immudb");
 
         Entry entry2 = immuClient.get("k1");
         Assert.assertEquals(entry2.getValue(), v1);

@@ -135,7 +135,11 @@ public class ImmuClient {
             @Override
             public void run() {
                 try {
-                    blockingStub.keepAlive(Empty.getDefaultInstance());
+                    synchronized(ImmuClient.this) {
+                        if (session != null) {
+                            blockingStub.keepAlive(Empty.getDefaultInstance());
+                        }
+                    }
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
@@ -1118,17 +1122,22 @@ public class ImmuClient {
         int i = 0;
 
         while (i < bs.length) {
-            final int remaining = buf.remaining();
+            final int chunkContentLen = Math.min(bs.length, buf.remaining());
 
-            buf.put(bs, i, remaining);
+            buf.put(bs, i, chunkContentLen);
 
-            final Chunk chunk = Chunk.newBuilder().setContent(Utils.toByteString(buf.array())).build();
+            buf.flip();
+
+            byte[] chunkContent = new byte[buf.limit()];
+            buf.get(chunkContent);
+
+            final Chunk chunk = Chunk.newBuilder().setContent(Utils.toByteString(chunkContent)).build();
 
             streamObserver.onNext(chunk);
 
             buf.clear();
 
-            i += remaining;
+            i += chunkContentLen;
         }
     }
 
