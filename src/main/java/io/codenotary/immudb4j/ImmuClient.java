@@ -973,16 +973,24 @@ public class ImmuClient {
         return TxHeader.valueOf(vtx.getTx().getHeader());
     }
 
-    public List<ZEntry> zScanAll(String set, long limit, boolean reverse) {
-        return zScanAll(Utils.toByteArray(set), limit, reverse);
+    public List<ZEntry> zScanAll(String set) {
+        return zScanAll(set, false, 0);
     }
 
-    public synchronized List<ZEntry> zScanAll(byte[] set, long limit, boolean reverse) {
+    public List<ZEntry> zScanAll(String set, long limit) {
+        return zScanAll(set, false, limit);
+    }
+
+    public List<ZEntry> zScanAll(String set, boolean reverse, long limit) {
+        return zScanAll(Utils.toByteArray(set), reverse, limit);
+    }
+
+    public synchronized List<ZEntry> zScanAll(byte[] set, boolean reverse, long limit) {
         final ImmudbProto.ZScanRequest req = ImmudbProto.ZScanRequest
                 .newBuilder()
                 .setSet(Utils.toByteString(set))
-                .setLimit(limit)
                 .setDesc(reverse)
+                .setLimit(limit)
                 .build();
 
         final ImmudbProto.ZEntries zEntries = blockingStub.zScan(req);
@@ -1328,6 +1336,14 @@ public class ImmuClient {
     //
     // ========== STREAM ZSCAN ==========
     //
+
+    public Iterator<ZEntry> zScan(String set) {
+        return zScan(Utils.toByteArray(set), 0, false);
+    }
+
+    public Iterator<ZEntry> zScan(String set, long limit) {
+        return zScan(Utils.toByteArray(set), limit, false);
+    }
 
     public Iterator<ZEntry> zScan(String set, long limit, boolean reverse) {
         return zScan(Utils.toByteArray(set), limit, reverse);

@@ -20,6 +20,7 @@ import io.codenotary.immudb4j.exceptions.VerificationException;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
+import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 
 public class VerifiedSetAndGetTest extends ImmuClientIntegrationTest {
@@ -95,6 +96,29 @@ public class VerifiedSetAndGetTest extends ImmuClientIntegrationTest {
         immuClient.closeSession();
     }
 
+    @Test(testName = "Login attempt after shutdown")
+    public void t3() throws InterruptedException, IllegalStateException, IOException, VerificationException {
+        immuClient.openSession("defaultdb", "immudb", "immudb");
 
+        immuClient.verifiedSet("key1", "val1".getBytes());
+
+        immuClient.closeSession();
+        
+        immuClient.shutdown();
+
+        FileImmuStateHolder stateHolder = FileImmuStateHolder.newBuilder()
+                .withStatesFolder(statesDir.getAbsolutePath())
+                .build();
+
+        immuClient = ImmuClient.newBuilder()
+                .withStateHolder(stateHolder)
+                .withServerUrl("localhost")
+                .withServerPort(3322)
+                .build();
+
+        immuClient.openSession("defaultdb", "immudb", "immudb");
+
+        immuClient.verifiedGet("key1");
+    }
 
 }

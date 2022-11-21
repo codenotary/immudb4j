@@ -20,6 +20,7 @@ import org.testng.Assert;
 import org.testng.annotations.Test;
 
 import java.nio.charset.StandardCharsets;
+import java.util.Iterator;
 import java.util.List;
 
 public class ScanTest extends ImmuClientIntegrationTest {
@@ -78,7 +79,7 @@ public class ScanTest extends ImmuClientIntegrationTest {
             Assert.fail("Failed to zAdd", e);
         }
 
-        List<ZEntry> zScan1 = immuClient.zScanAll("set1", 5, false);
+        List<ZEntry> zScan1 = immuClient.zScanAll("set1", false, 5);
         Assert.assertEquals(zScan1.size(), 2);
 
         Assert.assertEquals(zScan1.get(0).getSet(), "set1".getBytes(StandardCharsets.UTF_8));
@@ -87,8 +88,18 @@ public class ScanTest extends ImmuClientIntegrationTest {
         Assert.assertEquals(zScan1.get(0).getAtTx(), 0);
         Assert.assertEquals(zScan1.get(0).getEntry().getValue(), value1);
 
-        List<ZEntry> zScan2 = immuClient.zScanAll("set2", 5, false);
+        List<ZEntry> zScan2 = immuClient.zScanAll("set2");
         Assert.assertEquals(zScan2.size(), 2);
+
+        Iterator<ZEntry> zScan3 = immuClient.zScan("set2");
+        int i = 0;
+
+        while (zScan3.hasNext()) {
+            Assert.assertEquals(zScan3.next().getKey(), zScan2.get(i).getKey());
+            i++;
+        }
+
+        Assert.assertEquals(i, 2);
 
         immuClient.closeSession();
     }

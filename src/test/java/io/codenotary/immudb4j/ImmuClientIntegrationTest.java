@@ -25,10 +25,11 @@ import java.nio.file.Files;
 public abstract class ImmuClientIntegrationTest {
 
   protected static ImmuClient immuClient;
+  protected static File statesDir;
 
   @BeforeClass
   public static void beforeClass() throws IOException {
-    final File statesDir = Files.createTempDirectory("immudb_states").toFile();
+    statesDir = Files.createTempDirectory("immudb_states").toFile();
     statesDir.deleteOnExit();
 
     FileImmuStateHolder stateHolder = FileImmuStateHolder.newBuilder()

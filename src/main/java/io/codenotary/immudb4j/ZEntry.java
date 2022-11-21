@@ -106,5 +106,5 @@ public class ZEntry {
 
         return kv.digestFor(version);
     }
-
+    
 }
