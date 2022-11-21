@@ -28,6 +28,8 @@ public class Entry {
 
     private Reference referencedBy;
 
+    private long revision;
+
     private Entry() {}
 
     public Entry(byte[] key, byte[] value) {
@@ -50,6 +52,8 @@ public class Entry {
             entry.referencedBy = Reference.valueOf(e.getReferencedBy());
         }
 
+        entry.revision = e.getRevision();
+
         return entry;
     }
 
@@ -71,6 +75,10 @@ public class Entry {
 
     public Reference getReferenceBy() {
         return referencedBy;
+    }
+
+    public long getRevision() {
+        return revision;
     }
 
     public byte[] getEncodedKey() {
