@@ -133,14 +133,7 @@ task immudbStart {
     pb = new ProcessBuilder()
     pb.command("/bin/bash", "immudb/start.sh")
     Process proc = pb.start()
-
-    proc.waitFor(5, TimeUnit.SECONDS)
-
-    if (proc.isAlive()) {
-        println "immudb has been started."
-    } else {
-        throw new GradleException("Process exit bad: " + proc.exitValue())
-    }
+    proc.waitFor(15, TimeUnit.SECONDS)
 }
 
 task immudbStop(type: Exec) {
