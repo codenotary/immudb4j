@@ -71,7 +71,7 @@ public class HistoryTest extends ImmuClientIntegrationTest {
         Assert.assertNotNull(historyResponse2);
         Assert.assertEquals(historyResponse2.size(), 1);
 
-        Iterator<Entry> entriesIt = immuClient.history("history2", 10, 2, false);
+        Iterator<Entry> entriesIt = immuClient.history("history2", 2, false, 10);
         Assert.assertTrue(entriesIt.hasNext());
 
         Entry entry = entriesIt.next();

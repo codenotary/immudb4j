@@ -16,6 +16,7 @@ limitations under the License.
 package io.codenotary.immudb4j;
 
 import io.codenotary.immudb4j.exceptions.CorruptedDataException;
+import io.codenotary.immudb4j.exceptions.TxNotFoundException;
 import io.codenotary.immudb4j.exceptions.VerificationException;
 import org.testng.Assert;
 import org.testng.annotations.Test;
@@ -27,7 +28,7 @@ import java.util.List;
 public class TxTest extends ImmuClientIntegrationTest {
 
     @Test(testName = "verifiedSet, txById, verifiedTxById")
-    public void t1() throws NoSuchAlgorithmException{
+    public void t1() throws NoSuchAlgorithmException, VerificationException{
         immuClient.openSession("defaultdb", "immudb", "immudb");
 
         String key = "test-txid";
@@ -51,6 +52,18 @@ public class TxTest extends ImmuClientIntegrationTest {
         }
 
         Assert.assertEquals(txHdr.getId(), tx.getHeader().getId());
+
+        try {
+            immuClient.txById(txHdr.getId()+1);
+            Assert.fail("Failed at txById.");
+        } catch (TxNotFoundException _) {
+        }
+
+        try {
+            immuClient.verifiedTxById(txHdr.getId()+1);
+            Assert.fail("Failed at verifiedTxById.");
+        } catch (TxNotFoundException _) {
+        }
 
         immuClient.closeSession();
     }

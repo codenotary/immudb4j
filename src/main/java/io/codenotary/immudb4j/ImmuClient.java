@@ -1338,11 +1338,11 @@ public class ImmuClient {
     //
 
     public Iterator<ZEntry> zScan(String set) {
-        return zScan(Utils.toByteArray(set), 0, false);
+        return zScan(set, 0);
     }
 
     public Iterator<ZEntry> zScan(String set, long limit) {
-        return zScan(Utils.toByteArray(set), limit, false);
+        return zScan(set, limit, false);
     }
 
     public Iterator<ZEntry> zScan(String set, long limit, boolean reverse) {
@@ -1366,11 +1366,11 @@ public class ImmuClient {
     // ========== STREAM HISTORY ==========
     //
 
-    public Iterator<Entry> history(String key, int limit, long offset, boolean desc) throws KeyNotFoundException {
-        return history(Utils.toByteArray(key), limit, offset, desc);
+    public Iterator<Entry> history(String key, long offset, boolean desc, int limit) throws KeyNotFoundException {
+        return history(Utils.toByteArray(key), offset, desc, limit);
     }
 
-    public synchronized Iterator<Entry> history(byte[] key, int limit, long offset, boolean desc)
+    public synchronized Iterator<Entry> history(byte[] key, long offset, boolean desc, int limit)
             throws KeyNotFoundException {
         try {
             ImmudbProto.HistoryRequest req = ImmudbProto.HistoryRequest.newBuilder()
