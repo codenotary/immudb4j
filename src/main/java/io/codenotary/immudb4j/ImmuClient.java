@@ -131,7 +131,7 @@ public class ImmuClient {
             @Override
             public void run() {
                 try {
-                    synchronized(ImmuClient.this) {
+                    synchronized (ImmuClient.this) {
                         if (session != null) {
                             blockingStub.keepAlive(Empty.getDefaultInstance());
                         }
@@ -1224,11 +1224,12 @@ public class ImmuClient {
     // ========== STREAM SET ==========
     //
 
-    public TxHeader streamSet(String key, byte[] value) throws InterruptedException {
+    public TxHeader streamSet(String key, byte[] value) throws InterruptedException, CorruptedDataException {
         return streamSet(Utils.toByteArray(key), value);
     }
 
-    public synchronized TxHeader streamSet(byte[] key, byte[] value) throws InterruptedException {
+    public synchronized TxHeader streamSet(byte[] key, byte[] value)
+            throws InterruptedException, CorruptedDataException {
         final LatchHolder<ImmudbProto.TxHeader> latchHolder = new LatchHolder<>();
         final StreamObserver<Chunk> streamObserver = nonBlockingStub.streamSet(txHeaderStreamObserver(latchHolder));
 
@@ -1237,7 +1238,13 @@ public class ImmuClient {
 
         streamObserver.onCompleted();
 
-        return TxHeader.valueOf(latchHolder.awaitValue());
+        final ImmudbProto.TxHeader txHdr = latchHolder.awaitValue();
+
+        if (txHdr.getNentries() != 1) {
+            throw new CorruptedDataException();
+        }
+
+        return TxHeader.valueOf(txHdr);
     }
 
     public synchronized TxHeader streamSetAll(List<KVPair> kvList) throws InterruptedException {
