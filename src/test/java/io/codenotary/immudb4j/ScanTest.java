@@ -39,7 +39,7 @@ public class ScanTest extends ImmuClientIntegrationTest {
             Assert.fail("Failed at set.", e);
         }
 
-        List<Entry> scanResult = immuClient.scanAll("scan", 5, false);
+        List<Entry> scanResult = immuClient.scanAll("scan", false, 5);
         System.out.println(scanResult.size());
 
         Assert.assertEquals(scanResult.size(), 2);
@@ -50,7 +50,18 @@ public class ScanTest extends ImmuClientIntegrationTest {
 
         Assert.assertTrue(immuClient.scanAll("scan").size() > 0);
 
-        Assert.assertEquals(immuClient.scanAll("scan", "scan1", 1, false).size(), 1);
+        Assert.assertEquals(immuClient.scanAll("scan".getBytes(), "scan1".getBytes(), false, 1).size(), 1);
+
+        Iterator<Entry> scanResult1 = immuClient.scan("scan", false, 5);
+
+        int i = 0;
+
+        while (scanResult1.hasNext()) {
+            Assert.assertEquals(scanResult1.next().getKey(), scanResult.get(i).getKey());
+            i++;
+        }
+
+        Assert.assertEquals(i, 2);
 
         immuClient.closeSession();
     }

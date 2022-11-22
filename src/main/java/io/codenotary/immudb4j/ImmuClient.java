@@ -603,36 +603,28 @@ public class ImmuClient {
     }
 
     public List<Entry> scanAll(byte[] prefix) {
-        return scanAll(prefix, 0, false);
+        return scanAll(prefix, false, 0);
     }
 
-    public List<Entry> scanAll(String prefix, long limit, boolean desc) {
-        return scanAll(Utils.toByteArray(prefix), limit, desc);
+    public List<Entry> scanAll(String prefix, boolean desc, long limit) {
+        return scanAll(Utils.toByteArray(prefix), null, desc, limit);
     }
 
-    public List<Entry> scanAll(byte[] prefix, long limit, boolean desc) {
-        return scanAll(prefix, null, limit, desc);
+    public List<Entry> scanAll(byte[] prefix, boolean desc, long limit) {
+        return scanAll(prefix, null, desc, limit);
     }
 
-    public List<Entry> scanAll(String prefix, String seekKey, long limit, boolean desc) {
-        return scanAll(Utils.toByteArray(prefix), Utils.toByteArray(seekKey), limit, desc);
+    public List<Entry> scanAll(byte[] prefix, byte[] seekKey, boolean desc, long limit) {
+        return scanAll(prefix, seekKey, null, desc, limit);
     }
 
-    public List<Entry> scanAll(String prefix, String seekKey, String endKey, long limit, boolean desc) {
-        return scanAll(Utils.toByteArray(prefix), Utils.toByteArray(seekKey), Utils.toByteArray(endKey), limit, desc);
-    }
-
-    public List<Entry> scanAll(byte[] prefix, byte[] seekKey, long limit, boolean desc) {
-        return scanAll(prefix, seekKey, null, limit, desc);
-    }
-
-    public List<Entry> scanAll(byte[] prefix, byte[] seekKey, byte[] endKey, long limit, boolean desc) {
-        return scanAll(prefix, seekKey, endKey, false, false, limit, desc);
+    public List<Entry> scanAll(byte[] prefix, byte[] seekKey, byte[] endKey, boolean desc, long limit) {
+        return scanAll(prefix, seekKey, endKey, false, false, desc, limit);
     }
 
     public synchronized List<Entry> scanAll(byte[] prefix, byte[] seekKey, byte[] endKey, boolean inclusiveSeek,
             boolean inclusiveEnd,
-            long limit, boolean desc) {
+            boolean desc, long limit) {
         final ImmudbProto.ScanRequest req = ScanRequest.newBuilder()
                 .setPrefix(Utils.toByteString(prefix))
                 .setSeekKey(Utils.toByteString(seekKey))
@@ -1295,44 +1287,36 @@ public class ImmuClient {
     }
 
     public Iterator<Entry> scan(byte[] prefix) {
-        return scan(prefix, 0, false);
+        return scan(prefix, false, 0);
     }
 
-    public Iterator<Entry> scan(String prefix, long limit, boolean desc) {
-        return scan(Utils.toByteArray(prefix), limit, desc);
+    public Iterator<Entry> scan(String prefix, boolean desc, long limit) {
+        return scan(Utils.toByteArray(prefix), desc, limit);
     }
 
-    public Iterator<Entry> scan(byte[] prefix, long limit, boolean desc) {
-        return scan(prefix, null, limit, desc);
+    public Iterator<Entry> scan(byte[] prefix, boolean desc, long limit) {
+        return scan(prefix, null, desc, limit);
     }
 
-    public Iterator<Entry> scan(String prefix, String seekKey, long limit, boolean desc) {
-        return scan(Utils.toByteArray(prefix), Utils.toByteArray(seekKey), limit, desc);
+    public Iterator<Entry> scan(byte[] prefix, byte[] seekKey, boolean desc, long limit) {
+        return scan(prefix, seekKey, null, desc, limit);
     }
 
-    public Iterator<Entry> scan(String prefix, String seekKey, String endKey, long limit, boolean desc) {
-        return scan(Utils.toByteArray(prefix), Utils.toByteArray(seekKey), Utils.toByteArray(endKey), limit, desc);
-    }
-
-    public Iterator<Entry> scan(byte[] prefix, byte[] seekKey, long limit, boolean desc) {
-        return scan(prefix, seekKey, null, limit, desc);
-    }
-
-    public Iterator<Entry> scan(byte[] prefix, byte[] seekKey, byte[] endKey, long limit, boolean desc) {
-        return scan(prefix, seekKey, endKey, false, false, limit, desc);
+    public Iterator<Entry> scan(byte[] prefix, byte[] seekKey, byte[] endKey, boolean desc, long limit) {
+        return scan(prefix, seekKey, endKey, false, false, desc, limit);
     }
 
     public synchronized Iterator<Entry> scan(byte[] prefix, byte[] seekKey, byte[] endKey, boolean inclusiveSeek,
             boolean inclusiveEnd,
-            long limit, boolean desc) {
+            boolean desc, long limit) {
         final ImmudbProto.ScanRequest req = ScanRequest.newBuilder()
                 .setPrefix(Utils.toByteString(prefix))
                 .setSeekKey(Utils.toByteString(seekKey))
                 .setEndKey(Utils.toByteString(endKey))
                 .setInclusiveSeek(inclusiveSeek)
                 .setInclusiveEnd(inclusiveEnd)
-                .setLimit(limit)
                 .setDesc(desc)
+                .setLimit(limit)
                 .build();
 
         final Iterator<Chunk> chunks = blockingStub.streamScan(req);
