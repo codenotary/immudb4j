@@ -39,6 +39,10 @@ public class UserMgmtTest extends ImmuClientIntegrationTest {
         // (where a clean immudb server is started for each Test class).
         // immuClient.listUsers().forEach(user -> Assert.assertNotEquals(user.getUser(), username));
 
+        System.out.println(">>> listUsers1:");
+        List<User> users1 = immuClient.listUsers();
+        users1.forEach(user -> System.out.println("\t- " + user));
+
         try {
             System.out.println(">>> createUser:");
             immuClient.createUser(username, password, permission, database);
