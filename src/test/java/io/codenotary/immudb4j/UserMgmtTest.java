@@ -22,7 +22,6 @@ import org.testng.Assert;
 import org.testng.annotations.Test;
 
 import java.util.Collections;
-import java.util.List;
 
 public class UserMgmtTest extends ImmuClientIntegrationTest {
 
@@ -47,9 +46,9 @@ public class UserMgmtTest extends ImmuClientIntegrationTest {
         }
 
         // Should contain testCreateUser.
-        System.out.println(">>> listUsers:");
-        List<User> users = immuClient.listUsers();
-        users.forEach(user -> System.out.println("\t- " + user));
+        //System.out.println(">>> listUsers:");
+        //List<User> users = immuClient.listUsers();
+        //users.forEach(user -> System.out.println("\t- " + user));
 
         // TODO: Temporary commented since currently there's a bug on immudb's side.
         //       The next release will include the fix of 'listUsers'. This commit includes the fix:
