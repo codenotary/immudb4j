@@ -1475,24 +1475,24 @@ public class ImmuClient {
         blockingStub.changePassword(changePasswordRequest);
     }
 
-    public synchronized void grantPermission(String user, String database, int permissions) {
+    public synchronized void grantPermission(String user, String database, Permission permissions) {
         final ImmudbProto.ChangePermissionRequest req = ImmudbProto.ChangePermissionRequest.newBuilder()
                 .setUsername(user)
                 .setAction(ImmudbProto.PermissionAction.GRANT)
                 .setDatabase(database)
-                .setPermission(permissions)
+                .setPermission(permissions.permissionCode)
                 .build();
 
         // noinspection ResultOfMethodCallIgnored
         blockingStub.changePermission(req);
     }
 
-    public synchronized void revokePermission(String user, String database, int permissions) {
+    public synchronized void revokePermission(String user, String database, Permission permissions) {
         final ImmudbProto.ChangePermissionRequest req = ImmudbProto.ChangePermissionRequest.newBuilder()
                 .setUsername(user)
                 .setAction(ImmudbProto.PermissionAction.REVOKE)
                 .setDatabase(database)
-                .setPermission(permissions)
+                .setPermission(permissions.permissionCode)
                 .build();
 
         // noinspection ResultOfMethodCallIgnored

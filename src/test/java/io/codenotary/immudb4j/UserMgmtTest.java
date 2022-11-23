@@ -71,11 +71,17 @@ public class UserMgmtTest extends ImmuClientIntegrationTest {
         immuClient.openSession("defaultdb", "immudb", "immudb");
 
         try {
-            immuClient.createUser("testUser", "testTest123!", Permission.PERMISSION_ADMIN, "defaultdb");
+            immuClient.createUser("testUser", "testTest123!", Permission.PERMISSION_R, "defaultdb");
         } catch (StatusRuntimeException e) {
             // The user could already exist, ignoring this.
             System.out.println(">>> UserMgmtTest > t2 > createUser exception: " + e.getMessage());
         }
+
+        immuClient.activateUser("testUser", true);
+
+        immuClient.revokePermission("testUser", "defaultdb", Permission.PERMISSION_R);
+
+        immuClient.grantPermission("testUser", "defaultdb", Permission.PERMISSION_RW);
 
         immuClient.changePassword("testUser", "testTest123!", "newTestTest123!");
 
