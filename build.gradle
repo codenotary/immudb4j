@@ -160,6 +160,10 @@ test {
     }
     // Run the unit tests sequentially.
     maxParallelForks = 1
+
+    testLogging {
+        events "FAILED"
+    }
 }
 
 test.dependsOn immudbStart
