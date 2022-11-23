@@ -43,6 +43,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
+import java.util.NoSuchElementException;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.TimeUnit;
@@ -570,18 +571,18 @@ public class ImmuClient {
     // ========== HISTORY ==========
     //
 
-    public List<Entry> historyAll(String key, int limit, long offset, boolean desc) throws KeyNotFoundException {
-        return historyAll(Utils.toByteArray(key), limit, offset, desc);
+    public List<Entry> historyAll(String key, long offset, boolean desc, int limit) throws KeyNotFoundException {
+        return historyAll(Utils.toByteArray(key), offset, desc, limit);
     }
 
-    public synchronized List<Entry> historyAll(byte[] key, int limit, long offset, boolean desc)
+    public synchronized List<Entry> historyAll(byte[] key, long offset, boolean desc, int limit)
             throws KeyNotFoundException {
         try {
             ImmudbProto.Entries entries = blockingStub.history(ImmudbProto.HistoryRequest.newBuilder()
                     .setKey(Utils.toByteString(key))
-                    .setLimit(limit)
                     .setOffset(offset)
                     .setDesc(desc)
+                    .setLimit(limit)
                     .build());
 
             return buildList(entries);
@@ -1171,7 +1172,15 @@ public class ImmuClient {
 
             @Override
             public boolean hasNext() {
-                return chunks.hasNext();
+                try {
+                    return chunks.hasNext();
+                } catch (StatusRuntimeException e) {
+                    if (e.getMessage().contains("key not found")) {
+                        return false;
+                    }
+
+                    throw e;
+                }
             }
 
             @Override
@@ -1187,7 +1196,15 @@ public class ImmuClient {
 
             @Override
             public boolean hasNext() {
-                return chunks.hasNext();
+                try {
+                    return chunks.hasNext();
+                } catch (StatusRuntimeException e) {
+                    if (e.getMessage().contains("key not found")) {
+                        return false;
+                    }
+
+                    throw e;
+                }
             }
 
             @Override

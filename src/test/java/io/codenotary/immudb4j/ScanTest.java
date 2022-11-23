@@ -39,7 +39,7 @@ public class ScanTest extends ImmuClientIntegrationTest {
             Assert.fail("Failed at set.", e);
         }
 
-        List<Entry> scanResult = immuClient.scanAll("scan", false, 5);
+        List<Entry> scanResult = immuClient.scanAll("scan");
         System.out.println(scanResult.size());
 
         Assert.assertEquals(scanResult.size(), 2);
