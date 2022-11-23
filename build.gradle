@@ -160,6 +160,9 @@ test {
     }
     // Run the unit tests sequentially.
     maxParallelForks = 1
+
+    testLogging.showStandardStreams = true
+    testLogging.exceptionFormat = 'full'
 }
 
 test.dependsOn immudbStart

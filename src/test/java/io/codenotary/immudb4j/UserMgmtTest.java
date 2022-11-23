@@ -40,6 +40,7 @@ public class UserMgmtTest extends ImmuClientIntegrationTest {
         // immuClient.listUsers().forEach(user -> Assert.assertNotEquals(user.getUser(), username));
 
         try {
+            System.out.println(">>> createUser:");
             immuClient.createUser(username, password, permission, database);
         } catch (StatusRuntimeException e) {
             // The user could already exist, ignoring this.
@@ -72,24 +73,28 @@ public class UserMgmtTest extends ImmuClientIntegrationTest {
         immuClient.openSession("defaultdb", "immudb", "immudb");
 
         try {
+            System.out.println(">>> createUser:");
             immuClient.createUser("testUser", "testTest123!", Permission.PERMISSION_ADMIN, "defaultdb");
         } catch (StatusRuntimeException e) {
             // The user could already exist, ignoring this.
             System.out.println(">>> UserMgmtTest > t2 > createUser exception: " + e.getMessage());
         }
 
+        System.out.println(">>> changePassword:");
         immuClient.changePassword("testUser", "testTest123!", "newTestTest123!");
 
         immuClient.closeSession();
 
         // This must fail.
         try {
+            System.out.println(">>> openSession should fail with wrong (old) password:");
             immuClient.openSession("testUser", "testTest123", "defaultdb");
             Assert.fail("should fail with wrong (old) password must fail.");
         } catch (StatusRuntimeException e) {
             // Login failed, everything's fine.
         }
 
+        System.out.println(">>> openSession:");
         immuClient.openSession("defaultdb", "testUser", "newTestTest123!");
 
         immuClient.closeSession();
