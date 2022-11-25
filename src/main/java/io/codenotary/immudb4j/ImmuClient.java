@@ -21,6 +21,7 @@ import io.codenotary.immudb.ImmuServiceGrpc;
 import io.codenotary.immudb.ImmudbProto;
 import io.codenotary.immudb.ImmudbProto.Chunk;
 import io.codenotary.immudb.ImmudbProto.ScanRequest;
+import io.codenotary.immudb.ImmudbProto.Score;
 import io.codenotary.immudb4j.basics.LatchHolder;
 import io.codenotary.immudb4j.crypto.CryptoUtils;
 import io.codenotary.immudb4j.crypto.DualProof;
@@ -970,23 +971,41 @@ public class ImmuClient {
         return zScanAll(set, false, 0);
     }
 
-    public List<ZEntry> zScanAll(String set, long limit) {
-        return zScanAll(set, false, limit);
-    }
-
     public List<ZEntry> zScanAll(String set, boolean reverse, long limit) {
-        return zScanAll(Utils.toByteArray(set), reverse, limit);
+        return pzScanAll(Utils.toByteArray(set), null, null, 0, null, 0, true, reverse, limit);
     }
 
-    public synchronized List<ZEntry> zScanAll(byte[] set, boolean reverse, long limit) {
-        final ImmudbProto.ZScanRequest req = ImmudbProto.ZScanRequest
-                .newBuilder()
-                .setSet(Utils.toByteString(set))
-                .setDesc(reverse)
-                .setLimit(limit)
-                .build();
+    public List<ZEntry> zScanAll(byte[] set, double minScore, double maxScore, boolean reverse, long limit) {
+        return zScanAll(set, minScore, maxScore, 0, null, 0, true, false, 0);
+    }
 
-        final ImmudbProto.ZEntries zEntries = blockingStub.zScan(req);
+    public List<ZEntry> zScanAll(byte[] set, double minScore, double maxScore, double seekScore, byte[] seekKey,
+            long seekAtTx, boolean inclusiveSeek, boolean reverse, long limit) {
+        return pzScanAll(set, minScore, maxScore, seekScore, seekKey, seekAtTx, inclusiveSeek, reverse, limit);
+    }
+
+    private List<ZEntry> pzScanAll(byte[] set, Double minScore, Double maxScore, double seekScore, byte[] seekKey,
+            long seekAtTx, boolean inclusiveSeek, boolean reverse, long limit) {
+
+        final ImmudbProto.ZScanRequest.Builder reqBuilder = ImmudbProto.ZScanRequest.newBuilder();
+
+        reqBuilder.setSet(Utils.toByteString(set))
+                .setSeekScore(seekScore)
+                .setSeekKey(Utils.toByteString(seekKey))
+                .setSeekAtTx(seekAtTx)
+                .setInclusiveSeek(inclusiveSeek)
+                .setDesc(reverse)
+                .setLimit(limit);
+
+        if (minScore != null) {
+            reqBuilder.setMinScore(Score.newBuilder().setScore(minScore).build());
+        }
+
+        if (maxScore != null) {
+            reqBuilder.setMaxScore(Score.newBuilder().setScore(maxScore).build());
+        }
+
+        final ImmudbProto.ZEntries zEntries = blockingStub.zScan(reqBuilder.build());
 
         return buildList(zEntries);
     }
@@ -1266,7 +1285,7 @@ public class ImmuClient {
         }
 
         streamObserver.onCompleted();
-        
+
         final ImmudbProto.TxHeader txHdr = latchHolder.awaitValue();
 
         if (txHdr.getNentries() != kvList.size()) {
@@ -1352,26 +1371,45 @@ public class ImmuClient {
     //
 
     public Iterator<ZEntry> zScan(String set) {
-        return zScan(set, 0);
+        return zScan(set, false, 0);
     }
 
-    public Iterator<ZEntry> zScan(String set, long limit) {
-        return zScan(set, limit, false);
+    public Iterator<ZEntry> zScan(String set, boolean reverse, long limit) {
+        return pzScan(Utils.toByteArray(set), null, null, 0, null, 0, true, reverse, limit);
     }
 
-    public Iterator<ZEntry> zScan(String set, long limit, boolean reverse) {
-        return zScan(Utils.toByteArray(set), limit, reverse);
+    public Iterator<ZEntry> zScan(byte[] set, double minScore, double maxScore, boolean reverse, long limit) {
+        return zScan(set, minScore, maxScore, 0, null, 0, true, false, 0);
     }
 
-    public synchronized Iterator<ZEntry> zScan(byte[] set, long limit, boolean reverse) {
-        final ImmudbProto.ZScanRequest req = ImmudbProto.ZScanRequest
-                .newBuilder()
-                .setSet(Utils.toByteString(set))
-                .setLimit(limit)
+    public Iterator<ZEntry> zScan(byte[] set, double minScore, double maxScore, double seekScore, byte[] seekKey,
+            long seekAtTx, boolean inclusiveSeek, boolean reverse, long limit) {
+        return pzScan(set, minScore, maxScore, seekScore, seekKey, seekAtTx, inclusiveSeek, reverse, limit);
+    }
+
+    private synchronized Iterator<ZEntry> pzScan(byte[] set, Double minScore, Double maxScore, double seekScore,
+            byte[] seekKey,
+            long seekAtTx, boolean inclusiveSeek, boolean reverse, long limit) {
+
+        final ImmudbProto.ZScanRequest.Builder reqBuilder = ImmudbProto.ZScanRequest.newBuilder();
+
+        reqBuilder.setSet(Utils.toByteString(set))
+                .setSeekScore(seekScore)
+                .setSeekKey(Utils.toByteString(seekKey))
+                .setSeekAtTx(seekAtTx)
+                .setInclusiveSeek(inclusiveSeek)
                 .setDesc(reverse)
-                .build();
+                .setLimit(limit);
 
-        final Iterator<Chunk> chunks = blockingStub.streamZScan(req);
+        if (minScore != null) {
+            reqBuilder.setMinScore(Score.newBuilder().setScore(minScore).build());
+        }
+
+        if (maxScore != null) {
+            reqBuilder.setMaxScore(Score.newBuilder().setScore(maxScore).build());
+        }
+
+        final Iterator<Chunk> chunks = blockingStub.streamZScan(reqBuilder.build());
 
         return zentryIterator(chunks);
     }
