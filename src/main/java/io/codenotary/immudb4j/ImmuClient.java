@@ -1256,7 +1256,7 @@ public class ImmuClient {
         return TxHeader.valueOf(txHdr);
     }
 
-    public synchronized TxHeader streamSetAll(List<KVPair> kvList) throws InterruptedException {
+    public synchronized TxHeader streamSetAll(List<KVPair> kvList) throws InterruptedException, CorruptedDataException {
         final LatchHolder<ImmudbProto.TxHeader> latchHolder = new LatchHolder<>();
         final StreamObserver<Chunk> streamObserver = nonBlockingStub.streamSet(txHeaderStreamObserver(latchHolder));
 
@@ -1266,8 +1266,14 @@ public class ImmuClient {
         }
 
         streamObserver.onCompleted();
+        
+        final ImmudbProto.TxHeader txHdr = latchHolder.awaitValue();
 
-        return TxHeader.valueOf(latchHolder.awaitValue());
+        if (txHdr.getNentries() != kvList.size()) {
+            throw new CorruptedDataException();
+        }
+
+        return TxHeader.valueOf(txHdr);
     }
 
     //
