@@ -25,18 +25,35 @@ import java.util.List;
 
 public class ScanTest extends ImmuClientIntegrationTest {
 
-    @Test(testName = "scan", priority = 2)
+    @Test(testName = "scan zscan")
     public void t1() {
         immuClient.openSession("defaultdb", "immudb", "immudb");
 
-        byte[] value1 = {0, 1, 2, 3};
-        byte[] value2 = {4, 5, 6, 7};
+        byte[] value1 = { 0, 1, 2, 3 };
+        byte[] value2 = { 4, 5, 6, 7 };
 
         try {
             immuClient.set("scan1", value1);
             immuClient.set("scan2", value2);
         } catch (CorruptedDataException e) {
             Assert.fail("Failed at set.", e);
+        }
+
+        try {
+            immuClient.set("zadd1", value1);
+            immuClient.set("zadd2", value2);
+        } catch (CorruptedDataException e) {
+            Assert.fail("Failed at set.", e);
+        }
+
+        try {
+            immuClient.zAdd("set1", "zadd1", 1);
+            immuClient.zAdd("set1", "zadd2", 2);
+
+            immuClient.zAdd("set2", "zadd1", 2);
+            immuClient.zAdd("set2", "zadd2", 1);
+        } catch (CorruptedDataException e) {
+            Assert.fail("Failed to zAdd", e);
         }
 
         List<Entry> scanResult = immuClient.scanAll("scan");
@@ -63,32 +80,7 @@ public class ScanTest extends ImmuClientIntegrationTest {
 
         Assert.assertEquals(i, 2);
 
-        immuClient.closeSession();
-    }
-
-    @Test(testName = "set, zAdd, zScan", priority = 3)
-    public void t2() {
-        immuClient.openSession("defaultdb", "immudb", "immudb");
-
-        byte[] value1 = {0, 1, 2, 3};
-        byte[] value2 = {4, 5, 6, 7};
-
-        try {
-            immuClient.set("zadd1", value1);
-            immuClient.set("zadd2", value2);
-        } catch (CorruptedDataException e) {
-            Assert.fail("Failed at set.", e);
-        }
-
-        try {
-            immuClient.zAdd("set1", "zadd1", 1);
-            immuClient.zAdd("set1", "zadd2", 2);
-
-            immuClient.zAdd("set2", "zadd1", 2);
-            immuClient.zAdd("set2", "zadd2", 1);
-        } catch (CorruptedDataException e) {
-            Assert.fail("Failed to zAdd", e);
-        }
+        Assert.assertFalse(immuClient.scan("nonexistent-prefix").hasNext());
 
         List<ZEntry> zScan1 = immuClient.zScanAll("set1", false, 5);
         Assert.assertEquals(zScan1.size(), 2);
@@ -103,7 +95,7 @@ public class ScanTest extends ImmuClientIntegrationTest {
         Assert.assertEquals(zScan2.size(), 2);
 
         Iterator<ZEntry> zScan3 = immuClient.zScan("set2");
-        int i = 0;
+        i = 0;
 
         while (zScan3.hasNext()) {
             Assert.assertEquals(zScan3.next().getKey(), zScan2.get(i).getKey());
@@ -111,6 +103,8 @@ public class ScanTest extends ImmuClientIntegrationTest {
         }
 
         Assert.assertEquals(i, 2);
+
+        Assert.assertFalse(immuClient.zScan("nonexistent-set").hasNext());
 
         immuClient.closeSession();
     }

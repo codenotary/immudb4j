@@ -581,8 +581,8 @@ public class ImmuClient {
         try {
             ImmudbProto.Entries entries = blockingStub.history(ImmudbProto.HistoryRequest.newBuilder()
                     .setKey(Utils.toByteString(key))
-                    .setOffset(offset)
                     .setDesc(desc)
+                    .setOffset(offset)
                     .setLimit(limit)
                     .build());
 
@@ -633,8 +633,8 @@ public class ImmuClient {
                 .setEndKey(Utils.toByteString(endKey))
                 .setInclusiveSeek(inclusiveSeek)
                 .setInclusiveEnd(inclusiveEnd)
-                .setLimit(limit)
                 .setDesc(desc)
+                .setLimit(limit)
                 .build();
 
         final ImmudbProto.Entries entries = blockingStub.scan(req);
@@ -972,11 +972,11 @@ public class ImmuClient {
     }
 
     public List<ZEntry> zScanAll(String set, boolean reverse, long limit) {
-        return pzScanAll(Utils.toByteArray(set), null, null, 0, null, 0, true, reverse, limit);
+        return pzScanAll(Utils.toByteArray(set), null, null, null, null, 0, false, reverse, limit);
     }
 
     public List<ZEntry> zScanAll(byte[] set, double minScore, double maxScore, boolean reverse, long limit) {
-        return zScanAll(set, minScore, maxScore, 0, null, 0, true, false, 0);
+        return pzScanAll(set, minScore, maxScore, null, null, 0, false, false, 0);
     }
 
     public List<ZEntry> zScanAll(byte[] set, double minScore, double maxScore, double seekScore, byte[] seekKey,
@@ -984,18 +984,22 @@ public class ImmuClient {
         return pzScanAll(set, minScore, maxScore, seekScore, seekKey, seekAtTx, inclusiveSeek, reverse, limit);
     }
 
-    private List<ZEntry> pzScanAll(byte[] set, Double minScore, Double maxScore, double seekScore, byte[] seekKey,
+    private synchronized List<ZEntry> pzScanAll(byte[] set, Double minScore, Double maxScore, Double seekScore,
+            byte[] seekKey,
             long seekAtTx, boolean inclusiveSeek, boolean reverse, long limit) {
 
         final ImmudbProto.ZScanRequest.Builder reqBuilder = ImmudbProto.ZScanRequest.newBuilder();
 
         reqBuilder.setSet(Utils.toByteString(set))
-                .setSeekScore(seekScore)
                 .setSeekKey(Utils.toByteString(seekKey))
                 .setSeekAtTx(seekAtTx)
                 .setInclusiveSeek(inclusiveSeek)
                 .setDesc(reverse)
                 .setLimit(limit);
+
+        if (seekScore != null) {
+            reqBuilder.setSeekScore(seekScore);
+        }
 
         if (minScore != null) {
             reqBuilder.setMinScore(Score.newBuilder().setScore(minScore).build());
@@ -1009,10 +1013,6 @@ public class ImmuClient {
 
         return buildList(zEntries);
     }
-
-    //
-    // ========== TX ==========
-    //
 
     public synchronized Tx txById(long txId) throws TxNotFoundException, NoSuchAlgorithmException {
         try {
@@ -1099,6 +1099,7 @@ public class ImmuClient {
     public synchronized List<Tx> txScanAll(long initialTxId) {
         final ImmudbProto.TxScanRequest req = ImmudbProto.TxScanRequest.newBuilder().setInitialTx(initialTxId).build();
         final ImmudbProto.TxList txList = blockingStub.txScan(req);
+
         return buildList(txList);
     }
 
@@ -1106,9 +1107,10 @@ public class ImmuClient {
         final ImmudbProto.TxScanRequest req = ImmudbProto.TxScanRequest
                 .newBuilder()
                 .setInitialTx(initialTxId)
-                .setLimit(limit)
                 .setDesc(desc)
+                .setLimit(limit)
                 .build();
+
         final ImmudbProto.TxList txList = blockingStub.txScan(req);
         return buildList(txList);
     }
@@ -1351,6 +1353,7 @@ public class ImmuClient {
     public synchronized Iterator<Entry> scan(byte[] prefix, byte[] seekKey, byte[] endKey, boolean inclusiveSeek,
             boolean inclusiveEnd,
             boolean desc, long limit) {
+
         final ImmudbProto.ScanRequest req = ScanRequest.newBuilder()
                 .setPrefix(Utils.toByteString(prefix))
                 .setSeekKey(Utils.toByteString(seekKey))
@@ -1375,11 +1378,11 @@ public class ImmuClient {
     }
 
     public Iterator<ZEntry> zScan(String set, boolean reverse, long limit) {
-        return pzScan(Utils.toByteArray(set), null, null, 0, null, 0, true, reverse, limit);
+        return pzScan(Utils.toByteArray(set), null, null, null, null, 0, false, reverse, limit);
     }
 
     public Iterator<ZEntry> zScan(byte[] set, double minScore, double maxScore, boolean reverse, long limit) {
-        return zScan(set, minScore, maxScore, 0, null, 0, true, false, 0);
+        return pzScan(set, minScore, maxScore, null, null, 0, false, false, 0);
     }
 
     public Iterator<ZEntry> zScan(byte[] set, double minScore, double maxScore, double seekScore, byte[] seekKey,
@@ -1387,19 +1390,22 @@ public class ImmuClient {
         return pzScan(set, minScore, maxScore, seekScore, seekKey, seekAtTx, inclusiveSeek, reverse, limit);
     }
 
-    private synchronized Iterator<ZEntry> pzScan(byte[] set, Double minScore, Double maxScore, double seekScore,
+    private synchronized Iterator<ZEntry> pzScan(byte[] set, Double minScore, Double maxScore, Double seekScore,
             byte[] seekKey,
             long seekAtTx, boolean inclusiveSeek, boolean reverse, long limit) {
 
         final ImmudbProto.ZScanRequest.Builder reqBuilder = ImmudbProto.ZScanRequest.newBuilder();
 
         reqBuilder.setSet(Utils.toByteString(set))
-                .setSeekScore(seekScore)
                 .setSeekKey(Utils.toByteString(seekKey))
                 .setSeekAtTx(seekAtTx)
                 .setInclusiveSeek(inclusiveSeek)
                 .setDesc(reverse)
                 .setLimit(limit);
+
+        if (seekScore != null) {
+            reqBuilder.setSeekScore(seekScore);
+        }
 
         if (minScore != null) {
             reqBuilder.setMinScore(Score.newBuilder().setScore(minScore).build());
@@ -1427,9 +1433,9 @@ public class ImmuClient {
         try {
             ImmudbProto.HistoryRequest req = ImmudbProto.HistoryRequest.newBuilder()
                     .setKey(Utils.toByteString(key))
-                    .setLimit(limit)
-                    .setOffset(offset)
                     .setDesc(desc)
+                    .setOffset(offset)
+                    .setLimit(limit)
                     .build();
 
             final Iterator<Chunk> chunks = blockingStub.streamHistory(req);
