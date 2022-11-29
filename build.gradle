@@ -120,32 +120,6 @@ dependencies {
     implementation 'javax.annotation:javax.annotation-api:1.2-b01'
 }
 
-task immudbStart {
-    // INFO: You can disable this logic (comment these lines below within this task)
-    // if you want to use an existing immudb server, without starting and stopping
-    // the locally used immudb version (stored in `immudb` directory and controlled
-    // through the scripts). Just make sure immudb server has the proper version.
-    ProcessBuilder pb = new ProcessBuilder()
-    pb.command("/bin/bash", "immudb/clean.sh")
-    Process procClean = pb.start()
-    procClean.waitFor()
-
-    pb = new ProcessBuilder()
-    pb.command("/bin/bash", "immudb/start.sh")
-    Process proc = pb.start()
-    proc.waitFor(15, TimeUnit.SECONDS)
-}
-
-task immudbStop(type: Exec) {
-    // INFO: You can disable this logic (comment these lines below within this task)
-    // if you want to use an existing immudb server, without starting and stopping
-    // the locally used immudb version (stored in `immudb` directory and controlled
-    // through the scripts). Just make sure immudb server has the proper version.
-    workingDir 'immudb'
-    commandLine './clean.sh'
-}
-
-
 idea {
     module {
         sourceDirs += file("${projectDir}/src/generated/main/java")
@@ -166,9 +140,7 @@ test {
     }
 }
 
-test.dependsOn immudbStart
-
-test.finalizedBy([jacocoTestReport, immudbStop])
+test.finalizedBy([jacocoTestReport])
 
 task integrationTest(type: Test) {
     testClassesDirs = sourceSets.integrationTest.output.classesDirs
