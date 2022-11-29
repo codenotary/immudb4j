@@ -19,7 +19,10 @@ import com.google.protobuf.ByteString;
 import com.google.protobuf.Empty;
 import io.codenotary.immudb.ImmuServiceGrpc;
 import io.codenotary.immudb.ImmudbProto;
+import io.codenotary.immudb.ImmudbProto.Chunk;
 import io.codenotary.immudb.ImmudbProto.ScanRequest;
+import io.codenotary.immudb.ImmudbProto.Score;
+import io.codenotary.immudb4j.basics.LatchHolder;
 import io.codenotary.immudb4j.crypto.CryptoUtils;
 import io.codenotary.immudb4j.crypto.DualProof;
 import io.codenotary.immudb4j.crypto.InclusionProof;
@@ -29,14 +32,19 @@ import io.codenotary.immudb4j.user.User;
 import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
 import io.grpc.StatusRuntimeException;
+import io.grpc.stub.StreamObserver;
 import io.grpc.ConnectivityState;
 
+import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
 import java.nio.charset.StandardCharsets;
 import java.security.NoSuchAlgorithmException;
 import java.security.PublicKey;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Iterator;
 import java.util.List;
+import java.util.NoSuchElementException;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.TimeUnit;
@@ -53,35 +61,37 @@ public class ImmuClient {
     private final PublicKey serverSigningKey;
     private final ImmuStateHolder stateHolder;
     private long keepAlivePeriod;
+    private int chunkSize;
 
     private ManagedChannel channel;
 
-    private final ImmuServiceGrpc.ImmuServiceBlockingStub stub;
+    private final ImmuServiceGrpc.ImmuServiceBlockingStub blockingStub;
+    private final ImmuServiceGrpc.ImmuServiceStub nonBlockingStub;
 
     private Session session;
     private Timer sessionHeartBeat;
-    
+
     public ImmuClient(Builder builder) {
-        this.stateHolder = builder.getStateHolder();
-        this.serverSigningKey = builder.getServerSigningKey();
-        this.keepAlivePeriod = builder.getKeepAlivePeriod();
-        this.stub = createStubFrom(builder);
+        stateHolder = builder.getStateHolder();
+        serverSigningKey = builder.getServerSigningKey();
+        keepAlivePeriod = builder.getKeepAlivePeriod();
+        chunkSize = builder.getChunkSize();
+
+        channel = ManagedChannelBuilder
+                .forAddress(builder.getServerUrl(), builder.getServerPort())
+                .usePlaintext()
+                .intercept(new ImmudbAuthRequestInterceptor(this))
+                .build();
+
+        blockingStub = ImmuServiceGrpc.newBlockingStub(channel);
+        nonBlockingStub = ImmuServiceGrpc.newStub(channel);
     }
 
     public static Builder newBuilder() {
         return new Builder();
     }
 
-    private ImmuServiceGrpc.ImmuServiceBlockingStub createStubFrom(Builder builder) {
-        channel = ManagedChannelBuilder.forAddress(builder.getServerUrl(), builder.getServerPort())
-                .usePlaintext()
-                .intercept(new ImmudbAuthRequestInterceptor(this))
-                .build();
-
-        return ImmuServiceGrpc.newBlockingStub(channel);
-    }
-
-    public synchronized void shutdown() {
+    public synchronized void shutdown() throws InterruptedException {
         if (channel == null) {
             return;
         }
@@ -91,46 +101,43 @@ public class ImmuClient {
         }
 
         try {
-            channel.shutdown();
-            if (!channel.isShutdown()) {
-                try {
-                    channel.awaitTermination(1, TimeUnit.SECONDS);
-                } catch (InterruptedException e) {
-                    channel.shutdownNow();
-                }
-            }
+            channel.shutdown().awaitTermination(5, TimeUnit.SECONDS);
         } finally {
             channel = null;
         }
     }
 
-    Session getSession() {
-        return this.session;
+    protected synchronized Session getSession() {
+        return session;
     }
 
-    public synchronized void openSession(String username, String password, String database) {
-        if (this.session != null) {
+    public synchronized void openSession(String database, String username, String password) {
+        if (session != null) {
             throw new IllegalStateException("session already opened");
         }
 
         final ImmudbProto.OpenSessionRequest req = ImmudbProto.OpenSessionRequest
                 .newBuilder()
+                .setDatabaseName(database)
                 .setUsername(Utils.toByteString(username))
                 .setPassword(Utils.toByteString(password))
-                .setDatabaseName(database)
                 .build();
 
-        final ImmudbProto.OpenSessionResponse resp = this.stub.openSession(req);
+        final ImmudbProto.OpenSessionResponse resp = this.blockingStub.openSession(req);
 
-        this.session = new Session(resp.getSessionID(), database);
+        session = new Session(resp.getSessionID(), database);
 
-        this.sessionHeartBeat = new Timer();
+        sessionHeartBeat = new Timer();
 
-        this.sessionHeartBeat.schedule(new TimerTask() {
+        sessionHeartBeat.schedule(new TimerTask() {
             @Override
             public void run() {
                 try {
-                    stub.keepAlive(Empty.getDefaultInstance());
+                    synchronized (ImmuClient.this) {
+                        if (session != null) {
+                            blockingStub.keepAlive(Empty.getDefaultInstance());
+                        }
+                    }
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
@@ -139,16 +146,16 @@ public class ImmuClient {
     }
 
     public synchronized void closeSession() {
-        if (this.session == null) {
+        if (session == null) {
             throw new IllegalStateException("no open session");
         }
 
-        this.sessionHeartBeat.cancel();
+        sessionHeartBeat.cancel();
 
         try {
-            this.stub.closeSession(Empty.getDefaultInstance());
+            blockingStub.closeSession(Empty.getDefaultInstance());
         } finally {
-            this.session = null;
+            session = null;
         }
     }
 
@@ -157,14 +164,14 @@ public class ImmuClient {
      * If nothing exists already, it is fetched from the server and save it locally.
      */
     private ImmuState state() throws VerificationException {
-        if (this.session == null) {
+        if (session == null) {
             throw new IllegalStateException("no open session");
         }
 
-        ImmuState state = this.stateHolder.getState(this.session.getDatabase());
+        ImmuState state = stateHolder.getState(session.getDatabase());
 
         if (state == null) {
-            state = this.currentState();
+            state = currentState();
             stateHolder.setState(state);
         }
 
@@ -179,19 +186,19 @@ public class ImmuClient {
      * Note: local state is not updated because this is not a verified operation
      */
     public synchronized ImmuState currentState() throws VerificationException {
-        if (this.session == null) {
+        if (session == null) {
             throw new IllegalStateException("no open session");
         }
 
-        final ImmudbProto.ImmutableState state = this.stub.currentState(Empty.getDefaultInstance());
+        final ImmudbProto.ImmutableState state = blockingStub.currentState(Empty.getDefaultInstance());
 
         final ImmuState immuState = ImmuState.valueOf(state);
 
-        if (!this.session.getDatabase().equals(immuState.getDatabase())) {
+        if (!session.getDatabase().equals(immuState.getDatabase())) {
             throw new VerificationException("database mismatch");
         }
 
-        if (!immuState.checkSignature(this.serverSigningKey)) {
+        if (!immuState.checkSignature(serverSigningKey)) {
             throw new VerificationException("State signature verification failed");
         }
 
@@ -202,25 +209,84 @@ public class ImmuClient {
     // ========== DATABASE ==========
     //
 
-    public synchronized void createDatabase(String database) {
-        if (this.session == null) {
+    public void createDatabase(String database) {
+        createDatabase(database, false);
+    }
+
+    public synchronized void createDatabase(String database, boolean ifNotExists) {
+        if (session == null) {
             throw new IllegalStateException("no open session");
         }
 
         final ImmudbProto.CreateDatabaseRequest req = ImmudbProto.CreateDatabaseRequest.newBuilder()
                 .setName(database)
+                .setIfNotExists(ifNotExists)
                 .build();
 
-        this.stub.createDatabaseV2(req);
+        blockingStub.createDatabaseV2(req);
+    }
+
+    // LoadDatabase loads database on the server. A database is not loaded
+    // if it has AutoLoad setting set to false or if it failed to load during
+    // immudb startup.
+    //
+    // This call requires SysAdmin permission level or admin permission to the
+    // database.
+    public synchronized void loadDatabase(String database) {
+        if (session == null) {
+            throw new IllegalStateException("no open session");
+        }
+
+        final ImmudbProto.LoadDatabaseRequest req = ImmudbProto.LoadDatabaseRequest.newBuilder()
+                .setDatabase(database)
+                .build();
+
+        blockingStub.loadDatabase(req);
+    }
+
+    // UnloadDatabase unloads database on the server. Such database becomes
+    // inaccessible
+    // by the client and server frees internal resources allocated for that
+    // database.
+    //
+    // This call requires SysAdmin permission level or admin permission to the
+    // database.
+    public synchronized void unloadDatabase(String database) {
+        if (session == null) {
+            throw new IllegalStateException("no open session");
+        }
+
+        final ImmudbProto.UnloadDatabaseRequest req = ImmudbProto.UnloadDatabaseRequest.newBuilder()
+                .setDatabase(database)
+                .build();
+
+        blockingStub.unloadDatabase(req);
+    }
+
+    // DeleteDatabase removes an unloaded database.
+    // This also removes locally stored files used by the database.
+    //
+    // This call requires SysAdmin permission level or admin permission to the
+    // database.
+    public synchronized void deleteDatabase(String database) {
+        if (session == null) {
+            throw new IllegalStateException("no open session");
+        }
+
+        final ImmudbProto.DeleteDatabaseRequest req = ImmudbProto.DeleteDatabaseRequest.newBuilder()
+                .setDatabase(database)
+                .build();
+
+        blockingStub.deleteDatabase(req);
     }
 
     public synchronized List<String> databases() {
-        if (this.session == null) {
+        if (session == null) {
             throw new IllegalStateException("no open session");
         }
 
         final ImmudbProto.DatabaseListRequestV2 req = ImmudbProto.DatabaseListRequestV2.newBuilder().build();
-        final ImmudbProto.DatabaseListResponseV2 resp = this.stub.databaseListV2(req);
+        final ImmudbProto.DatabaseListResponseV2 resp = blockingStub.databaseListV2(req);
 
         final List<String> list = new ArrayList<>(resp.getDatabasesCount());
 
@@ -254,7 +320,7 @@ public class ImmuClient {
                 .build();
 
         try {
-            return Entry.valueOf(this.stub.get(req));
+            return Entry.valueOf(blockingStub.get(req));
         } catch (StatusRuntimeException e) {
             if (e.getMessage().contains("key not found")) {
                 throw new KeyNotFoundException();
@@ -275,7 +341,7 @@ public class ImmuClient {
                 .build();
 
         try {
-            return Entry.valueOf(this.stub.get(req));
+            return Entry.valueOf(blockingStub.get(req));
         } catch (StatusRuntimeException e) {
             if (e.getMessage().contains("key not found")) {
                 throw new KeyNotFoundException();
@@ -296,7 +362,7 @@ public class ImmuClient {
                 .build();
 
         try {
-            return Entry.valueOf(this.stub.get(req));
+            return Entry.valueOf(blockingStub.get(req));
         } catch (StatusRuntimeException e) {
             if (e.getMessage().contains("key not found")) {
                 throw new KeyNotFoundException();
@@ -314,7 +380,7 @@ public class ImmuClient {
         }
 
         final ImmudbProto.KeyListRequest req = ImmudbProto.KeyListRequest.newBuilder().addAllKeys(keysBS).build();
-        final ImmudbProto.Entries entries = this.stub.getAll(req);
+        final ImmudbProto.Entries entries = blockingStub.getAll(req);
 
         final List<Entry> result = new ArrayList<>(entries.getEntriesCount());
 
@@ -338,7 +404,7 @@ public class ImmuClient {
     }
 
     public synchronized Entry verifiedGetAtTx(byte[] key, long tx) throws KeyNotFoundException, VerificationException {
-        final ImmuState state = this.state();
+        final ImmuState state = state();
 
         final ImmudbProto.KeyRequest keyReq = ImmudbProto.KeyRequest.newBuilder()
                 .setKey(Utils.toByteString(key))
@@ -355,7 +421,7 @@ public class ImmuClient {
     public synchronized Entry verifiedGetSinceTx(byte[] key, long tx)
             throws KeyNotFoundException, VerificationException {
 
-        final ImmuState state = this.state();
+        final ImmuState state = state();
 
         final ImmudbProto.KeyRequest keyReq = ImmudbProto.KeyRequest.newBuilder()
                 .setKey(Utils.toByteString(key))
@@ -372,7 +438,7 @@ public class ImmuClient {
     public synchronized Entry verifiedGetAtRevision(byte[] key, long rev)
             throws KeyNotFoundException, VerificationException {
 
-        final ImmuState state = this.state();
+        final ImmuState state = state();
 
         final ImmudbProto.KeyRequest keyReq = ImmudbProto.KeyRequest.newBuilder()
                 .setKey(Utils.toByteString(key))
@@ -392,7 +458,7 @@ public class ImmuClient {
         final ImmudbProto.VerifiableEntry vEntry;
 
         try {
-            vEntry = this.stub.verifiableGet(vGetReq);
+            vEntry = blockingStub.verifiableGet(vGetReq);
         } catch (StatusRuntimeException e) {
             if (e.getMessage().contains("key not found")) {
                 throw new KeyNotFoundException();
@@ -464,7 +530,7 @@ public class ImmuClient {
         }
 
         final ImmuState newState = new ImmuState(
-                this.session.getDatabase(),
+                session.getDatabase(),
                 targetId,
                 targetAlh,
                 vEntry.getVerifiableTx().getSignature().toByteArray());
@@ -473,7 +539,7 @@ public class ImmuClient {
             throw new VerificationException("State signature verification failed");
         }
 
-        this.stateHolder.setState(newState);
+        stateHolder.setState(newState);
 
         return Entry.valueOf(vEntry.getEntry());
     }
@@ -492,7 +558,7 @@ public class ImmuClient {
                     .addKeys(Utils.toByteString(key))
                     .build();
 
-            return TxHeader.valueOf(this.stub.delete(req));
+            return TxHeader.valueOf(blockingStub.delete(req));
         } catch (StatusRuntimeException e) {
             if (e.getMessage().contains("key not found")) {
                 throw new KeyNotFoundException();
@@ -506,18 +572,18 @@ public class ImmuClient {
     // ========== HISTORY ==========
     //
 
-    public List<Entry> history(String key, int limit, long offset, boolean desc) throws KeyNotFoundException {
-        return history(Utils.toByteArray(key), limit, offset, desc);
+    public List<Entry> historyAll(String key, long offset, boolean desc, int limit) throws KeyNotFoundException {
+        return historyAll(Utils.toByteArray(key), offset, desc, limit);
     }
 
-    public synchronized List<Entry> history(byte[] key, int limit, long offset, boolean desc)
+    public synchronized List<Entry> historyAll(byte[] key, long offset, boolean desc, int limit)
             throws KeyNotFoundException {
         try {
-            ImmudbProto.Entries entries = this.stub.history(ImmudbProto.HistoryRequest.newBuilder()
+            ImmudbProto.Entries entries = blockingStub.history(ImmudbProto.HistoryRequest.newBuilder()
                     .setKey(Utils.toByteString(key))
-                    .setLimit(limit)
-                    .setOffset(offset)
                     .setDesc(desc)
+                    .setOffset(offset)
+                    .setLimit(limit)
                     .build());
 
             return buildList(entries);
@@ -534,52 +600,44 @@ public class ImmuClient {
     // ========== SCAN ==========
     //
 
-    public List<Entry> scan(String prefix) {
-        return scan(Utils.toByteArray(prefix));
+    public List<Entry> scanAll(String prefix) {
+        return scanAll(Utils.toByteArray(prefix));
     }
 
-    public List<Entry> scan(byte[] prefix) {
-        return scan(prefix, 0, false);
+    public List<Entry> scanAll(byte[] prefix) {
+        return scanAll(prefix, false, 0);
     }
 
-    public List<Entry> scan(String prefix, long limit, boolean desc) {
-        return scan(Utils.toByteArray(prefix), limit, desc);
+    public List<Entry> scanAll(String prefix, boolean desc, long limit) {
+        return scanAll(Utils.toByteArray(prefix), null, desc, limit);
     }
 
-    public List<Entry> scan(byte[] prefix, long limit, boolean desc) {
-        return scan(prefix, null, limit, desc);
+    public List<Entry> scanAll(byte[] prefix, boolean desc, long limit) {
+        return scanAll(prefix, null, desc, limit);
     }
 
-    public List<Entry> scan(String prefix, String seekKey, long limit, boolean desc) {
-        return scan(Utils.toByteArray(prefix), Utils.toByteArray(seekKey), limit, desc);
+    public List<Entry> scanAll(byte[] prefix, byte[] seekKey, boolean desc, long limit) {
+        return scanAll(prefix, seekKey, null, desc, limit);
     }
 
-    public List<Entry> scan(String prefix, String seekKey, String endKey, long limit, boolean desc) {
-        return scan(Utils.toByteArray(prefix), Utils.toByteArray(seekKey), Utils.toByteArray(endKey), limit, desc);
+    public List<Entry> scanAll(byte[] prefix, byte[] seekKey, byte[] endKey, boolean desc, long limit) {
+        return scanAll(prefix, seekKey, endKey, false, false, desc, limit);
     }
 
-    public List<Entry> scan(byte[] prefix, byte[] seekKey, long limit, boolean desc) {
-        return scan(prefix, seekKey, null, limit, desc);
-    }
-
-    public List<Entry> scan(byte[] prefix, byte[] seekKey, byte[] endKey, long limit, boolean desc) {
-        return scan(prefix, seekKey, endKey, false, false, limit, desc);
-    }
-
-    public synchronized List<Entry> scan(byte[] prefix, byte[] seekKey, byte[] endKey, boolean inclusiveSeek,
+    public synchronized List<Entry> scanAll(byte[] prefix, byte[] seekKey, byte[] endKey, boolean inclusiveSeek,
             boolean inclusiveEnd,
-            long limit, boolean desc) {
+            boolean desc, long limit) {
         final ImmudbProto.ScanRequest req = ScanRequest.newBuilder()
                 .setPrefix(Utils.toByteString(prefix))
                 .setSeekKey(Utils.toByteString(seekKey))
                 .setEndKey(Utils.toByteString(endKey))
                 .setInclusiveSeek(inclusiveSeek)
                 .setInclusiveEnd(inclusiveEnd)
-                .setLimit(limit)
                 .setDesc(desc)
+                .setLimit(limit)
                 .build();
 
-        final ImmudbProto.Entries entries = this.stub.scan(req);
+        final ImmudbProto.Entries entries = blockingStub.scan(req);
         return buildList(entries);
     }
 
@@ -598,7 +656,7 @@ public class ImmuClient {
                 .build();
 
         final ImmudbProto.SetRequest req = ImmudbProto.SetRequest.newBuilder().addKVs(kv).build();
-        final ImmudbProto.TxHeader txHdr = this.stub.set(req);
+        final ImmudbProto.TxHeader txHdr = blockingStub.set(req);
 
         if (txHdr.getNentries() != 1) {
             throw new CorruptedDataException();
@@ -619,7 +677,7 @@ public class ImmuClient {
             reqBuilder.addKVs(kvBuilder.build());
         }
 
-        final ImmudbProto.TxHeader txHdr = this.stub.set(reqBuilder.build());
+        final ImmudbProto.TxHeader txHdr = blockingStub.set(reqBuilder.build());
 
         if (txHdr.getNentries() != kvList.size()) {
             throw new CorruptedDataException();
@@ -649,7 +707,7 @@ public class ImmuClient {
                 .setBoundRef(atTx > 0)
                 .build();
 
-        final ImmudbProto.TxHeader txHdr = this.stub.setReference(req);
+        final ImmudbProto.TxHeader txHdr = blockingStub.setReference(req);
 
         if (txHdr.getNentries() != 1) {
             throw new CorruptedDataException();
@@ -663,7 +721,7 @@ public class ImmuClient {
     }
 
     public synchronized TxHeader verifiedSet(byte[] key, byte[] value) throws VerificationException {
-        final ImmuState state = this.state();
+        final ImmuState state = state();
 
         final ImmudbProto.KeyValue kv = ImmudbProto.KeyValue.newBuilder()
                 .setKey(Utils.toByteString(key))
@@ -675,7 +733,7 @@ public class ImmuClient {
                 .setProveSinceTx(state.getTxId())
                 .build();
 
-        final ImmudbProto.VerifiableTx vtx = this.stub.verifiableSet(vSetReq);
+        final ImmudbProto.VerifiableTx vtx = blockingStub.verifiableSet(vSetReq);
 
         final int ne = vtx.getTx().getHeader().getNentries();
 
@@ -711,7 +769,7 @@ public class ImmuClient {
             throw new VerificationException("State signature verification failed");
         }
 
-        this.stateHolder.setState(newState);
+        stateHolder.setState(newState);
 
         return TxHeader.valueOf(vtx.getTx().getHeader());
     }
@@ -723,7 +781,7 @@ public class ImmuClient {
     public synchronized TxHeader verifiedSetReference(byte[] key, byte[] referencedKey, long atTx)
             throws VerificationException {
 
-        final ImmuState state = this.state();
+        final ImmuState state = state();
 
         final ImmudbProto.ReferenceRequest refReq = ImmudbProto.ReferenceRequest.newBuilder()
                 .setKey(Utils.toByteString(key))
@@ -737,7 +795,7 @@ public class ImmuClient {
                 .setProveSinceTx(state.getTxId())
                 .build();
 
-        final ImmudbProto.VerifiableTx vtx = this.stub.verifiableSetReference(vRefReq);
+        final ImmudbProto.VerifiableTx vtx = blockingStub.verifiableSetReference(vRefReq);
 
         final int vtxNentries = vtx.getTx().getHeader().getNentries();
         if (vtxNentries != 1) {
@@ -779,7 +837,7 @@ public class ImmuClient {
             throw new VerificationException("State signature verification failed");
         }
 
-        this.stateHolder.setState(newState);
+        stateHolder.setState(newState);
 
         return TxHeader.valueOf(vtx.getTx().getHeader());
     }
@@ -819,7 +877,7 @@ public class ImmuClient {
     }
 
     public synchronized TxHeader zAdd(byte[] set, byte[] key, long atTx, double score) throws CorruptedDataException {
-        final ImmudbProto.TxHeader txHdr = this.stub.zAdd(
+        final ImmudbProto.TxHeader txHdr = blockingStub.zAdd(
                 ImmudbProto.ZAddRequest.newBuilder()
                         .setSet(Utils.toByteString(set))
                         .setKey(Utils.toByteString(key))
@@ -850,7 +908,7 @@ public class ImmuClient {
     public synchronized TxHeader verifiedZAdd(byte[] set, byte[] key, long atTx, double score)
             throws VerificationException {
 
-        final ImmuState state = this.state();
+        final ImmuState state = state();
 
         final ImmudbProto.ZAddRequest zAddReq = ImmudbProto.ZAddRequest.newBuilder()
                 .setSet(Utils.toByteString(set))
@@ -865,7 +923,7 @@ public class ImmuClient {
                 .setProveSinceTx(state.getTxId())
                 .build();
 
-        final ImmudbProto.VerifiableTx vtx = this.stub.verifiableZAdd(vZAddReq);
+        final ImmudbProto.VerifiableTx vtx = blockingStub.verifiableZAdd(vZAddReq);
 
         if (vtx.getTx().getHeader().getNentries() != 1) {
             throw new VerificationException("Data is corrupted.");
@@ -904,35 +962,61 @@ public class ImmuClient {
             throw new VerificationException("State signature verification failed");
         }
 
-        this.stateHolder.setState(newState);
+        stateHolder.setState(newState);
 
         return TxHeader.valueOf(vtx.getTx().getHeader());
     }
 
-    public List<ZEntry> zScan(String set, long limit, boolean reverse) {
-        return zScan(Utils.toByteArray(set), limit, reverse);
+    public List<ZEntry> zScanAll(String set) {
+        return zScanAll(set, false, 0);
     }
 
-    public synchronized List<ZEntry> zScan(byte[] set, long limit, boolean reverse) {
-        final ImmudbProto.ZScanRequest req = ImmudbProto.ZScanRequest
-                .newBuilder()
-                .setSet(Utils.toByteString(set))
-                .setLimit(limit)
-                .setDesc(reverse)
-                .build();
+    public List<ZEntry> zScanAll(String set, boolean reverse, long limit) {
+        return pzScanAll(Utils.toByteArray(set), null, null, null, null, 0, false, reverse, limit);
+    }
 
-        final ImmudbProto.ZEntries zEntries = this.stub.zScan(req);
+    public List<ZEntry> zScanAll(byte[] set, double minScore, double maxScore, boolean reverse, long limit) {
+        return pzScanAll(set, minScore, maxScore, null, null, 0, false, false, 0);
+    }
+
+    public List<ZEntry> zScanAll(byte[] set, double minScore, double maxScore, double seekScore, byte[] seekKey,
+            long seekAtTx, boolean inclusiveSeek, boolean reverse, long limit) {
+        return pzScanAll(set, minScore, maxScore, seekScore, seekKey, seekAtTx, inclusiveSeek, reverse, limit);
+    }
+
+    private synchronized List<ZEntry> pzScanAll(byte[] set, Double minScore, Double maxScore, Double seekScore,
+            byte[] seekKey,
+            long seekAtTx, boolean inclusiveSeek, boolean reverse, long limit) {
+
+        final ImmudbProto.ZScanRequest.Builder reqBuilder = ImmudbProto.ZScanRequest.newBuilder();
+
+        reqBuilder.setSet(Utils.toByteString(set))
+                .setSeekKey(Utils.toByteString(seekKey))
+                .setSeekAtTx(seekAtTx)
+                .setInclusiveSeek(inclusiveSeek)
+                .setDesc(reverse)
+                .setLimit(limit);
+
+        if (seekScore != null) {
+            reqBuilder.setSeekScore(seekScore);
+        }
+
+        if (minScore != null) {
+            reqBuilder.setMinScore(Score.newBuilder().setScore(minScore).build());
+        }
+
+        if (maxScore != null) {
+            reqBuilder.setMaxScore(Score.newBuilder().setScore(maxScore).build());
+        }
+
+        final ImmudbProto.ZEntries zEntries = blockingStub.zScan(reqBuilder.build());
 
         return buildList(zEntries);
     }
 
-    //
-    // ========== TX ==========
-    //
-
     public synchronized Tx txById(long txId) throws TxNotFoundException, NoSuchAlgorithmException {
         try {
-            final ImmudbProto.Tx tx = this.stub.txById(ImmudbProto.TxRequest.newBuilder().setTx(txId).build());
+            final ImmudbProto.Tx tx = blockingStub.txById(ImmudbProto.TxRequest.newBuilder().setTx(txId).build());
             return Tx.valueOf(tx);
         } catch (StatusRuntimeException e) {
             if (e.getMessage().contains("tx not found")) {
@@ -944,7 +1028,7 @@ public class ImmuClient {
     }
 
     public synchronized Tx verifiedTxById(long txId) throws TxNotFoundException, VerificationException {
-        final ImmuState state = this.state();
+        final ImmuState state = state();
 
         final ImmudbProto.VerifiableTxRequest vTxReq = ImmudbProto.VerifiableTxRequest.newBuilder()
                 .setTx(txId)
@@ -954,7 +1038,7 @@ public class ImmuClient {
         final ImmudbProto.VerifiableTx vtx;
 
         try {
-            vtx = this.stub.verifiableTxById(vTxReq);
+            vtx = blockingStub.verifiableTxById(vTxReq);
         } catch (StatusRuntimeException e) {
             if (e.getMessage().contains("tx not found")) {
                 throw new TxNotFoundException();
@@ -1012,21 +1096,358 @@ public class ImmuClient {
         return tx;
     }
 
-    public synchronized List<Tx> txScan(long initialTxId) {
+    public synchronized List<Tx> txScanAll(long initialTxId) {
         final ImmudbProto.TxScanRequest req = ImmudbProto.TxScanRequest.newBuilder().setInitialTx(initialTxId).build();
-        final ImmudbProto.TxList txList = this.stub.txScan(req);
+        final ImmudbProto.TxList txList = blockingStub.txScan(req);
+
         return buildList(txList);
     }
 
-    public synchronized List<Tx> txScan(long initialTxId, int limit, boolean desc) {
+    public synchronized List<Tx> txScanAll(long initialTxId, int limit, boolean desc) {
         final ImmudbProto.TxScanRequest req = ImmudbProto.TxScanRequest
                 .newBuilder()
                 .setInitialTx(initialTxId)
-                .setLimit(limit)
                 .setDesc(desc)
+                .setLimit(limit)
                 .build();
-        final ImmudbProto.TxList txList = this.stub.txScan(req);
+
+        final ImmudbProto.TxList txList = blockingStub.txScan(req);
         return buildList(txList);
+    }
+
+    //
+    // ========== STREAMS ==========
+    //
+
+    private StreamObserver<ImmudbProto.TxHeader> txHeaderStreamObserver(LatchHolder<ImmudbProto.TxHeader> latchHolder) {
+        return new StreamObserver<ImmudbProto.TxHeader>() {
+            @Override
+            public void onCompleted() {
+            }
+
+            @Override
+            public void onError(Throwable cause) {
+                throw new RuntimeException(cause);
+            }
+
+            @Override
+            public void onNext(ImmudbProto.TxHeader hdr) {
+                latchHolder.doneWith(hdr);
+            }
+        };
+    }
+
+    private void chunkIt(byte[] bs, StreamObserver<Chunk> streamObserver) {
+        final ByteBuffer buf = ByteBuffer.allocate(chunkSize).order(ByteOrder.BIG_ENDIAN);
+
+        buf.putLong(bs.length);
+
+        int i = 0;
+
+        while (i < bs.length) {
+            final int chunkContentLen = Math.min(bs.length, buf.remaining());
+
+            buf.put(bs, i, chunkContentLen);
+
+            buf.flip();
+
+            byte[] chunkContent = new byte[buf.limit()];
+            buf.get(chunkContent);
+
+            final Chunk chunk = Chunk.newBuilder().setContent(Utils.toByteString(chunkContent)).build();
+
+            streamObserver.onNext(chunk);
+
+            buf.clear();
+
+            i += chunkContentLen;
+        }
+    }
+
+    private byte[] dechunkIt(Iterator<Chunk> chunks) {
+        final Chunk firstChunk = chunks.next();
+        final byte[] firstChunkContent = firstChunk.getContent().toByteArray();
+
+        if (firstChunkContent.length < Long.BYTES) {
+            throw new RuntimeException("invalid chunk");
+        }
+
+        final ByteBuffer b = ByteBuffer.allocate(Long.BYTES).order(ByteOrder.BIG_ENDIAN);
+        b.put(firstChunkContent, 0, Long.BYTES);
+
+        int payloadSize = (int) b.getLong(0);
+
+        final ByteBuffer buf = ByteBuffer.allocate(payloadSize);
+        buf.put(firstChunkContent, Long.BYTES, firstChunkContent.length - Long.BYTES);
+
+        while (buf.position() < payloadSize) {
+            Chunk chunk = chunks.next();
+            buf.put(chunk.getContent().toByteArray());
+        }
+
+        return buf.array();
+    }
+
+    private Iterator<Entry> entryIterator(Iterator<Chunk> chunks) {
+        return new Iterator<Entry>() {
+
+            @Override
+            public boolean hasNext() {
+                try {
+                    return chunks.hasNext();
+                } catch (StatusRuntimeException e) {
+                    if (e.getMessage().contains("key not found")) {
+                        return false;
+                    }
+
+                    throw e;
+                }
+            }
+
+            @Override
+            public Entry next() {
+                return new Entry(dechunkIt(chunks), dechunkIt(chunks));
+            }
+
+        };
+    }
+
+    private Iterator<ZEntry> zentryIterator(Iterator<Chunk> chunks) {
+        return new Iterator<ZEntry>() {
+
+            @Override
+            public boolean hasNext() {
+                try {
+                    return chunks.hasNext();
+                } catch (StatusRuntimeException e) {
+                    if (e.getMessage().contains("key not found")) {
+                        return false;
+                    }
+
+                    throw e;
+                }
+            }
+
+            @Override
+            public ZEntry next() {
+                final byte[] set = dechunkIt(chunks);
+                final byte[] key = dechunkIt(chunks);
+
+                final ByteBuffer b = ByteBuffer.allocate(Double.BYTES + Long.BYTES).order(ByteOrder.BIG_ENDIAN);
+                b.put(dechunkIt(chunks)); // score
+                b.put(dechunkIt(chunks)); // atTx
+
+                double score = b.getDouble(0);
+                long atTx = b.getLong(Double.BYTES);
+
+                final byte[] value = dechunkIt(chunks);
+
+                final Entry entry = new Entry(key, value);
+
+                return new ZEntry(set, key, score, atTx, entry);
+            }
+
+        };
+    }
+
+    //
+    // ========== STREAM SET ==========
+    //
+
+    public TxHeader streamSet(String key, byte[] value) throws InterruptedException, CorruptedDataException {
+        return streamSet(Utils.toByteArray(key), value);
+    }
+
+    public synchronized TxHeader streamSet(byte[] key, byte[] value)
+            throws InterruptedException, CorruptedDataException {
+        final LatchHolder<ImmudbProto.TxHeader> latchHolder = new LatchHolder<>();
+        final StreamObserver<Chunk> streamObserver = nonBlockingStub.streamSet(txHeaderStreamObserver(latchHolder));
+
+        chunkIt(key, streamObserver);
+        chunkIt(value, streamObserver);
+
+        streamObserver.onCompleted();
+
+        final ImmudbProto.TxHeader txHdr = latchHolder.awaitValue();
+
+        if (txHdr.getNentries() != 1) {
+            throw new CorruptedDataException();
+        }
+
+        return TxHeader.valueOf(txHdr);
+    }
+
+    public synchronized TxHeader streamSetAll(List<KVPair> kvList) throws InterruptedException, CorruptedDataException {
+        final LatchHolder<ImmudbProto.TxHeader> latchHolder = new LatchHolder<>();
+        final StreamObserver<Chunk> streamObserver = nonBlockingStub.streamSet(txHeaderStreamObserver(latchHolder));
+
+        for (KVPair kv : kvList) {
+            chunkIt(kv.getKey(), streamObserver);
+            chunkIt(kv.getValue(), streamObserver);
+        }
+
+        streamObserver.onCompleted();
+
+        final ImmudbProto.TxHeader txHdr = latchHolder.awaitValue();
+
+        if (txHdr.getNentries() != kvList.size()) {
+            throw new CorruptedDataException();
+        }
+
+        return TxHeader.valueOf(txHdr);
+    }
+
+    //
+    // ========== STREAM GET ==========
+    //
+
+    public Entry streamGet(String key) throws KeyNotFoundException {
+        return streamGet(Utils.toByteArray(key));
+    }
+
+    public synchronized Entry streamGet(byte[] key) throws KeyNotFoundException {
+        final ImmudbProto.KeyRequest req = ImmudbProto.KeyRequest.newBuilder()
+                .setKey(Utils.toByteString(key))
+                .build();
+
+        try {
+            final Iterator<Chunk> chunks = blockingStub.streamGet(req);
+            return new Entry(dechunkIt(chunks), dechunkIt(chunks));
+        } catch (StatusRuntimeException e) {
+            if (e.getMessage().contains("key not found")) {
+                throw new KeyNotFoundException();
+            }
+
+            throw e;
+        }
+    }
+
+    //
+    // ========== STREAM SCAN ==========
+    //
+
+    public Iterator<Entry> scan(String prefix) {
+        return scan(Utils.toByteArray(prefix));
+    }
+
+    public Iterator<Entry> scan(byte[] prefix) {
+        return scan(prefix, false, 0);
+    }
+
+    public Iterator<Entry> scan(String prefix, boolean desc, long limit) {
+        return scan(Utils.toByteArray(prefix), desc, limit);
+    }
+
+    public Iterator<Entry> scan(byte[] prefix, boolean desc, long limit) {
+        return scan(prefix, null, desc, limit);
+    }
+
+    public Iterator<Entry> scan(byte[] prefix, byte[] seekKey, boolean desc, long limit) {
+        return scan(prefix, seekKey, null, desc, limit);
+    }
+
+    public Iterator<Entry> scan(byte[] prefix, byte[] seekKey, byte[] endKey, boolean desc, long limit) {
+        return scan(prefix, seekKey, endKey, false, false, desc, limit);
+    }
+
+    public synchronized Iterator<Entry> scan(byte[] prefix, byte[] seekKey, byte[] endKey, boolean inclusiveSeek,
+            boolean inclusiveEnd,
+            boolean desc, long limit) {
+
+        final ImmudbProto.ScanRequest req = ScanRequest.newBuilder()
+                .setPrefix(Utils.toByteString(prefix))
+                .setSeekKey(Utils.toByteString(seekKey))
+                .setEndKey(Utils.toByteString(endKey))
+                .setInclusiveSeek(inclusiveSeek)
+                .setInclusiveEnd(inclusiveEnd)
+                .setDesc(desc)
+                .setLimit(limit)
+                .build();
+
+        final Iterator<Chunk> chunks = blockingStub.streamScan(req);
+
+        return entryIterator(chunks);
+    }
+
+    //
+    // ========== STREAM ZSCAN ==========
+    //
+
+    public Iterator<ZEntry> zScan(String set) {
+        return zScan(set, false, 0);
+    }
+
+    public Iterator<ZEntry> zScan(String set, boolean reverse, long limit) {
+        return pzScan(Utils.toByteArray(set), null, null, null, null, 0, false, reverse, limit);
+    }
+
+    public Iterator<ZEntry> zScan(byte[] set, double minScore, double maxScore, boolean reverse, long limit) {
+        return pzScan(set, minScore, maxScore, null, null, 0, false, false, 0);
+    }
+
+    public Iterator<ZEntry> zScan(byte[] set, double minScore, double maxScore, double seekScore, byte[] seekKey,
+            long seekAtTx, boolean inclusiveSeek, boolean reverse, long limit) {
+        return pzScan(set, minScore, maxScore, seekScore, seekKey, seekAtTx, inclusiveSeek, reverse, limit);
+    }
+
+    private synchronized Iterator<ZEntry> pzScan(byte[] set, Double minScore, Double maxScore, Double seekScore,
+            byte[] seekKey,
+            long seekAtTx, boolean inclusiveSeek, boolean reverse, long limit) {
+
+        final ImmudbProto.ZScanRequest.Builder reqBuilder = ImmudbProto.ZScanRequest.newBuilder();
+
+        reqBuilder.setSet(Utils.toByteString(set))
+                .setSeekKey(Utils.toByteString(seekKey))
+                .setSeekAtTx(seekAtTx)
+                .setInclusiveSeek(inclusiveSeek)
+                .setDesc(reverse)
+                .setLimit(limit);
+
+        if (seekScore != null) {
+            reqBuilder.setSeekScore(seekScore);
+        }
+
+        if (minScore != null) {
+            reqBuilder.setMinScore(Score.newBuilder().setScore(minScore).build());
+        }
+
+        if (maxScore != null) {
+            reqBuilder.setMaxScore(Score.newBuilder().setScore(maxScore).build());
+        }
+
+        final Iterator<Chunk> chunks = blockingStub.streamZScan(reqBuilder.build());
+
+        return zentryIterator(chunks);
+    }
+
+    //
+    // ========== STREAM HISTORY ==========
+    //
+
+    public Iterator<Entry> history(String key, long offset, boolean desc, int limit) throws KeyNotFoundException {
+        return history(Utils.toByteArray(key), offset, desc, limit);
+    }
+
+    public synchronized Iterator<Entry> history(byte[] key, long offset, boolean desc, int limit)
+            throws KeyNotFoundException {
+        try {
+            ImmudbProto.HistoryRequest req = ImmudbProto.HistoryRequest.newBuilder()
+                    .setKey(Utils.toByteString(key))
+                    .setDesc(desc)
+                    .setOffset(offset)
+                    .setLimit(limit)
+                    .build();
+
+            final Iterator<Chunk> chunks = blockingStub.streamHistory(req);
+
+            return entryIterator(chunks);
+        } catch (StatusRuntimeException e) {
+            if (e.getMessage().contains("key not found")) {
+                throw new KeyNotFoundException();
+            }
+
+            throw e;
+        }
     }
 
     //
@@ -1042,7 +1463,7 @@ public class ImmuClient {
     }
 
     public synchronized boolean healthCheck() {
-        return this.stub.serverInfo(ImmudbProto.ServerInfoRequest.getDefaultInstance()) != null;
+        return blockingStub.serverInfo(ImmudbProto.ServerInfoRequest.getDefaultInstance()) != null;
     }
 
     //
@@ -1050,7 +1471,7 @@ public class ImmuClient {
     //
 
     public synchronized List<User> listUsers() {
-        final ImmudbProto.UserList userList = this.stub.listUsers(Empty.getDefaultInstance());
+        final ImmudbProto.UserList userList = blockingStub.listUsers(Empty.getDefaultInstance());
 
         return userList.getUsersList()
                 .stream()
@@ -1080,7 +1501,17 @@ public class ImmuClient {
                 .build();
 
         // noinspection ResultOfMethodCallIgnored
-        this.stub.createUser(createUserRequest);
+        blockingStub.createUser(createUserRequest);
+    }
+
+    public synchronized void activateUser(String user, boolean active) {
+        final ImmudbProto.SetActiveUserRequest req = ImmudbProto.SetActiveUserRequest.newBuilder()
+                .setUsername(user)
+                .setActive(active)
+                .build();
+
+        // noinspection ResultOfMethodCallIgnored
+        blockingStub.setActiveUser(req);
     }
 
     public synchronized void changePassword(String user, String oldPassword, String newPassword) {
@@ -1091,24 +1522,48 @@ public class ImmuClient {
                 .build();
 
         // noinspection ResultOfMethodCallIgnored
-        this.stub.changePassword(changePasswordRequest);
+        blockingStub.changePassword(changePasswordRequest);
+    }
+
+    public synchronized void grantPermission(String user, String database, Permission permissions) {
+        final ImmudbProto.ChangePermissionRequest req = ImmudbProto.ChangePermissionRequest.newBuilder()
+                .setUsername(user)
+                .setAction(ImmudbProto.PermissionAction.GRANT)
+                .setDatabase(database)
+                .setPermission(permissions.permissionCode)
+                .build();
+
+        // noinspection ResultOfMethodCallIgnored
+        blockingStub.changePermission(req);
+    }
+
+    public synchronized void revokePermission(String user, String database, Permission permissions) {
+        final ImmudbProto.ChangePermissionRequest req = ImmudbProto.ChangePermissionRequest.newBuilder()
+                .setUsername(user)
+                .setAction(ImmudbProto.PermissionAction.REVOKE)
+                .setDatabase(database)
+                .setPermission(permissions.permissionCode)
+                .build();
+
+        // noinspection ResultOfMethodCallIgnored
+        blockingStub.changePermission(req);
     }
 
     //
     // ========== INDEX MGMT ==========
     //
 
-    public synchronized void flushIndex(float cleanupPercentage, boolean synced) {
+    public synchronized void flushIndex(float cleanupPercentage) {
         ImmudbProto.FlushIndexRequest req = ImmudbProto.FlushIndexRequest.newBuilder()
                 .setCleanupPercentage(cleanupPercentage)
-                .setSynced(synced)
+                .setSynced(true)
                 .build();
 
-        this.stub.flushIndex(req);
+        blockingStub.flushIndex(req);
     }
 
     public synchronized void compactIndex() {
-        this.stub.compactIndex(Empty.getDefaultInstance());
+        blockingStub.compactIndex(Empty.getDefaultInstance());
     }
 
     //
@@ -1155,13 +1610,16 @@ public class ImmuClient {
 
         private long keepAlivePeriod;
 
+        private int chunkSize;
+
         private ImmuStateHolder stateHolder;
 
         private Builder() {
-            this.serverUrl = "localhost";
-            this.serverPort = 3322;
-            this.stateHolder = new SerializableImmuStateHolder();
-            this.keepAlivePeriod = 60 * 1000; // 1 minute
+            serverUrl = "localhost";
+            serverPort = 3322;
+            stateHolder = new SerializableImmuStateHolder();
+            keepAlivePeriod = 60 * 1000; // 1 minute
+            chunkSize = 64 * 1024; // 64 * 1024 64 KiB
         }
 
         public ImmuClient build() {
@@ -1169,7 +1627,7 @@ public class ImmuClient {
         }
 
         public String getServerUrl() {
-            return this.serverUrl;
+            return serverUrl;
         }
 
         public Builder withServerUrl(String serverUrl) {
@@ -1195,7 +1653,7 @@ public class ImmuClient {
          * be used for verifying the state signature received from the server.
          */
         public Builder withServerSigningKey(String publicKeyFilename) throws Exception {
-            this.serverSigningKey = CryptoUtils.getDERPublicKey(publicKeyFilename);
+            serverSigningKey = CryptoUtils.getDERPublicKey(publicKeyFilename);
             return this;
         }
 
@@ -1217,6 +1675,18 @@ public class ImmuClient {
             return this;
         }
 
+        public Builder withChunkSize(int chunkSize) {
+            if (chunkSize < Long.BYTES) {
+                throw new RuntimeException("invalid chunk size");
+            }
+
+            this.chunkSize = chunkSize;
+            return this;
+        }
+
+        public int getChunkSize() {
+            return chunkSize;
+        }
     }
 
 }

@@ -26,7 +26,7 @@ public class ZAddTest extends ImmuClientIntegrationTest {
 
     @Test(testName = "zAdd, verifiedZAdd, verifiedZAddAt")
     public void t1() {
-        immuClient.openSession("immudb", "immudb", "defaultdb");
+        immuClient.openSession("defaultdb", "immudb", "immudb");
 
         String set = "test-zadd";
         String key1 = "test-zadd-key1";

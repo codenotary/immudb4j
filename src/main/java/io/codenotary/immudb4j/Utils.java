@@ -119,5 +119,4 @@ public class Utils {
     public static void copy(byte[] src, int srcPos, int length, byte[] dest, int destPos) {
         System.arraycopy(src, srcPos, dest, destPos, length);
     }
-
 }

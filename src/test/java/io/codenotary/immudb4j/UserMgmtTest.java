@@ -22,7 +22,6 @@ import org.testng.Assert;
 import org.testng.annotations.Test;
 
 import java.util.Collections;
-import java.util.List;
 
 public class UserMgmtTest extends ImmuClientIntegrationTest {
 
@@ -33,7 +32,7 @@ public class UserMgmtTest extends ImmuClientIntegrationTest {
         String password = "testTest123!";
         Permission permission = Permission.PERMISSION_RW;
 
-        immuClient.openSession("immudb", "immudb", database);
+        immuClient.openSession(database, "immudb", "immudb");
 
         // Should not contain testCreateUser. Skipping it as not valid for the current unit tests setup
         // (where a clean immudb server is started for each Test class).
@@ -47,9 +46,9 @@ public class UserMgmtTest extends ImmuClientIntegrationTest {
         }
 
         // Should contain testCreateUser.
-        System.out.println(">>> listUsers:");
-        List<User> users = immuClient.listUsers();
-        users.forEach(user -> System.out.println("\t- " + user));
+        //System.out.println(">>> listUsers:");
+        //List<User> users = immuClient.listUsers();
+        //users.forEach(user -> System.out.println("\t- " + user));
 
         // TODO: Temporary commented since currently there's a bug on immudb's side.
         //       The next release will include the fix of 'listUsers'. This commit includes the fix:
@@ -69,14 +68,20 @@ public class UserMgmtTest extends ImmuClientIntegrationTest {
 
     @Test(testName = "createUser, changePassword", priority = 101)
     public void t2() {
-        immuClient.openSession("immudb", "immudb", "defaultdb");
+        immuClient.openSession("defaultdb", "immudb", "immudb");
 
         try {
-            immuClient.createUser("testUser", "testTest123!", Permission.PERMISSION_ADMIN, "defaultdb");
+            immuClient.createUser("testUser", "testTest123!", Permission.PERMISSION_R, "defaultdb");
         } catch (StatusRuntimeException e) {
             // The user could already exist, ignoring this.
             System.out.println(">>> UserMgmtTest > t2 > createUser exception: " + e.getMessage());
         }
+
+        immuClient.activateUser("testUser", true);
+
+        immuClient.revokePermission("testUser", "defaultdb", Permission.PERMISSION_R);
+
+        immuClient.grantPermission("testUser", "defaultdb", Permission.PERMISSION_RW);
 
         immuClient.changePassword("testUser", "testTest123!", "newTestTest123!");
 
@@ -90,7 +95,7 @@ public class UserMgmtTest extends ImmuClientIntegrationTest {
             // Login failed, everything's fine.
         }
 
-        immuClient.openSession("testUser", "newTestTest123!", "defaultdb");
+        immuClient.openSession("defaultdb", "testUser", "newTestTest123!");
 
         immuClient.closeSession();
 

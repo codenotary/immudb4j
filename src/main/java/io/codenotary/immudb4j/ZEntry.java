@@ -39,6 +39,14 @@ public class ZEntry {
 
     private ZEntry() {}
 
+    public ZEntry(byte[] set, byte[] key, double score, long atTx, Entry entry) {
+        this.set = set;
+        this.key = key;
+        this.score = score;
+        this.atTx = atTx;
+        this.entry = entry;
+    }
+
     public static ZEntry valueOf(ImmudbProto.ZEntry e) {
         final ZEntry entry = new ZEntry();
 
@@ -98,5 +106,5 @@ public class ZEntry {
 
         return kv.digestFor(version);
     }
-
+    
 }

@@ -28,9 +28,14 @@ public class StateTest extends ImmuClientIntegrationTest {
 
     private static final String publicKeyResource = "test_public_key.pem";
 
+    @Test(testName = "currentState without open session", expectedExceptions = IllegalStateException.class)
+    public void t1() throws VerificationException {
+        immuClient.currentState();
+    }
+
     @Test(testName = "currentState")
     public void t2() throws VerificationException {
-        immuClient.openSession("immudb", "immudb", "defaultdb");
+        immuClient.openSession("defaultdb", "immudb", "immudb");
 
         ImmuState currState = immuClient.currentState();
 
@@ -52,11 +57,13 @@ public class StateTest extends ImmuClientIntegrationTest {
             return;
         }
 
-        // The signature verification in this case should fail for the same aforementioned reason.
+        // The signature verification in this case should fail for the same
+        // aforementioned reason.
         Assert.assertFalse(currState.checkSignature(publicKey));
 
         // Again, "covering" `checkSignature` when there is a `signature` attached.
-        ImmuState someState = new ImmuState(currState.getDatabase(), currState.getTxId(), currState.getTxHash(), new byte[1]);
+        ImmuState someState = new ImmuState(currState.getDatabase(), currState.getTxId(), currState.getTxHash(),
+                new byte[1]);
         Assert.assertFalse(someState.checkSignature(publicKey));
 
         immuClient.closeSession();
@@ -82,27 +89,27 @@ public class StateTest extends ImmuClientIntegrationTest {
             return;
         }
 
-        immuClient.openSession("immudb", "immudb", "defaultdb");
+        immuClient.openSession("defaultdb", "immudb", "immudb");
 
         try {
             immuClient.currentState();
-            Assert.fail("Did not fail as it should in this case when the signingKey is provisioned only on the client side");
+            Assert.fail(
+                    "Did not fail as it should in this case when the signingKey is provisioned only on the client side");
         } catch (VerificationException ignored) {
-            // Expected this since in the current tests setup, immudb does not have that state signature feature active.
-            // (this feature is active when starting it like: `immudb --signingKey test_private_key.pem`).
+            // Expected this since in the current tests setup, immudb does not have that
+            // state signature feature active.
+            // (this feature is active when starting it like: `immudb --signingKey
+            // test_private_key.pem`).
         }
 
         immuClient.closeSession();
     }
 
-
-
-    @Test(testName = "currentState with server signature checking",
-            description = "Testing `checkSignature` (indirectly, through `currentState`), " +
-                    "the (state signing) feature being set up on both server and client side. " +
-                    "This could remain a manual test, that's why it is disabled." +
-                    "Of course, it must be `enabled = true`, if you want to run it from IDE or cli.",
-            enabled = false)
+    @Test(testName = "currentState with server signature checking", description = "Testing `checkSignature` (indirectly, through `currentState`), "
+            +
+            "the (state signing) feature being set up on both server and client side. " +
+            "This could remain a manual test, that's why it is disabled." +
+            "Of course, it must be `enabled = true`, if you want to run it from IDE or cli.", enabled = false)
     public void t4() {
 
         // Provisioning the client side with the public key file.
@@ -124,12 +131,14 @@ public class StateTest extends ImmuClientIntegrationTest {
             return;
         }
 
-        immuClient.openSession("immudb", "immudb", "defaultdb");
+        immuClient.openSession("defaultdb", "immudb", "immudb");
 
         try {
             ImmuState state = immuClient.currentState();
-            // In this case, it should be ok as long as the immudb server has been started accordingly
-            // from `immudb` directory (on this repo root) using: `./immudb --signingKey test_private_key.pem`
+            // In this case, it should be ok as long as the immudb server has been started
+            // accordingly
+            // from `immudb` directory (on this repo root) using: `./immudb --signingKey
+            // test_private_key.pem`
             Assert.assertNotNull(state);
         } catch (VerificationException e) {
             Assert.fail(e.getMessage(), e.getCause());

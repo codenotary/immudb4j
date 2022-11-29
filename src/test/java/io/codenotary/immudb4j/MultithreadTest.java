@@ -29,10 +29,10 @@ public class MultithreadTest extends ImmuClientIntegrationTest {
 
     @Test(testName = "Multithread without key overlap")
     public void t1() throws InterruptedException, VerificationException {
-        immuClient.openSession("immudb", "immudb", "defaultdb");
+        immuClient.openSession("defaultdb", "immudb", "immudb");
 
-        final int threadCount = 10;
-        final int keyCount = 100;
+        final int threadCount = 5;
+        final int keyCount = 10;
 
         CountDownLatch latch = new CountDownLatch(threadCount);
         AtomicInteger succeeded = new AtomicInteger(0);
@@ -75,10 +75,10 @@ public class MultithreadTest extends ImmuClientIntegrationTest {
 
     @Test(testName = "Multithread with key overlap")
     public void t2() throws InterruptedException, VerificationException {
-        immuClient.openSession("immudb", "immudb", "defaultdb");
+        immuClient.openSession("defaultdb", "immudb", "immudb");
 
-        final int threadCount = 10;
-        final int keyCount = 100;
+        final int threadCount = 5;
+        final int keyCount = 10;
 
         CountDownLatch latch = new CountDownLatch(threadCount);
         AtomicInteger succeeded = new AtomicInteger(0);

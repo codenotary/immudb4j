@@ -22,13 +22,14 @@ import org.testng.annotations.Test;
 public class ShutdownTest extends ImmuClientIntegrationTest {
 
   @Test(testName = "Login attempt after shutdown", expectedExceptions = StatusRuntimeException.class)
-  public void t1() {
-
+  public void t1() throws InterruptedException {
     Assert.assertFalse(immuClient.isShutdown());
+
+    immuClient.openSession("defaultdb", "immudb", "immudb");
 
     immuClient.shutdown();
     
-    immuClient.openSession("immudb", "immudb", "defaultdb");
+    immuClient.openSession("defaultdb", "immudb", "immudb");
   }
 
 }

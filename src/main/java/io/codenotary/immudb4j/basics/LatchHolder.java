@@ -13,19 +13,26 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
-package io.codenotary.immudb4j;
+package io.codenotary.immudb4j.basics;
 
-import org.testng.annotations.Test;
+import java.util.concurrent.CountDownLatch;
 
-public class ListUsersTest extends ImmuClientIntegrationTest {
+public class LatchHolder<T> {
+    
+    private T value;
+    private CountDownLatch doneLatch;
 
-  @Test(testName = "listUsers")
-  public void t1() {
-    immuClient.openSession("defaultdb", "immudb", "immudb");
+    public LatchHolder() {
+        doneLatch = new CountDownLatch(1);
+    }
 
-    immuClient.listUsers().forEach(user -> System.out.printf(">>> Got user %s", user));
+    public T awaitValue() throws InterruptedException {
+        doneLatch.await();
+        return value;
+    }
 
-    immuClient.closeSession();
-  }
-
+    public void doneWith(T value) {
+        this.value = value;
+        doneLatch.countDown();
+    }
 }

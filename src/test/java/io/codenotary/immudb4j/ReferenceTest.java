@@ -25,7 +25,7 @@ public class ReferenceTest extends ImmuClientIntegrationTest {
 
     @Test(testName = "set, setReference, setReferenceAt")
     public void t1() {
-        immuClient.openSession("immudb", "immudb", "defaultdb");
+        immuClient.openSession("defaultdb", "immudb", "immudb");
 
         byte[] key = "testRef".getBytes(StandardCharsets.UTF_8);
         byte[] val = "abc".getBytes(StandardCharsets.UTF_8);

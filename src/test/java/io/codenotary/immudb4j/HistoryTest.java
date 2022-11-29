@@ -21,13 +21,15 @@ import org.testng.Assert;
 import org.testng.annotations.Test;
 
 import java.nio.charset.StandardCharsets;
+import java.util.Iterator;
 import java.util.List;
+import java.util.NoSuchElementException;
 
 public class HistoryTest extends ImmuClientIntegrationTest {
 
     @Test(testName = "set, history", priority = 2)
     public void t1() {
-        immuClient.openSession("immudb", "immudb", "defaultdb");
+        immuClient.openSession("defaultdb", "immudb", "immudb");
 
         byte[] value1 = {0, 1, 2, 3};
         byte[] value2 = {4, 5, 6, 7};
@@ -43,7 +45,7 @@ public class HistoryTest extends ImmuClientIntegrationTest {
             Assert.fail("Failed at set.", e);
         }
 
-        List<Entry> historyResponse1 = immuClient.history("history1", 10, 0, false);
+        List<Entry> historyResponse1 = immuClient.historyAll("history1", 0, false, 2);
 
         Assert.assertEquals(historyResponse1.size(), 2);
 
@@ -53,7 +55,7 @@ public class HistoryTest extends ImmuClientIntegrationTest {
         Assert.assertEquals(historyResponse1.get(1).getKey(), "history1".getBytes(StandardCharsets.UTF_8));
         Assert.assertEquals(historyResponse1.get(1).getValue(), value2);
 
-        List<Entry> historyResponse2 = immuClient.history("history2", 10, 0, false);
+        List<Entry> historyResponse2 = immuClient.historyAll("history2", 0, false, 3);
 
         Assert.assertEquals(historyResponse2.size(), 3);
 
@@ -66,17 +68,36 @@ public class HistoryTest extends ImmuClientIntegrationTest {
         Assert.assertEquals(historyResponse2.get(2).getKey(), "history2".getBytes(StandardCharsets.UTF_8));
         Assert.assertEquals(historyResponse2.get(2).getValue(), value3);
 
-        historyResponse2 = immuClient.history("history2", 10, 2, false);
+        historyResponse2 = immuClient.historyAll("history2", 2, false, 1);
         Assert.assertNotNull(historyResponse2);
         Assert.assertEquals(historyResponse2.size(), 1);
 
+        Iterator<Entry> entriesIt = immuClient.history("history2", 2, false, 1);
+        Assert.assertTrue(entriesIt.hasNext());
+
+        Entry entry = entriesIt.next();
+        Assert.assertNotNull(entry);
+
+        Assert.assertFalse(entriesIt.hasNext());
+
         try {
-            immuClient.history("nonExisting", 10, 0, false);
+            entriesIt.next();
+            Assert.fail("NoSuchElementException exception expected");
+        } catch (NoSuchElementException e) {
+            // exception is expected here
+        }
+
+        try {
+            immuClient.historyAll("nonExisting", 0, false, 0);
             Assert.fail("key not found exception expected");
         } catch (KeyNotFoundException e) {
             // exception is expected here
         }
-
+        
+        Iterator<Entry> entriesIt2 = immuClient.history("nonExisting", 0, false, 0);
+        
+        Assert.assertFalse(entriesIt2.hasNext());
+        
         immuClient.closeSession();
     }
 

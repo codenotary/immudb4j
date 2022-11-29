@@ -16,6 +16,7 @@ limitations under the License.
 package io.codenotary.immudb4j;
 
 import io.codenotary.immudb4j.exceptions.CorruptedDataException;
+import io.codenotary.immudb4j.exceptions.TxNotFoundException;
 import io.codenotary.immudb4j.exceptions.VerificationException;
 import org.testng.Assert;
 import org.testng.annotations.Test;
@@ -27,8 +28,8 @@ import java.util.List;
 public class TxTest extends ImmuClientIntegrationTest {
 
     @Test(testName = "verifiedSet, txById, verifiedTxById")
-    public void t1() {
-        immuClient.openSession("immudb", "immudb", "defaultdb");
+    public void t1() throws NoSuchAlgorithmException, VerificationException{
+        immuClient.openSession("defaultdb", "immudb", "immudb");
 
         String key = "test-txid";
         byte[] val = "test-txid-value".getBytes(StandardCharsets.UTF_8);
@@ -40,12 +41,7 @@ public class TxTest extends ImmuClientIntegrationTest {
             Assert.fail("Failed at verifiedSet", e);
         }
 
-        Tx tx = null;
-        try {
-            tx = immuClient.txById(txHdr.getId());
-        } catch (NoSuchAlgorithmException e) {
-            Assert.fail("Failed at txById", e);
-        }
+        Tx tx = immuClient.txById(txHdr.getId());
 
         Assert.assertEquals(txHdr.getId(), tx.getHeader().getId());
 
@@ -57,12 +53,24 @@ public class TxTest extends ImmuClientIntegrationTest {
 
         Assert.assertEquals(txHdr.getId(), tx.getHeader().getId());
 
+        try {
+            immuClient.txById(txHdr.getId()+1);
+            Assert.fail("Failed at txById.");
+        } catch (TxNotFoundException _) {
+        }
+
+        try {
+            immuClient.verifiedTxById(txHdr.getId()+1);
+            Assert.fail("Failed at verifiedTxById.");
+        } catch (TxNotFoundException _) {
+        }
+
         immuClient.closeSession();
     }
 
     @Test(testName = "set, txScan")
     public void t2() {
-        immuClient.openSession("immudb", "immudb", "defaultdb");
+        immuClient.openSession("defaultdb", "immudb", "immudb");
 
         String key = "txtest-t2";
         byte[] val1 = "immuRocks!".getBytes(StandardCharsets.UTF_8);
@@ -79,15 +87,15 @@ public class TxTest extends ImmuClientIntegrationTest {
             Assert.fail("Failed at set.", e);
         }
 
-        List<Tx> txs = immuClient.txScan(initialTxId, 1, false);
+        List<Tx> txs = immuClient.txScanAll(initialTxId, 1, false);
         Assert.assertNotNull(txs);
         Assert.assertEquals(txs.size(), 1);
 
-        txs = immuClient.txScan(initialTxId, 2, false);
+        txs = immuClient.txScanAll(initialTxId, 2, false);
         Assert.assertNotNull(txs);
         Assert.assertEquals(txs.size(), 2);
 
-        Assert.assertNotNull(immuClient.txScan(initialTxId));
+        Assert.assertNotNull(immuClient.txScanAll(initialTxId));
 
         immuClient.closeSession();
     }

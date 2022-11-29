@@ -20,7 +20,6 @@ import io.codenotary.immudb4j.crypto.CryptoUtils;
 
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
-import java.util.Base64;
 
 public class TxHeader {
     private final int version;

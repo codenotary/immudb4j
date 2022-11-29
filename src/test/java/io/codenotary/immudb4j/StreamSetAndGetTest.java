@@ -20,9 +20,9 @@ import io.codenotary.immudb4j.exceptions.KeyNotFoundException;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
-public class SetAndGetTest extends ImmuClientIntegrationTest {
+public class StreamSetAndGetTest extends ImmuClientIntegrationTest {
 
-    @Test(testName = "set, get")
+    @Test(testName = "stream set, get")
     public void t1() {
         immuClient.openSession("defaultdb", "immudb", "immudb");
 
@@ -31,33 +31,20 @@ public class SetAndGetTest extends ImmuClientIntegrationTest {
 
         TxHeader txHdr = null;
         try {
-            txHdr = immuClient.set(key, val);
-        } catch (CorruptedDataException e) {
+            txHdr = immuClient.streamSet(key, val);
+        } catch (CorruptedDataException|InterruptedException e) {
             Assert.fail("Failed at set.", e);
         }
         Assert.assertNotNull(txHdr);
 
-        Entry entry1 = immuClient.get(key);
+        Entry entry1 = immuClient.streamGet(key);
         Assert.assertNotNull(entry1);
         Assert.assertEquals(entry1.getValue(), val);
-
-        Entry entry1At = immuClient.getAtTx(key, txHdr.getId());
-        Assert.assertNotNull(entry1At);
-        Assert.assertEquals(entry1At.getValue(), val);
 
         immuClient.delete(key);
 
         try {
-            immuClient.get(key);
-            Assert.fail("key not found exception expected");
-        } catch (KeyNotFoundException e) {
-            // expected
-        } catch (Exception e) {
-            Assert.fail("key not found exception expected");
-        }
-
-        try {
-            immuClient.delete(key);
+            immuClient.streamGet(key);
             Assert.fail("key not found exception expected");
         } catch (KeyNotFoundException e) {
             // expected

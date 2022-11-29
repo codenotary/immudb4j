@@ -28,7 +28,14 @@ public class Entry {
 
     private Reference referencedBy;
 
+    private long revision;
+
     private Entry() {}
+
+    public Entry(byte[] key, byte[] value) {
+        this.key = key;
+        this.value = value;
+    }
 
     public static Entry valueOf(ImmudbProto.Entry e) {
         final Entry entry = new Entry();
@@ -44,6 +51,8 @@ public class Entry {
         if (e.hasReferencedBy()) {
             entry.referencedBy = Reference.valueOf(e.getReferencedBy());
         }
+
+        entry.revision = e.getRevision();
 
         return entry;
     }
@@ -66,6 +75,10 @@ public class Entry {
 
     public Reference getReferenceBy() {
         return referencedBy;
+    }
+
+    public long getRevision() {
+        return revision;
     }
 
     public byte[] getEncodedKey() {

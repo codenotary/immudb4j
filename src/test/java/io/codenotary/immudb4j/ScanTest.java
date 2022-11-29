@@ -20,16 +20,17 @@ import org.testng.Assert;
 import org.testng.annotations.Test;
 
 import java.nio.charset.StandardCharsets;
+import java.util.Iterator;
 import java.util.List;
 
 public class ScanTest extends ImmuClientIntegrationTest {
 
-    @Test(testName = "scan", priority = 2)
+    @Test(testName = "scan zscan")
     public void t1() {
-        immuClient.openSession("immudb", "immudb", "defaultdb");
+        immuClient.openSession("defaultdb", "immudb", "immudb");
 
-        byte[] value1 = {0, 1, 2, 3};
-        byte[] value2 = {4, 5, 6, 7};
+        byte[] value1 = { 0, 1, 2, 3 };
+        byte[] value2 = { 4, 5, 6, 7 };
 
         try {
             immuClient.set("scan1", value1);
@@ -37,29 +38,6 @@ public class ScanTest extends ImmuClientIntegrationTest {
         } catch (CorruptedDataException e) {
             Assert.fail("Failed at set.", e);
         }
-
-        List<Entry> scanResult = immuClient.scan("scan", 5, false);
-        System.out.println(scanResult.size());
-
-        Assert.assertEquals(scanResult.size(), 2);
-        Assert.assertEquals(scanResult.get(0).getKey(), "scan1".getBytes(StandardCharsets.UTF_8));
-        Assert.assertEquals(scanResult.get(0).getValue(), value1);
-        Assert.assertEquals(scanResult.get(1).getKey(), "scan2".getBytes(StandardCharsets.UTF_8));
-        Assert.assertEquals(scanResult.get(1).getValue(), value2);
-
-        Assert.assertTrue(immuClient.scan("scan").size() > 0);
-
-        Assert.assertEquals(immuClient.scan("scan", "scan1", 1, false).size(), 1);
-
-        immuClient.closeSession();
-    }
-
-    @Test(testName = "set, zAdd, zScan", priority = 3)
-    public void t2() {
-        immuClient.openSession("immudb", "immudb", "defaultdb");
-
-        byte[] value1 = {0, 1, 2, 3};
-        byte[] value2 = {4, 5, 6, 7};
 
         try {
             immuClient.set("zadd1", value1);
@@ -78,14 +56,55 @@ public class ScanTest extends ImmuClientIntegrationTest {
             Assert.fail("Failed to zAdd", e);
         }
 
-        List<ZEntry> zScan1 = immuClient.zScan("set1", 5, false);
+        List<Entry> scanResult = immuClient.scanAll("scan");
+        System.out.println(scanResult.size());
+
+        Assert.assertEquals(scanResult.size(), 2);
+        Assert.assertEquals(scanResult.get(0).getKey(), "scan1".getBytes(StandardCharsets.UTF_8));
+        Assert.assertEquals(scanResult.get(0).getValue(), value1);
+        Assert.assertEquals(scanResult.get(1).getKey(), "scan2".getBytes(StandardCharsets.UTF_8));
+        Assert.assertEquals(scanResult.get(1).getValue(), value2);
+
+        Assert.assertTrue(immuClient.scanAll("scan").size() > 0);
+
+        Assert.assertEquals(immuClient.scanAll("scan".getBytes(), "scan1".getBytes(), false, 1).size(), 1);
+
+        Iterator<Entry> scanResult1 = immuClient.scan("scan", false, 5);
+
+        int i = 0;
+
+        while (scanResult1.hasNext()) {
+            Assert.assertEquals(scanResult1.next().getKey(), scanResult.get(i).getKey());
+            i++;
+        }
+
+        Assert.assertEquals(i, 2);
+
+        Assert.assertFalse(immuClient.scan("nonexistent-prefix").hasNext());
+
+        List<ZEntry> zScan1 = immuClient.zScanAll("set1", false, 5);
         Assert.assertEquals(zScan1.size(), 2);
 
+        Assert.assertEquals(zScan1.get(0).getSet(), "set1".getBytes(StandardCharsets.UTF_8));
         Assert.assertEquals(zScan1.get(0).getKey(), "zadd1".getBytes(StandardCharsets.UTF_8));
+        Assert.assertEquals(zScan1.get(0).getScore(), 1.0);
+        Assert.assertEquals(zScan1.get(0).getAtTx(), 0);
         Assert.assertEquals(zScan1.get(0).getEntry().getValue(), value1);
 
-        List<ZEntry> zScan2 = immuClient.zScan("set2", 5, false);
+        List<ZEntry> zScan2 = immuClient.zScanAll("set2");
         Assert.assertEquals(zScan2.size(), 2);
+
+        Iterator<ZEntry> zScan3 = immuClient.zScan("set2");
+        i = 0;
+
+        while (zScan3.hasNext()) {
+            Assert.assertEquals(zScan3.next().getKey(), zScan2.get(i).getKey());
+            i++;
+        }
+
+        Assert.assertEquals(i, 2);
+
+        Assert.assertFalse(immuClient.zScan("nonexistent-set").hasNext());
 
         immuClient.closeSession();
     }

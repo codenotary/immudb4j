@@ -22,7 +22,7 @@ import org.testng.annotations.Test;
 import java.util.Arrays;
 import java.util.List;
 
-public class SetAllAndGetAllTest extends ImmuClientIntegrationTest {
+public class StreamSetAllTest extends ImmuClientIntegrationTest {
 
     @Test(testName = "setAll & getAll")
     public void t1() {
@@ -42,9 +42,9 @@ public class SetAllAndGetAllTest extends ImmuClientIntegrationTest {
                 .entries();
 
         try {
-            TxHeader txHdr = immuClient.setAll(kvs);
+            TxHeader txHdr = immuClient.streamSetAll(kvs);
             Assert.assertNotNull(txHdr);
-        } catch (CorruptedDataException e) {
+        } catch (InterruptedException|CorruptedDataException e) {
             Assert.fail("Failed at SetAll.", e);
         }
 

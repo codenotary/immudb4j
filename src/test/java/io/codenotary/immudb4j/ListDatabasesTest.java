@@ -21,9 +21,14 @@ import java.util.List;
 
 public class ListDatabasesTest extends ImmuClientIntegrationTest {
 
+  @Test(testName = "databases without open session", expectedExceptions = IllegalStateException.class)
+    public void t1() {
+        immuClient.databases();
+  }
+
   @Test(testName = "databases")
-  public void t1() {
-    immuClient.openSession("immudb", "immudb", "defaultdb");
+  public void t2() {
+    immuClient.openSession("defaultdb", "immudb", "immudb");
 
     List<String> databases = immuClient.databases();
     if (databases.size() > 0) {

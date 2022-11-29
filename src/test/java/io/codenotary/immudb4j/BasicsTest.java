@@ -15,6 +15,8 @@ limitations under the License.
 */
 package io.codenotary.immudb4j;
 
+import io.codenotary.immudb4j.basics.LatchHolder;
+
 // Note: This test is more for the sake of code coverage, as you may see.
 
 import io.codenotary.immudb4j.basics.Pair;
@@ -58,4 +60,22 @@ public class BasicsTest {
         Assert.assertNotEquals(triple, Triple.of("aDifferent", "", ""));
     }
 
+    @Test(testName = "LatchHolder test")
+    public void t2() throws InterruptedException {
+        final LatchHolder<Boolean> latchHolder = new LatchHolder<>();
+
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    Thread.sleep(100);
+                } catch (InterruptedException e) {
+                }
+
+                latchHolder.doneWith(true);
+            }
+        }).run();
+
+        Assert.assertTrue(latchHolder.awaitValue());
+    }
 }
