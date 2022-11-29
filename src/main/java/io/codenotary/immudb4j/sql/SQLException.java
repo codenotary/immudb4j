@@ -1,3 +1,4 @@
+
 /*
 Copyright 2022 CodeNotary, Inc. All rights reserved.
 
@@ -13,24 +14,12 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
-package io.codenotary.immudb4j.crypto;
+package io.codenotary.immudb4j.sql;
 
-import io.codenotary.immudb.ImmudbProto;
-
-public class InclusionProof {
-
-    public final int leaf;
-    public final int width;
-    public final byte[][] terms;
-
-    public InclusionProof(int leaf, int width, byte[][] terms) {
-        this.leaf = leaf;
-        this.width = width;
-        this.terms = terms;
-    }
-
-    public static InclusionProof valueOf(ImmudbProto.InclusionProof proof) {
-        return new InclusionProof(proof.getLeaf(), proof.getWidth(), CryptoUtils.digestsFrom(proof.getTermsList()));
+public class SQLException extends Exception {
+    
+    public SQLException(String message) {
+        super(message);
     }
 
 }

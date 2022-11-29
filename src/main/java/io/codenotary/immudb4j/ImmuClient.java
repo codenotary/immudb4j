@@ -20,13 +20,19 @@ import com.google.protobuf.Empty;
 import io.codenotary.immudb.ImmuServiceGrpc;
 import io.codenotary.immudb.ImmudbProto;
 import io.codenotary.immudb.ImmudbProto.Chunk;
+import io.codenotary.immudb.ImmudbProto.NamedParam;
+import io.codenotary.immudb.ImmudbProto.NewTxResponse;
 import io.codenotary.immudb.ImmudbProto.ScanRequest;
 import io.codenotary.immudb.ImmudbProto.Score;
+import io.codenotary.immudb.ImmudbProto.TxMode;
 import io.codenotary.immudb4j.basics.LatchHolder;
 import io.codenotary.immudb4j.crypto.CryptoUtils;
 import io.codenotary.immudb4j.crypto.DualProof;
 import io.codenotary.immudb4j.crypto.InclusionProof;
 import io.codenotary.immudb4j.exceptions.*;
+import io.codenotary.immudb4j.sql.SQLException;
+import io.codenotary.immudb4j.sql.SQLQueryResult;
+import io.codenotary.immudb4j.sql.SQLValue;
 import io.codenotary.immudb4j.user.Permission;
 import io.codenotary.immudb4j.user.User;
 import io.grpc.ManagedChannel;
@@ -42,9 +48,10 @@ import java.security.NoSuchAlgorithmException;
 import java.security.PublicKey;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
-import java.util.NoSuchElementException;
+import java.util.Map;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.TimeUnit;
@@ -203,6 +210,122 @@ public class ImmuClient {
         }
 
         return immuState;
+    }
+
+    //
+    // ========== SQL ==========
+    //
+
+    public synchronized void beginTransaction() throws SQLException {
+        if (session == null) {
+            throw new IllegalStateException("no open session");
+        }
+
+        if (session.getTransactionID() != null) {
+            throw new IllegalStateException("transaction already initiated");
+        }
+
+        final ImmudbProto.NewTxRequest req = ImmudbProto.NewTxRequest.newBuilder()
+                .setMode(TxMode.ReadWrite)
+                .build();
+
+        final NewTxResponse res = blockingStub.newTx(req);
+
+        session.setTransactionID(res.getTransactionID());
+    }
+
+    public synchronized void commitTransaction() throws SQLException {
+        if (session == null) {
+            throw new IllegalStateException("no open session");
+        }
+
+        if (session.getTransactionID() == null) {
+            throw new IllegalStateException("no transaction initiated");
+        }
+
+        blockingStub.commit(Empty.getDefaultInstance());
+
+        session.setTransactionID( null);
+    }
+
+    public synchronized void rollbackTransaction() throws SQLException {
+        if (session == null) {
+            throw new IllegalStateException("no open session");
+        }
+
+        if (session.getTransactionID() == null) {
+            throw new IllegalStateException("no transaction initiated");
+        }
+
+        blockingStub.rollback(Empty.getDefaultInstance());
+
+        session.setTransactionID(null);
+    }
+
+    public void sqlExec(String stmt, SQLValue... params) throws SQLException {
+        sqlExec(stmt, sqlNameParams(params));
+    }
+
+    public synchronized void sqlExec(String stmt, Map<String, SQLValue> params) throws SQLException {
+        if (session == null) {
+            throw new IllegalStateException("no open session");
+        }
+
+        if (session.getTransactionID() == null) {
+            throw new IllegalStateException("no transaction initiated");
+        }
+
+        final ImmudbProto.SQLExecRequest req = ImmudbProto.SQLExecRequest.newBuilder()
+                .setSql(stmt)
+                .addAllParams(sqlEncodeParams(params))
+                .build();
+
+        blockingStub.txSQLExec(req);
+    }
+
+    public SQLQueryResult sqlQuery(String stmt, SQLValue... params) throws SQLException {
+        return sqlQuery(stmt, sqlNameParams(params));
+    }
+
+    public synchronized SQLQueryResult sqlQuery(String stmt, Map<String, SQLValue> params) throws SQLException {
+        if (session == null) {
+            throw new IllegalStateException("no open session");
+        }
+
+        if (session.getTransactionID() == null) {
+            throw new IllegalStateException("no transaction initiated");
+        }
+
+        final ImmudbProto.SQLQueryRequest req = ImmudbProto.SQLQueryRequest.newBuilder()
+                .setSql(stmt)
+                .addAllParams(sqlEncodeParams(params))
+                .build();
+
+        return new SQLQueryResult(blockingStub.txSQLQuery(req));
+    }
+
+    private Map<String, SQLValue> sqlNameParams(SQLValue... params) {
+        final Map<String, SQLValue> nparams = new HashMap<>(params.length);
+
+        for (int i = 1; i <= params.length; i++) {
+            nparams.put("param" + i, params[i-1]);
+        }
+
+        return nparams;
+    }
+
+    private Iterable<NamedParam> sqlEncodeParams(Map<String, SQLValue> params) {
+        List<ImmudbProto.NamedParam> nparams = new ArrayList<>();
+
+        for (Map.Entry<String, SQLValue> p : params.entrySet()) {
+            nparams.add(NamedParam.newBuilder()
+                .setName(p.getKey())
+                .setValue(p.getValue().asProtoSQLValue())
+                .build()
+            );
+        }
+
+        return nparams;
     }
 
     //
@@ -1103,12 +1226,12 @@ public class ImmuClient {
         return buildList(txList);
     }
 
-    public synchronized List<Tx> txScanAll(long initialTxId, int limit, boolean desc) {
+    public synchronized List<Tx> txScanAll(long initialTxId, boolean desc, int limit) {
         final ImmudbProto.TxScanRequest req = ImmudbProto.TxScanRequest
                 .newBuilder()
                 .setInitialTx(initialTxId)
-                .setDesc(desc)
                 .setLimit(limit)
+                .setDesc(desc)
                 .build();
 
         final ImmudbProto.TxList txList = blockingStub.txScan(req);

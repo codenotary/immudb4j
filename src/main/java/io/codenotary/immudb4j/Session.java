@@ -20,6 +20,8 @@ public class Session {
     private String sessionID;
     private String database;
 
+    private String transactionID;
+
     public Session(String sessionID, String database) {
         this.sessionID = sessionID;
         this.database = database;
@@ -33,4 +35,11 @@ public class Session {
         return database;
     }
 
+    public String getTransactionID() {
+        return transactionID;
+    }
+
+    public void setTransactionID(String transactionID) {
+        this.transactionID = transactionID;
+    }
 }

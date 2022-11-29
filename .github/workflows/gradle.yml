@@ -20,6 +20,8 @@ jobs:
       uses: actions/setup-java@v1
       with:
         java-version: 1.8
+    - name: Start immudb container
+      run: docker run -d --health-cmd "immuadmin status" --health-interval 10s --health-timeout 5s --health-retries 5 -p 3322:3322 codenotary/immudb:1.4.0
     - name: Grant execute permission for gradlew
       run: chmod +x gradlew
     - name: Build with Gradle
