@@ -87,11 +87,11 @@ public class TxTest extends ImmuClientIntegrationTest {
             Assert.fail("Failed at set.", e);
         }
 
-        List<Tx> txs = immuClient.txScanAll(initialTxId, 1, false);
+        List<Tx> txs = immuClient.txScanAll(initialTxId, false, 1);
         Assert.assertNotNull(txs);
         Assert.assertEquals(txs.size(), 1);
 
-        txs = immuClient.txScanAll(initialTxId, 2, false);
+        txs = immuClient.txScanAll(initialTxId, false, 2);
         Assert.assertNotNull(txs);
         Assert.assertEquals(txs.size(), 2);
 

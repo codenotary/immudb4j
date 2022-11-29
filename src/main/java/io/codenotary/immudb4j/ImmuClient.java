@@ -1226,12 +1226,12 @@ public class ImmuClient {
         return buildList(txList);
     }
 
-    public synchronized List<Tx> txScanAll(long initialTxId, int limit, boolean desc) {
+    public synchronized List<Tx> txScanAll(long initialTxId, boolean desc, int limit) {
         final ImmudbProto.TxScanRequest req = ImmudbProto.TxScanRequest
                 .newBuilder()
                 .setInitialTx(initialTxId)
-                .setDesc(desc)
                 .setLimit(limit)
+                .setDesc(desc)
                 .build();
 
         final ImmudbProto.TxList txList = blockingStub.txScan(req);
