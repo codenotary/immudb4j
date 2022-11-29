@@ -26,13 +26,15 @@ public class MultidatabaseTest extends ImmuClientIntegrationTest {
 
     @Test(testName = "Interacting with multiple databases (creating them, setting, and getting, listing)")
     public void t1() throws VerificationException {
-
-        immuClient.login("immudb", "immudb");
+        immuClient.openSession("immudb", "immudb", "defaultdb");
 
         immuClient.createDatabase("db1");
         immuClient.createDatabase("db2");
 
-        immuClient.useDatabase("db1");
+        immuClient.closeSession();
+
+        immuClient.openSession("immudb", "immudb", "db1");
+
         byte[] v0 = new byte[]{0, 1, 2, 3};
         try {
             immuClient.set("k0", v0);
@@ -40,7 +42,9 @@ public class MultidatabaseTest extends ImmuClientIntegrationTest {
             Assert.fail("Failed at set.", e);
         }
 
-        immuClient.useDatabase("db2");
+        immuClient.closeSession();
+
+        immuClient.openSession("immudb", "immudb", "db2");
 
         byte[] v1 = new byte[]{3, 2, 1, 0};
         try {
@@ -49,7 +53,9 @@ public class MultidatabaseTest extends ImmuClientIntegrationTest {
             Assert.fail("Failed at set.", e);
         }
 
-        immuClient.useDatabase("db1");
+        immuClient.closeSession();
+
+        immuClient.openSession("immudb", "immudb", "db1");
 
         Entry entry1 = immuClient.get("k0");
         Assert.assertNotNull(entry1);
@@ -59,7 +65,9 @@ public class MultidatabaseTest extends ImmuClientIntegrationTest {
         Assert.assertNotNull(ventry1);
         Assert.assertEquals(ventry1.getValue(), v0);
 
-        immuClient.useDatabase("db2");
+        immuClient.closeSession();
+
+        immuClient.openSession("immudb", "immudb", "db2");
 
         Entry entry2 = immuClient.get("k1");
         Assert.assertEquals(entry2.getValue(), v1);
@@ -74,7 +82,7 @@ public class MultidatabaseTest extends ImmuClientIntegrationTest {
         Assert.assertTrue(dbs.contains("db1"));
         Assert.assertTrue(dbs.contains("db2"));
 
-        immuClient.logout();
+        immuClient.closeSession();
     }
 
 }

@@ -17,7 +17,6 @@ package io.codenotary.immudb4j;
 
 import io.codenotary.immudb4j.exceptions.CorruptedDataException;
 import io.codenotary.immudb4j.exceptions.KeyNotFoundException;
-import io.grpc.StatusRuntimeException;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
@@ -28,9 +27,7 @@ public class HistoryTest extends ImmuClientIntegrationTest {
 
     @Test(testName = "set, history", priority = 2)
     public void t1() {
-
-        immuClient.login("immudb", "immudb");
-        immuClient.useDatabase("defaultdb");
+        immuClient.openSession("immudb", "immudb", "defaultdb");
 
         byte[] value1 = {0, 1, 2, 3};
         byte[] value2 = {4, 5, 6, 7};
@@ -80,7 +77,7 @@ public class HistoryTest extends ImmuClientIntegrationTest {
             // exception is expected here
         }
 
-        immuClient.logout();
+        immuClient.closeSession();
     }
 
 }

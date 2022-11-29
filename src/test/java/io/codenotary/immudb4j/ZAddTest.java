@@ -26,9 +26,7 @@ public class ZAddTest extends ImmuClientIntegrationTest {
 
     @Test(testName = "zAdd, verifiedZAdd, verifiedZAddAt")
     public void t1() {
-
-        immuClient.login("immudb", "immudb");
-        immuClient.useDatabase("defaultdb");
+        immuClient.openSession("immudb", "immudb", "defaultdb");
 
         String set = "test-zadd";
         String key1 = "test-zadd-key1";
@@ -61,7 +59,7 @@ public class ZAddTest extends ImmuClientIntegrationTest {
         }
         Assert.assertNotNull(txHdr);
 
-        immuClient.logout();
+        immuClient.closeSession();
     }
 
 }

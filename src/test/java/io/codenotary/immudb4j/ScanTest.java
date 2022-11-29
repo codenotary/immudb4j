@@ -26,9 +26,7 @@ public class ScanTest extends ImmuClientIntegrationTest {
 
     @Test(testName = "scan", priority = 2)
     public void t1() {
-
-        immuClient.login("immudb", "immudb");
-        immuClient.useDatabase("defaultdb");
+        immuClient.openSession("immudb", "immudb", "defaultdb");
 
         byte[] value1 = {0, 1, 2, 3};
         byte[] value2 = {4, 5, 6, 7};
@@ -53,14 +51,12 @@ public class ScanTest extends ImmuClientIntegrationTest {
 
         Assert.assertEquals(immuClient.scan("scan", "scan1", 1, false).size(), 1);
 
-        immuClient.logout();
+        immuClient.closeSession();
     }
 
     @Test(testName = "set, zAdd, zScan", priority = 3)
     public void t2() {
-
-        immuClient.login("immudb", "immudb");
-        immuClient.useDatabase("defaultdb");
+        immuClient.openSession("immudb", "immudb", "defaultdb");
 
         byte[] value1 = {0, 1, 2, 3};
         byte[] value2 = {4, 5, 6, 7};
@@ -91,7 +87,7 @@ public class ScanTest extends ImmuClientIntegrationTest {
         List<ZEntry> zScan2 = immuClient.zScan("set2", 5, false);
         Assert.assertEquals(zScan2.size(), 2);
 
-        immuClient.logout();
+        immuClient.closeSession();
     }
 
 }

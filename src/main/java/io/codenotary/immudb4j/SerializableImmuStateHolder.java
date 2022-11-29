@@ -27,7 +27,7 @@ import java.util.Map;
 public class SerializableImmuStateHolder implements ImmuStateHolder {
 
     /**
-     * Mapping "{serverUuid}_{databaseName}" to the appropriate state.
+     * Mapping "{databaseName}" to the appropriate state.
      */
     private Map<String, ImmuState> statesMap = new HashMap<>();
 
@@ -46,13 +46,13 @@ public class SerializableImmuStateHolder implements ImmuStateHolder {
     }
 
     @Override
-    public ImmuState getState(String serverUuid, String database) {
-        return this.statesMap.get(serverUuid + "_" + database);
+    public ImmuState getState(String database) {
+        return this.statesMap.get(database);
     }
 
     @Override
-    public void setState(String serverUuid, ImmuState state) {
-        this.statesMap.put(serverUuid + "_" + state.getDatabase(), state);
+    public void setState(ImmuState state) {
+        this.statesMap.put(state.getDatabase(), state);
     }
 
 }

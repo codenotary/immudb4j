@@ -30,9 +30,7 @@ public class StateTest extends ImmuClientIntegrationTest {
 
     @Test(testName = "currentState")
     public void t2() throws VerificationException {
-
-        immuClient.login("immudb", "immudb");
-        immuClient.useDatabase("defaultdb");
+        immuClient.openSession("immudb", "immudb", "defaultdb");
 
         ImmuState currState = immuClient.currentState();
 
@@ -50,7 +48,7 @@ public class StateTest extends ImmuClientIntegrationTest {
             publicKey = CryptoUtils.getDERPublicKey(publicKeyFile.getAbsolutePath());
         } catch (Exception e) {
             // Not a test itself fault, but we cannot continue it.
-            immuClient.logout();
+            immuClient.closeSession();
             return;
         }
 
@@ -61,12 +59,11 @@ public class StateTest extends ImmuClientIntegrationTest {
         ImmuState someState = new ImmuState(currState.getDatabase(), currState.getTxId(), currState.getTxHash(), new byte[1]);
         Assert.assertFalse(someState.checkSignature(publicKey));
 
-        immuClient.logout();
+        immuClient.closeSession();
     }
 
     @Test(testName = "currentState with server signature checking, but only on the client side")
     public void t3() {
-
         // Provisioning the client side with the public key file.
         ClassLoader classLoader = getClass().getClassLoader();
         File publicKeyFile = new File(Objects.requireNonNull(classLoader.getResource(publicKeyResource)).getFile());
@@ -85,8 +82,7 @@ public class StateTest extends ImmuClientIntegrationTest {
             return;
         }
 
-        immuClient.login("immudb", "immudb");
-        immuClient.useDatabase("defaultdb");
+        immuClient.openSession("immudb", "immudb", "defaultdb");
 
         try {
             immuClient.currentState();
@@ -96,7 +92,7 @@ public class StateTest extends ImmuClientIntegrationTest {
             // (this feature is active when starting it like: `immudb --signingKey test_private_key.pem`).
         }
 
-        immuClient.logout();
+        immuClient.closeSession();
     }
 
 
@@ -128,8 +124,7 @@ public class StateTest extends ImmuClientIntegrationTest {
             return;
         }
 
-        immuClient.login("immudb", "immudb");
-        immuClient.useDatabase("defaultdb");
+        immuClient.openSession("immudb", "immudb", "defaultdb");
 
         try {
             ImmuState state = immuClient.currentState();
@@ -140,7 +135,7 @@ public class StateTest extends ImmuClientIntegrationTest {
             Assert.fail(e.getMessage(), e.getCause());
         }
 
-        immuClient.logout();
+        immuClient.closeSession();
     }
 
 }

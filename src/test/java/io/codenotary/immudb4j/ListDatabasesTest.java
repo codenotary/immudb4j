@@ -23,8 +23,7 @@ public class ListDatabasesTest extends ImmuClientIntegrationTest {
 
   @Test(testName = "databases")
   public void t1() {
-
-    immuClient.login("immudb", "immudb");
+    immuClient.openSession("immudb", "immudb", "defaultdb");
 
     List<String> databases = immuClient.databases();
     if (databases.size() > 0) {
@@ -36,7 +35,7 @@ public class ListDatabasesTest extends ImmuClientIntegrationTest {
         System.out.print(">>> There are no databases.");
     }
 
-    immuClient.logout();
+    immuClient.closeSession();
   }
 
 }

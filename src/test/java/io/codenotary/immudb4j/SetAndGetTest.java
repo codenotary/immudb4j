@@ -26,9 +26,7 @@ public class SetAndGetTest extends ImmuClientIntegrationTest {
 
     @Test(testName = "set, get")
     public void t1() {
-
-        immuClient.login("immudb", "immudb");
-        immuClient.useDatabase("defaultdb");
+        immuClient.openSession("immudb", "immudb", "defaultdb");
 
         String key = "key1";
         byte[] val = new byte[]{1, 2, 3, 4, 5};
@@ -69,7 +67,7 @@ public class SetAndGetTest extends ImmuClientIntegrationTest {
             Assert.fail("key not found exception expected");
         }
 
-        immuClient.logout();
+        immuClient.closeSession();
     }
 
 }

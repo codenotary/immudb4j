@@ -15,25 +15,22 @@ limitations under the License.
 */
 package io.codenotary.immudb4j;
 
-import org.testng.Assert;
-import org.testng.annotations.Test;
+public class Session {
 
-import java.util.List;
+    private String sessionID;
+    private String database;
 
+    public Session(String sessionID, String database) {
+        this.sessionID = sessionID;
+        this.database = database;
+    }
 
-public class UseDatabaseTest extends ImmuClientIntegrationTest {
+    public String getSessionID() {
+        return sessionID;
+    }
 
-    @Test(testName = "useDatabase")
-    public void t1() {
-
-        immuClient.login("immudb", "immudb");
-
-        immuClient.useDatabase("defaultdb");
-
-        List<String> databases = immuClient.databases();
-        Assert.assertTrue(databases.size() > 0);
-
-        immuClient.logout();
+    public String getDatabase() {
+        return database;
     }
 
 }

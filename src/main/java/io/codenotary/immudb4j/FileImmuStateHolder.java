@@ -59,21 +59,21 @@ public class FileImmuStateHolder implements ImmuStateHolder {
     }
 
     @Override
-    public synchronized ImmuState getState(String serverUuid, String database) {
-        return stateHolder.getState(serverUuid, database);
+    public synchronized ImmuState getState(String database) {
+        return stateHolder.getState(database);
     }
 
     @Override
-    public synchronized void setState(String serverUuid, ImmuState state) throws IllegalStateException {
+    public synchronized void setState(ImmuState state) throws IllegalStateException {
 
-        ImmuState currentState = stateHolder.getState(serverUuid, state.getDatabase());
+        ImmuState currentState = stateHolder.getState(state.getDatabase());
         if (currentState != null && currentState.getTxId() >= state.getTxId()) {
             return;
         }
 
-        stateHolder.setState(serverUuid, state);
+        stateHolder.setState(state);
 
-        Path newStateFile = statesFolder.resolve("state_" + serverUuid + "_" + state.getDatabase() + "_" + System.nanoTime());
+        Path newStateFile = statesFolder.resolve("state_" + state.getDatabase() + "_" + System.nanoTime());
 
         if (Files.exists(newStateFile)) {
             throw new RuntimeException("Failed attempting to create a new state file. Please retry.");
