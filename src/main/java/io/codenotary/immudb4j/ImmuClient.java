@@ -565,6 +565,10 @@ public class ImmuClient {
     }
 
     /**
+     * This method can be used to avoid additional latency while the server
+     * waits for the indexer to finish indexing but still guarantees that
+     * specific portion of the database history has already been indexed.
+     * 
      * @param key the key to look for
      * @param tx  the lowest transaction from which the associated entry should be
      *            retrieved
@@ -576,6 +580,10 @@ public class ImmuClient {
     }
 
     /**
+     * This method can be used to avoid additional latency while the server
+     * waits for the indexer to finish indexing but still guarantees that
+     * specific portion of the database history has already been indexed.
+     * 
      * @param key the key to look for
      * @param tx  the lowest transaction from which the associated entry should be
      *            retrieved
@@ -601,8 +609,7 @@ public class ImmuClient {
 
     /**
      * @param key the key to look for
-     * @param tx  the lowest transaction from which the associated entry should be
-     *            retrieved
+     * @param rev the specific revision
      * @return the specific revision for given key.
      * 
      *         Key revision is an integer value that starts at 1 when
@@ -610,10 +617,12 @@ public class ImmuClient {
      *         that key.
      * 
      *         The way rev is interpreted depends on the value:
-     *         - if rev = 0, returns current value
-     *         - if rev > 0, returns nth revision value, e.g. 1 is the first value,
+     *         - if rev == 0, returns current value
+     *         - if rev &gt; 0, returns nth revision value, e.g. 1 is the first
+     *         value,
      *         2 is the second and so on
-     *         - if rev < 0, returns nth revision value from the end, e.g. -1 is the
+     *         - if rev &lt; 0, returns nth revision value from the end, e.g. -1 is
+     *         the
      *         previous value, -2 is the one before and so on
      */
     public Entry getAtRevision(String key, long rev) throws KeyNotFoundException {
@@ -622,8 +631,7 @@ public class ImmuClient {
 
     /**
      * @param key the key to look for
-     * @param tx  the lowest transaction from which the associated entry should be
-     *            retrieved
+     * @param rev the specific revision
      * @return the specific revision for given key.
      * 
      *         Key revision is an integer value that starts at 1 when
@@ -631,10 +639,12 @@ public class ImmuClient {
      *         that key.
      * 
      *         The way rev is interpreted depends on the value:
-     *         - if rev = 0, returns current value
-     *         - if rev > 0, returns nth revision value, e.g. 1 is the first value,
+     *         - if rev == 0, returns current value
+     *         - if rev &gt; 0, returns nth revision value, e.g. 1 is the first
+     *         value,
      *         2 is the second and so on
-     *         - if rev < 0, returns nth revision value from the end, e.g. -1 is the
+     *         - if rev &lt; 0, returns nth revision value from the end, e.g. -1 is
+     *         the
      *         previous value, -2 is the one before and so on
      */
     public synchronized Entry getAtRevision(byte[] key, long rev) throws KeyNotFoundException {
@@ -654,6 +664,10 @@ public class ImmuClient {
         }
     }
 
+    /**
+     * @param keys the lists of keys to look for
+     * @return retrieves multiple entries in a single call
+     */
     public synchronized List<Entry> getAll(List<String> keys) {
         final List<ByteString> keysBS = new ArrayList<>(keys.size());
 
@@ -673,18 +687,46 @@ public class ImmuClient {
         return result;
     }
 
+    /**
+     * @param key the keys to look for
+     * @return the latest entry associated to the provided key. Equivalent to
+     *         {@link #get(String) get} but with additional
+     *         server-provided proof validation.
+     */
     public Entry verifiedGet(String key) throws KeyNotFoundException, VerificationException {
         return verifiedGetAtTx(key, 0);
     }
 
+    /**
+     * @param key the keys to look for
+     * @return the latest entry associated to the provided key. Equivalent to
+     *         {@link #get(byte[]) get} but with additional
+     *         server-provided proof validation.
+     */
     public Entry verifiedGet(byte[] key) throws KeyNotFoundException, VerificationException {
         return verifiedGetAtTx(key, 0);
     }
 
+    /**
+     * @param key the key to look for
+     * @param tx  the transaction at which the associated entry is expected to be
+     * @return the entry associated to the provided key and transaction. Equivalent
+     *         to
+     *         {@link #getAtTx(String, long) getAtTx} but with additional
+     *         server-provided proof validation.
+     */
     public Entry verifiedGetAtTx(String key, long tx) throws KeyNotFoundException, VerificationException {
         return verifiedGetAtTx(Utils.toByteArray(key), tx);
     }
 
+    /**
+     * @param key the key to look for
+     * @param tx  the transaction at which the associated entry is expected to be
+     * @return the entry associated to the provided key and transaction. Equivalent
+     *         to
+     *         {@link #getAtTx(byte[], long) getAtTx} but with additional
+     *         server-provided proof validation.
+     */
     public synchronized Entry verifiedGetAtTx(byte[] key, long tx) throws KeyNotFoundException, VerificationException {
         final ImmuState state = state();
 
@@ -696,10 +738,38 @@ public class ImmuClient {
         return verifiedGet(keyReq, state);
     }
 
+    /**
+     * This method can be used to avoid additional latency while the server
+     * waits for the indexer to finish indexing but still guarantees that
+     * specific portion of the database history has already been indexed.
+     * 
+     * @param key the key to look for
+     * @param tx  the lowest transaction from which the associated entry should be
+     *            retrieved
+     * @return the latest indexed entry associated the to provided key. Ensuring the
+     *         indexing has already be completed up to the specified transaction.
+     *         Equivalent to
+     *         {@link #getSinceTx(String, long) getSinceTx} but with additional
+     *         server-provided proof validation.
+     */
     public Entry verifiedGetSinceTx(String key, long tx) throws KeyNotFoundException, VerificationException {
         return verifiedGetSinceTx(Utils.toByteArray(key), tx);
     }
 
+    /**
+     * This method can be used to avoid additional latency while the server
+     * waits for the indexer to finish indexing but still guarantees that
+     * specific portion of the database history has already been indexed.
+     * 
+     * @param key the key to look for
+     * @param tx  the lowest transaction from which the associated entry should be
+     *            retrieved
+     * @return the latest indexed entry associated the to provided key. Ensuring the
+     *         indexing has already be completed up to the specified transaction.
+     *         Equivalent to
+     *         {@link #getSinceTx(byte[], long) getSinceTx} but with additional
+     *         server-provided proof validation.
+     */
     public synchronized Entry verifiedGetSinceTx(byte[] key, long tx)
             throws KeyNotFoundException, VerificationException {
 
@@ -713,10 +783,24 @@ public class ImmuClient {
         return verifiedGet(keyReq, state);
     }
 
+    /**
+     * @param key the key to look for
+     * @param rev the specific revision
+     * @return the specific revision for given key. Equivalent to
+     *         {@link #getAtRevision(String, long) getAtRevision} but with additional
+     *         server-provided proof validation.
+     */
     public Entry verifiedGetAtRevision(String key, long rev) throws KeyNotFoundException, VerificationException {
         return verifiedGetAtRevision(Utils.toByteArray(key), rev);
     }
 
+    /**
+     * @param key the key to look for
+     * @param rev the specific revision
+     * @return the specific revision for given key. Equivalent to
+     *         {@link #getAtRevision(byte[], long) getAtRevision} but with additional
+     *         server-provided proof validation.
+     */
     public synchronized Entry verifiedGetAtRevision(byte[] key, long rev)
             throws KeyNotFoundException, VerificationException {
 
@@ -830,10 +914,20 @@ public class ImmuClient {
     // ========== DELETE ==========
     //
 
+    /**
+     * Performs a logical deletion for key
+     * 
+     * @param key the key to delete
+     */
     public TxHeader delete(String key) throws KeyNotFoundException {
         return delete(Utils.toByteArray(key));
     }
 
+    /**
+     * Performs a logical deletion for key
+     * 
+     * @param key the key to delete
+     */
     public synchronized TxHeader delete(byte[] key) throws KeyNotFoundException {
         try {
             final ImmudbProto.DeleteKeysRequest req = ImmudbProto.DeleteKeysRequest.newBuilder()
