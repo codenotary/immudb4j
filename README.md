@@ -55,12 +55,12 @@ Just include immudb4j as a dependency in your project:
   <dependency>
       <groupId>io.codenotary</groupId>
       <artifactId>immudb4j</artifactId>
-      <version>0.9.10.2</version>
+      <version>1.0.0-alpha1</version>
   </dependency> 
   ```
 - if using Gradle:
   ```groovy
-  compile 'io.codenotary:immudb4j:0.9.10.2'
+  compile 'io.codenotary:immudb4j:1.0.0-alpha1'
   ```
 
 `immudb4j` is currently hosted on both [Maven Central] and [Github Packages].
@@ -77,9 +77,9 @@ and _Configuring Gradle for use with GitHub Packages_ at [Github Packages].
 
 ## Supported Versions
 
-immudb4j supports the [latest immudb server] release, that is 1.3.0 at the time of updating this document.
+immudb4j supports the [latest immudb server] release, that is 1.4.1 at the time of updating this document.
 
-[latest immudb server]: https://github.com/codenotary/immudb/releases/tag/v1.3.0
+[latest immudb server]: https://github.com/codenotary/immudb/releases/tag/v1.4.1
 
 ## Quickstart
 
@@ -121,15 +121,15 @@ Customizing the `State Holder`:
 
 ### User Sessions
 
-Use `login` and `logout` methods to initiate and terminate user sessions:
+Use `openSession` and `closeSession` methods to initiate and terminate user sessions:
 
 ```java
-    immuClient.login("usr1", "pwd1");
+    immuClient.openSession("defaultdb", "usr1", "pwd1");
 
-    // Interact with immudb using logged-in user.
+    // Interact with immudb using open session.
     //...
 
-    immuClient.logout();
+    immuClient.closeSession();
 ```
 
 ### Creating a Database
@@ -138,14 +138,6 @@ Creating a new database is quite simple:
 
 ```java
     immuClient.createDatabase("db1");
-```
-
-### Setting the Active Database
-
-Specify the active database with:
-
-```java
-    immuClient.useDatabase("db1");
 ```
 
 ### Standard Read and Write
@@ -213,7 +205,7 @@ Atomic multi-key read (all entries are retrieved or none):
 
 ### Closing the client
 
-Apart from the `logout`, for closing the connection with immudb server use the `shutdown` operation:
+Apart from the `closeSession`, for closing the connection with immudb server use the `shutdown` operation:
  
 ```java
     immuClient.shutdown();
