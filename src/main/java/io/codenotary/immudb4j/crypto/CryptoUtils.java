@@ -59,7 +59,6 @@ public class CryptoUtils {
     }
 
     public static byte[][] digestsFrom(List<ByteString> terms) {
-
         if (terms == null) {
             return null;
         }
@@ -82,6 +81,79 @@ public class CryptoUtils {
         byte[] d = new byte[Consts.SHA256_SIZE];
         System.arraycopy(digest, 0, d, 0, Consts.SHA256_SIZE);
         return d;
+    }
+
+    public static byte[] advanceLinearHash(byte[] alh, long txID, byte[] term) {
+        byte[] bs = new byte[Consts.TX_ID_SIZE + 2 * Consts.SHA256_SIZE];
+        Utils.putUint64(txID, bs);
+        System.arraycopy(alh, 0, bs, Consts.TX_ID_SIZE, Consts.SHA256_SIZE);
+        // innerHash = hash(ts + mdLen + md + nentries + eH + blTxID + blRoot)
+        System.arraycopy(term, 0, bs, Consts.TX_ID_SIZE + Consts.SHA256_SIZE, Consts.SHA256_SIZE);
+        // hash(txID + prevAlh + innerHash)
+        return sha256Sum(bs);
+    }
+
+    public static boolean verifyLinearAdvanceProof(
+            LinearAdvanceProof proof,
+            long startTxID,
+            long endTxID,
+            byte[] endAlh,
+            byte[] treeRoot,
+            long treeSize) {
+        //
+        // Old
+        // \ Merkle Tree
+        // \
+        // \
+        // \ Additional Inclusion proof
+        // \ for those nodes
+        // \ in new Merkle Tree
+        // \ ......................
+        // \ / \
+        // \
+        // \+--+ +--+ +--+ +--+ +--+
+        // -----------| |-----| |-----| |-----| |-----| |
+        // +--+ +--+ +--+ +--+ +--+
+        //
+        // startTxID endTxID
+        //
+        if (endTxID < startTxID) {
+            // This must not happen - that's an invalid proof
+            return false;
+        }
+
+        if (endTxID <= startTxID + 1) {
+            // Linear Advance Proof is not needed
+            return true;
+        }
+
+        if (proof == null ||
+                proof.terms.length != endTxID - startTxID ||
+                proof.inclusionProofs.size() != (endTxID - startTxID) - 1) {
+            // Check more preconditions that would indicate broken proof
+            return false;
+        }
+
+        byte[] calculatedAlh = proof.terms[0]; // alh at startTx+1
+
+        for (long txID = startTxID + 1; txID < endTxID; txID++) {
+            // Ensure the node in the chain is included in the target Merkle Tree
+            if (!verifyInclusion(
+                    proof.inclusionProofs.get((int) (txID - startTxID - 1)).terms,
+                    txID,
+                    treeSize,
+                    leafFor(calculatedAlh),
+                    treeRoot)) {
+                return false;
+            }
+
+            // Get the Alh for the next transaction
+            calculatedAlh = advanceLinearHash(calculatedAlh, txID + 1, proof.terms[(int) (txID - startTxID)]);
+        }
+
+        // We must end up with the final Alh - that one is also checked for inclusion
+        // but in different part of the proof
+        return Arrays.equals(calculatedAlh, endAlh);
     }
 
     public static boolean verifyDualProof(DualProof proof,
