@@ -78,7 +78,7 @@ public class ImmuClient {
     private Session session;
     private Timer sessionHeartBeat;
 
-    public ImmuClient(Builder builder) {
+    private ImmuClient(Builder builder) {
         stateHolder = builder.getStateHolder();
         serverSigningKey = builder.getServerSigningKey();
         keepAlivePeriod = builder.getKeepAlivePeriod();
@@ -94,10 +94,17 @@ public class ImmuClient {
         nonBlockingStub = ImmuServiceGrpc.newStub(channel);
     }
 
+    /**
+     * @return ImmuClient builder for chaining client settings
+     */
     public static Builder newBuilder() {
         return new Builder();
     }
 
+    /**
+     * Releases the resources used by the SDK objects. (e.g. connection resources).
+     * This method should be called just before the existing process ends.
+     */
     public synchronized void shutdown() throws InterruptedException {
         if (channel == null) {
             return;
@@ -118,6 +125,13 @@ public class ImmuClient {
         return session;
     }
 
+    /**
+     * Establishes a new database session using provided credentials
+     * 
+     * @param database The name of the database to which the session is established
+     * @param username The username is required to get authorization
+     * @param password The password is required to get authorization
+     */
     public synchronized void openSession(String database, String username, String password) {
         if (session != null) {
             throw new IllegalStateException("session already opened");
@@ -152,6 +166,9 @@ public class ImmuClient {
         }, 0, keepAlivePeriod);
     }
 
+    /**
+     * Closes the open database session
+     */
     public synchronized void closeSession() {
         if (session == null) {
             throw new IllegalStateException("no open session");
@@ -216,6 +233,13 @@ public class ImmuClient {
     // ========== SQL ==========
     //
 
+    /**
+     * Creates a new SQL transaction that can be terminated with the
+     * {@link #commitTransaction() commit} or {@link #rollbackTransaction()
+     * rollback} methods
+     * 
+     * @throws SQLException if the cause of the error is sql-related
+     */
     public synchronized void beginTransaction() throws SQLException {
         if (session == null) {
             throw new IllegalStateException("no open session");
@@ -234,6 +258,11 @@ public class ImmuClient {
         session.setTransactionID(res.getTransactionID());
     }
 
+    /**
+     * Commits the ongoing SQL transaction
+     * 
+     * @throws SQLException if the cause of the error is sql-related
+     */
     public synchronized void commitTransaction() throws SQLException {
         if (session == null) {
             throw new IllegalStateException("no open session");
@@ -245,9 +274,14 @@ public class ImmuClient {
 
         blockingStub.commit(Empty.getDefaultInstance());
 
-        session.setTransactionID( null);
+        session.setTransactionID(null);
     }
 
+    /**
+     * Rollback the ongoing SQL transaction
+     * 
+     * @throws SQLException if the cause of the error is sql-related
+     */
     public synchronized void rollbackTransaction() throws SQLException {
         if (session == null) {
             throw new IllegalStateException("no open session");
@@ -262,10 +296,26 @@ public class ImmuClient {
         session.setTransactionID(null);
     }
 
+    /**
+     * Executes a SQL statement in the ongoing SQL transaction
+     * 
+     * @param stmt   the SQL statement to be executed
+     * @param params the positional parameters for SQL statement evaluation
+     * 
+     * @throws SQLException if the cause of the error is sql-related
+     */
     public void sqlExec(String stmt, SQLValue... params) throws SQLException {
         sqlExec(stmt, sqlNameParams(params));
     }
 
+    /**
+     * Executes a SQL statement in the ongoing SQL transaction
+     * 
+     * @param stmt   the SQL statement to be executed
+     * @param params the named parameters for SQL statement evaluation
+     * 
+     * @throws SQLException if the cause of the error is sql-related
+     */
     public synchronized void sqlExec(String stmt, Map<String, SQLValue> params) throws SQLException {
         if (session == null) {
             throw new IllegalStateException("no open session");
@@ -283,10 +333,30 @@ public class ImmuClient {
         blockingStub.txSQLExec(req);
     }
 
+    /**
+     * Performs a SQL query in the ongoing SQL transaction
+     * 
+     * @param stmt   the SQL query to be evaluated
+     * @param params the positional parameters for SQL statement evaluation
+     * 
+     * @return the query resultset
+     * 
+     * @throws SQLException if the cause of the error is sql-related
+     */
     public SQLQueryResult sqlQuery(String stmt, SQLValue... params) throws SQLException {
         return sqlQuery(stmt, sqlNameParams(params));
     }
 
+    /**
+     * Performs a SQL query in the ongoing SQL transaction
+     * 
+     * @param stmt   the SQL query to be evaluated
+     * @param params the named parameters for SQL statement evaluation
+     * 
+     * @return the query resultset
+     * 
+     * @throws SQLException if the cause of the error is sql-related
+     */
     public synchronized SQLQueryResult sqlQuery(String stmt, Map<String, SQLValue> params) throws SQLException {
         if (session == null) {
             throw new IllegalStateException("no open session");
@@ -308,7 +378,7 @@ public class ImmuClient {
         final Map<String, SQLValue> nparams = new HashMap<>(params.length);
 
         for (int i = 1; i <= params.length; i++) {
-            nparams.put("param" + i, params[i-1]);
+            nparams.put("param" + i, params[i - 1]);
         }
 
         return nparams;
@@ -319,10 +389,9 @@ public class ImmuClient {
 
         for (Map.Entry<String, SQLValue> p : params.entrySet()) {
             nparams.add(NamedParam.newBuilder()
-                .setName(p.getKey())
-                .setValue(p.getValue().asProtoSQLValue())
-                .build()
-            );
+                    .setName(p.getKey())
+                    .setValue(p.getValue().asProtoSQLValue())
+                    .build());
         }
 
         return nparams;
