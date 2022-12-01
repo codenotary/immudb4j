@@ -15,7 +15,6 @@ limitations under the License.
 */
 package io.codenotary.immudb4j;
 
-import io.codenotary.immudb4j.exceptions.CorruptedDataException;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
@@ -30,30 +29,15 @@ public class ReferenceTest extends ImmuClientIntegrationTest {
         byte[] key = "testRef".getBytes(StandardCharsets.UTF_8);
         byte[] val = "abc".getBytes(StandardCharsets.UTF_8);
 
-        TxHeader setTxHdr = null;
-        try {
-            setTxHdr = immuClient.set(key, val);
-        } catch (CorruptedDataException e) {
-            Assert.fail("Failed at set.", e);
-        }
+        TxHeader setTxHdr = immuClient.set(key, val);
 
         byte[] ref1Key = "ref1_to_testRef".getBytes(StandardCharsets.UTF_8);
         byte[] ref2Key = "ref2_to_testRef".getBytes(StandardCharsets.UTF_8);
 
-        TxHeader ref1TxHdr = null;
-        try {
-            ref1TxHdr = immuClient.setReference(ref1Key, key);
-        } catch (CorruptedDataException e) {
-            Assert.fail("Failed at setReference", e);
-        }
+        TxHeader ref1TxHdr = immuClient.setReference(ref1Key, key);
         Assert.assertNotNull(ref1TxHdr);
 
-        TxHeader ref2TxHdr = null;
-        try {
-            ref2TxHdr = immuClient.setReference(ref2Key, key, setTxHdr.getId());
-        } catch (CorruptedDataException e) {
-            Assert.fail("Failed at setReferenceAt.", e);
-        }
+        TxHeader ref2TxHdr = immuClient.setReference(ref2Key, key, setTxHdr.getId());
         Assert.assertNotNull(ref2TxHdr);
 
         immuClient.closeSession();

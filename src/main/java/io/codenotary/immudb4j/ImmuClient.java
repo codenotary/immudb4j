@@ -1084,27 +1084,39 @@ public class ImmuClient {
     // ========== SET ==========
     //
 
-    public TxHeader set(String key, byte[] value) throws CorruptedDataException {
+    /**
+     * Commits a change of a value for a single key.
+     * 
+     * @param key   the key to set
+     * @param value the value to set
+     */
+    public TxHeader set(String key, byte[] value) {
         return set(Utils.toByteArray(key), value);
     }
 
-    public synchronized TxHeader set(byte[] key, byte[] value) throws CorruptedDataException {
+    /**
+     * Commits a change of a value for a single key.
+     * 
+     * @param key   the key to set
+     * @param value the value to set
+     */
+    public synchronized TxHeader set(byte[] key, byte[] value) {
         final ImmudbProto.KeyValue kv = ImmudbProto.KeyValue.newBuilder()
                 .setKey(Utils.toByteString(key))
                 .setValue(Utils.toByteString(value))
                 .build();
 
         final ImmudbProto.SetRequest req = ImmudbProto.SetRequest.newBuilder().addKVs(kv).build();
-        final ImmudbProto.TxHeader txHdr = blockingStub.set(req);
 
-        if (txHdr.getNentries() != 1) {
-            throw new CorruptedDataException();
-        }
-
-        return TxHeader.valueOf(txHdr);
+        return TxHeader.valueOf(blockingStub.set(req));
     }
 
-    public synchronized TxHeader setAll(List<KVPair> kvList) throws CorruptedDataException {
+    /**
+     * Commits multiple entries in a single transaction.
+     * 
+     * @param kvList the list of key-value pairs to set
+     */
+    public synchronized TxHeader setAll(List<KVPair> kvList) {
         final ImmudbProto.SetRequest.Builder reqBuilder = ImmudbProto.SetRequest.newBuilder();
 
         for (KVPair kv : kvList) {
@@ -1116,29 +1128,28 @@ public class ImmuClient {
             reqBuilder.addKVs(kvBuilder.build());
         }
 
-        final ImmudbProto.TxHeader txHdr = blockingStub.set(reqBuilder.build());
-
-        if (txHdr.getNentries() != kvList.size()) {
-            throw new CorruptedDataException();
-        }
-
-        return TxHeader.valueOf(txHdr);
+        return TxHeader.valueOf(blockingStub.set(reqBuilder.build()));
     }
 
-    public TxHeader setReference(String key, String referencedKey) throws CorruptedDataException {
+    /**
+     * 
+     * @param key
+     * @param referencedKey
+     * @return
+     */
+    public TxHeader setReference(String key, String referencedKey) {
         return setReference(Utils.toByteArray(key), Utils.toByteArray(referencedKey));
     }
 
-    public TxHeader setReference(byte[] key, byte[] referencedKey) throws CorruptedDataException {
+    public TxHeader setReference(byte[] key, byte[] referencedKey) {
         return setReference(key, referencedKey, 0);
     }
 
-    public TxHeader setReference(String key, String referencedKey, long atTx) throws CorruptedDataException {
+    public TxHeader setReference(String key, String referencedKey, long atTx) {
         return setReference(Utils.toByteArray(key), Utils.toByteArray(referencedKey), atTx);
     }
 
-    public synchronized TxHeader setReference(byte[] key, byte[] referencedKey, long atTx)
-            throws CorruptedDataException {
+    public synchronized TxHeader setReference(byte[] key, byte[] referencedKey, long atTx) {
         final ImmudbProto.ReferenceRequest req = ImmudbProto.ReferenceRequest.newBuilder()
                 .setKey(Utils.toByteString(key))
                 .setReferencedKey(Utils.toByteString(referencedKey))
@@ -1146,13 +1157,7 @@ public class ImmuClient {
                 .setBoundRef(atTx > 0)
                 .build();
 
-        final ImmudbProto.TxHeader txHdr = blockingStub.setReference(req);
-
-        if (txHdr.getNentries() != 1) {
-            throw new CorruptedDataException();
-        }
-
-        return TxHeader.valueOf(txHdr);
+        return TxHeader.valueOf(blockingStub.setReference(req));
     }
 
     public TxHeader verifiedSet(String key, byte[] value) throws VerificationException {
@@ -1307,29 +1312,24 @@ public class ImmuClient {
     // ========== Z ==========
     //
 
-    public TxHeader zAdd(String set, String key, double score) throws CorruptedDataException {
+    public TxHeader zAdd(String set, String key, double score) {
         return zAdd(Utils.toByteArray(set), Utils.toByteArray(key), score);
     }
 
-    public TxHeader zAdd(byte[] set, byte[] key, double score) throws CorruptedDataException {
+    public TxHeader zAdd(byte[] set, byte[] key, double score) {
         return zAdd(set, key, 0, score);
     }
 
-    public synchronized TxHeader zAdd(byte[] set, byte[] key, long atTx, double score) throws CorruptedDataException {
-        final ImmudbProto.TxHeader txHdr = blockingStub.zAdd(
-                ImmudbProto.ZAddRequest.newBuilder()
-                        .setSet(Utils.toByteString(set))
-                        .setKey(Utils.toByteString(key))
-                        .setAtTx(atTx)
-                        .setScore(score)
-                        .setBoundRef(atTx > 0)
-                        .build());
+    public synchronized TxHeader zAdd(byte[] set, byte[] key, long atTx, double score) {
+        ImmudbProto.ZAddRequest req = ImmudbProto.ZAddRequest.newBuilder()
+                .setSet(Utils.toByteString(set))
+                .setKey(Utils.toByteString(key))
+                .setAtTx(atTx)
+                .setScore(score)
+                .setBoundRef(atTx > 0)
+                .build();
 
-        if (txHdr.getNentries() != 1) {
-            throw new CorruptedDataException();
-        }
-
-        return TxHeader.valueOf(txHdr);
+        return TxHeader.valueOf(blockingStub.zAdd(req));
     }
 
     public TxHeader verifiedZAdd(String set, String key, double score) throws VerificationException {
@@ -1693,12 +1693,12 @@ public class ImmuClient {
     // ========== STREAM SET ==========
     //
 
-    public TxHeader streamSet(String key, byte[] value) throws InterruptedException, CorruptedDataException {
+    public TxHeader streamSet(String key, byte[] value) throws InterruptedException {
         return streamSet(Utils.toByteArray(key), value);
     }
 
     public synchronized TxHeader streamSet(byte[] key, byte[] value)
-            throws InterruptedException, CorruptedDataException {
+            throws InterruptedException {
         final LatchHolder<ImmudbProto.TxHeader> latchHolder = new LatchHolder<>();
         final StreamObserver<Chunk> streamObserver = nonBlockingStub.streamSet(txHeaderStreamObserver(latchHolder));
 
@@ -1707,16 +1707,10 @@ public class ImmuClient {
 
         streamObserver.onCompleted();
 
-        final ImmudbProto.TxHeader txHdr = latchHolder.awaitValue();
-
-        if (txHdr.getNentries() != 1) {
-            throw new CorruptedDataException();
-        }
-
-        return TxHeader.valueOf(txHdr);
+        return TxHeader.valueOf(latchHolder.awaitValue());
     }
 
-    public synchronized TxHeader streamSetAll(List<KVPair> kvList) throws InterruptedException, CorruptedDataException {
+    public synchronized TxHeader streamSetAll(List<KVPair> kvList) throws InterruptedException {
         final LatchHolder<ImmudbProto.TxHeader> latchHolder = new LatchHolder<>();
         final StreamObserver<Chunk> streamObserver = nonBlockingStub.streamSet(txHeaderStreamObserver(latchHolder));
 
@@ -1727,13 +1721,7 @@ public class ImmuClient {
 
         streamObserver.onCompleted();
 
-        final ImmudbProto.TxHeader txHdr = latchHolder.awaitValue();
-
-        if (txHdr.getNentries() != kvList.size()) {
-            throw new CorruptedDataException();
-        }
-
-        return TxHeader.valueOf(txHdr);
+        return TxHeader.valueOf(latchHolder.awaitValue());
     }
 
     //

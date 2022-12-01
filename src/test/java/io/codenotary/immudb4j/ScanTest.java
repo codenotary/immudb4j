@@ -15,7 +15,6 @@ limitations under the License.
 */
 package io.codenotary.immudb4j;
 
-import io.codenotary.immudb4j.exceptions.CorruptedDataException;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
@@ -32,29 +31,17 @@ public class ScanTest extends ImmuClientIntegrationTest {
         byte[] value1 = { 0, 1, 2, 3 };
         byte[] value2 = { 4, 5, 6, 7 };
 
-        try {
-            immuClient.set("scan1", value1);
-            immuClient.set("scan2", value2);
-        } catch (CorruptedDataException e) {
-            Assert.fail("Failed at set.", e);
-        }
+        immuClient.set("scan1", value1);
+        immuClient.set("scan2", value2);
 
-        try {
-            immuClient.set("zadd1", value1);
-            immuClient.set("zadd2", value2);
-        } catch (CorruptedDataException e) {
-            Assert.fail("Failed at set.", e);
-        }
+        immuClient.set("zadd1", value1);
+        immuClient.set("zadd2", value2);
 
-        try {
-            immuClient.zAdd("set1", "zadd1", 1);
-            immuClient.zAdd("set1", "zadd2", 2);
+        immuClient.zAdd("set1", "zadd1", 1);
+        immuClient.zAdd("set1", "zadd2", 2);
 
-            immuClient.zAdd("set2", "zadd1", 2);
-            immuClient.zAdd("set2", "zadd2", 1);
-        } catch (CorruptedDataException e) {
-            Assert.fail("Failed to zAdd", e);
-        }
+        immuClient.zAdd("set2", "zadd1", 2);
+        immuClient.zAdd("set2", "zadd2", 1);
 
         List<Entry> scanResult = immuClient.scanAll("scan");
         System.out.println(scanResult.size());

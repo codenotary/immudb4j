@@ -15,7 +15,6 @@ limitations under the License.
 */
 package io.codenotary.immudb4j;
 
-import io.codenotary.immudb4j.exceptions.CorruptedDataException;
 import io.codenotary.immudb4j.exceptions.VerificationException;
 import org.testng.Assert;
 import org.testng.annotations.Test;
@@ -34,23 +33,14 @@ public class ZAddTest extends ImmuClientIntegrationTest {
         String key2 = "key2";
         byte[] val2 = "val234".getBytes(StandardCharsets.UTF_8);
 
-        try {
-            immuClient.set(key1, val1);
-            immuClient.set(key2, val2);
-        } catch (CorruptedDataException e) {
-            Assert.fail("Failed at set.", e);
-        }
+        immuClient.set(key1, val1);
+        immuClient.set(key2, val2);
 
-        TxHeader txHdr = null;
-        try {
-            txHdr = immuClient.zAdd(set, key1, 10);
-            Assert.assertNotNull(txHdr);
+        TxHeader txHdr = immuClient.zAdd(set, key1, 10);
+        Assert.assertNotNull(txHdr);
 
-            txHdr = immuClient.zAdd(set, key2, 4);
-            Assert.assertNotNull(txHdr);
-        } catch (CorruptedDataException e) {
-            Assert.fail("Failed at zAdd.", e);
-        }
+        txHdr = immuClient.zAdd(set, key2, 4);
+        Assert.assertNotNull(txHdr);
 
         try {
             txHdr = immuClient.verifiedZAdd(set, key2, 8);
