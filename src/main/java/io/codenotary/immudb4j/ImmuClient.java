@@ -787,7 +787,8 @@ public class ImmuClient {
      * @param key the key to look for
      * @param rev the specific revision
      * @return the specific revision for given key. Equivalent to
-     *         {@link #getAtRevision(String, long) getAtRevision} but with additional
+     *         {@link #getAtRevision(String, long) getAtRevision} but with
+     *         additional
      *         server-provided proof validation.
      */
     public Entry verifiedGetAtRevision(String key, long rev) throws KeyNotFoundException, VerificationException {
@@ -798,7 +799,8 @@ public class ImmuClient {
      * @param key the key to look for
      * @param rev the specific revision
      * @return the specific revision for given key. Equivalent to
-     *         {@link #getAtRevision(byte[], long) getAtRevision} but with additional
+     *         {@link #getAtRevision(byte[], long) getAtRevision} but with
+     *         additional
      *         server-provided proof validation.
      */
     public synchronized Entry verifiedGetAtRevision(byte[] key, long rev)
@@ -948,10 +950,26 @@ public class ImmuClient {
     // ========== HISTORY ==========
     //
 
+    /**
+     * @param key    the key to look for
+     * @param offset the number of entries to be skipped
+     * @param desc   the order in which entries are returned
+     * @param limit  the maximum number of entries to be returned
+     * @return the list of entries associated to the provided key
+     * @throws KeyNotFoundException if the key is not found
+     */
     public List<Entry> historyAll(String key, long offset, boolean desc, int limit) throws KeyNotFoundException {
         return historyAll(Utils.toByteArray(key), offset, desc, limit);
     }
 
+    /**
+     * @param key    the key to look for
+     * @param offset the number of entries to be skipped
+     * @param desc   the order in which entries are returned
+     * @param limit  the maximum number of entries to be returned
+     * @return the list of entries associated to the provided key
+     * @throws KeyNotFoundException if the key is not found
+     */
     public synchronized List<Entry> historyAll(byte[] key, long offset, boolean desc, int limit)
             throws KeyNotFoundException {
         try {
@@ -976,30 +994,75 @@ public class ImmuClient {
     // ========== SCAN ==========
     //
 
+    /**
+     * @param prefix the prefix used to filter entries
+     * @return the list of entries with a maching prefix
+     */
     public List<Entry> scanAll(String prefix) {
         return scanAll(Utils.toByteArray(prefix));
     }
 
+    /**
+     * @param prefix the prefix used to filter entries
+     * @return the list of entries with a maching prefix
+     */
     public List<Entry> scanAll(byte[] prefix) {
         return scanAll(prefix, false, 0);
     }
 
+    /**
+     * @param prefix the prefix used to filter entries
+     * @param desc   the order in which entries are returned
+     * @param limit  the maximum number of entries to be returned
+     * @return the list of entries with a maching prefix
+     */
     public List<Entry> scanAll(String prefix, boolean desc, long limit) {
         return scanAll(Utils.toByteArray(prefix), null, desc, limit);
     }
 
+    /**
+     * @param prefix the prefix used to filter entries
+     * @param desc   the order in which entries are returned
+     * @param limit  the maximum number of entries to be returned
+     * @return the list of entries with a maching prefix
+     */
     public List<Entry> scanAll(byte[] prefix, boolean desc, long limit) {
         return scanAll(prefix, null, desc, limit);
     }
 
+    /**
+     * @param prefix  the prefix used to filter entries
+     * @param seekKey the initial key from which the scan begins
+     * @param desc    the order in which entries are returned
+     * @param limit   the maximum number of entries to be returned
+     * @return the list of entries with a maching prefix
+     */
     public List<Entry> scanAll(byte[] prefix, byte[] seekKey, boolean desc, long limit) {
         return scanAll(prefix, seekKey, null, desc, limit);
     }
 
+    /**
+     * @param prefix  the prefix used to filter entries
+     * @param seekKey the initial key from which the scan begins
+     * @param endKey  the final key at which the scan ends
+     * @param desc    the order in which entries are returned
+     * @param limit   the maximum number of entries to be returned
+     * @return the list of entries with a maching prefix
+     */
     public List<Entry> scanAll(byte[] prefix, byte[] seekKey, byte[] endKey, boolean desc, long limit) {
-        return scanAll(prefix, seekKey, endKey, false, false, desc, limit);
+        return scanAll(prefix, seekKey, endKey, true, true, desc, limit);
     }
 
+    /**
+     * @param prefix        the prefix used to filter entries
+     * @param seekKey       the initial key from which the scan begins
+     * @param endKey        the final key at which the scan ends
+     * @param inclusiveSeek used to include/exclude the seekKey from the result
+     * @param inclusiveEnd  used to include/exclude the endKey from the result
+     * @param desc          the order in which entries are returned
+     * @param limit         the maximum number of entries to be returned
+     * @return the list of entries with a maching prefix
+     */
     public synchronized List<Entry> scanAll(byte[] prefix, byte[] seekKey, byte[] endKey, boolean inclusiveSeek,
             boolean inclusiveEnd,
             boolean desc, long limit) {
@@ -1348,11 +1411,11 @@ public class ImmuClient {
     }
 
     public List<ZEntry> zScanAll(String set, boolean reverse, long limit) {
-        return pzScanAll(Utils.toByteArray(set), null, null, null, null, 0, false, reverse, limit);
+        return pzScanAll(Utils.toByteArray(set), null, null, null, null, 0, true, reverse, limit);
     }
 
     public List<ZEntry> zScanAll(byte[] set, double minScore, double maxScore, boolean reverse, long limit) {
-        return pzScanAll(set, minScore, maxScore, null, null, 0, false, false, 0);
+        return pzScanAll(set, minScore, maxScore, null, null, 0, true, false, 0);
     }
 
     public List<ZEntry> zScanAll(byte[] set, double minScore, double maxScore, double seekScore, byte[] seekKey,
@@ -1723,7 +1786,7 @@ public class ImmuClient {
     }
 
     public Iterator<Entry> scan(byte[] prefix, byte[] seekKey, byte[] endKey, boolean desc, long limit) {
-        return scan(prefix, seekKey, endKey, false, false, desc, limit);
+        return scan(prefix, seekKey, endKey, true, true, desc, limit);
     }
 
     public synchronized Iterator<Entry> scan(byte[] prefix, byte[] seekKey, byte[] endKey, boolean inclusiveSeek,
@@ -1754,11 +1817,11 @@ public class ImmuClient {
     }
 
     public Iterator<ZEntry> zScan(String set, boolean reverse, long limit) {
-        return pzScan(Utils.toByteArray(set), null, null, null, null, 0, false, reverse, limit);
+        return pzScan(Utils.toByteArray(set), null, null, null, null, 0, true, reverse, limit);
     }
 
     public Iterator<ZEntry> zScan(byte[] set, double minScore, double maxScore, boolean reverse, long limit) {
-        return pzScan(set, minScore, maxScore, null, null, 0, false, false, 0);
+        return pzScan(set, minScore, maxScore, null, null, 0, true, false, 0);
     }
 
     public Iterator<ZEntry> zScan(byte[] set, double minScore, double maxScore, double seekScore, byte[] seekKey,
