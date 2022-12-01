@@ -517,18 +517,36 @@ public class ImmuClient {
     // ========== GET ==========
     //
 
+    /**
+     * @param key the key to look for
+     * @return the latest entry associated to the provided key
+     */
     public Entry get(String key) throws KeyNotFoundException {
         return get(Utils.toByteArray(key));
     }
 
+    /**
+     * @param key the key to look for
+     * @return the latest entry associated to the provided key
+     */
     public Entry get(byte[] key) throws KeyNotFoundException {
         return getAtTx(key, 0);
     }
 
+    /**
+     * @param key the key to look for
+     * @param tx  the transaction at which the associated entry is expected to be
+     * @return the entry associated to the provided key and transaction
+     */
     public Entry getAtTx(String key, long tx) throws KeyNotFoundException {
         return getAtTx(Utils.toByteArray(key), tx);
     }
 
+    /**
+     * @param key the key to look for
+     * @param tx  the transaction at which the associated entry is expected to be
+     * @return the entry associated to the provided key and transaction
+     */
     public synchronized Entry getAtTx(byte[] key, long tx) throws KeyNotFoundException {
         final ImmudbProto.KeyRequest req = ImmudbProto.KeyRequest.newBuilder()
                 .setKey(Utils.toByteString(key))
@@ -546,10 +564,24 @@ public class ImmuClient {
         }
     }
 
+    /**
+     * @param key the key to look for
+     * @param tx  the lowest transaction from which the associated entry should be
+     *            retrieved
+     * @return the latest indexed entry associated the to provided key. Ensuring the
+     *         indexing has already be completed up to the specified transaction.
+     */
     public Entry getSinceTx(String key, long tx) throws KeyNotFoundException {
         return getSinceTx(Utils.toByteArray(key), tx);
     }
 
+    /**
+     * @param key the key to look for
+     * @param tx  the lowest transaction from which the associated entry should be
+     *            retrieved
+     * @return the latest indexed entry associated the to provided key. Ensuring the
+     *         indexing has already be completed up to the specified transaction.
+     */
     public synchronized Entry getSinceTx(byte[] key, long tx) throws KeyNotFoundException {
         final ImmudbProto.KeyRequest req = ImmudbProto.KeyRequest.newBuilder()
                 .setKey(Utils.toByteString(key))
@@ -567,10 +599,44 @@ public class ImmuClient {
         }
     }
 
+    /**
+     * @param key the key to look for
+     * @param tx  the lowest transaction from which the associated entry should be
+     *            retrieved
+     * @return the specific revision for given key.
+     * 
+     *         Key revision is an integer value that starts at 1 when
+     *         the key is created and then increased by 1 on every update made to
+     *         that key.
+     * 
+     *         The way rev is interpreted depends on the value:
+     *         - if rev = 0, returns current value
+     *         - if rev > 0, returns nth revision value, e.g. 1 is the first value,
+     *         2 is the second and so on
+     *         - if rev < 0, returns nth revision value from the end, e.g. -1 is the
+     *         previous value, -2 is the one before and so on
+     */
     public Entry getAtRevision(String key, long rev) throws KeyNotFoundException {
         return getAtRevision(Utils.toByteArray(key), rev);
     }
 
+    /**
+     * @param key the key to look for
+     * @param tx  the lowest transaction from which the associated entry should be
+     *            retrieved
+     * @return the specific revision for given key.
+     * 
+     *         Key revision is an integer value that starts at 1 when
+     *         the key is created and then increased by 1 on every update made to
+     *         that key.
+     * 
+     *         The way rev is interpreted depends on the value:
+     *         - if rev = 0, returns current value
+     *         - if rev > 0, returns nth revision value, e.g. 1 is the first value,
+     *         2 is the second and so on
+     *         - if rev < 0, returns nth revision value from the end, e.g. -1 is the
+     *         previous value, -2 is the one before and so on
+     */
     public synchronized Entry getAtRevision(byte[] key, long rev) throws KeyNotFoundException {
         final ImmudbProto.KeyRequest req = ImmudbProto.KeyRequest.newBuilder()
                 .setKey(Utils.toByteString(key))
