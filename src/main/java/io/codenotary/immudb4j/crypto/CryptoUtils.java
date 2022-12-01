@@ -31,14 +31,17 @@ import java.util.Arrays;
 import java.util.Base64;
 import java.util.List;
 
-
 public class CryptoUtils {
 
-    // FYI: Interesting enough, Go returns a fixed value for sha256.Sum256(nil) and this value is:
-    // [227 176 196 66 152 252 28 20 154 251 244 200 153 111 185 36 39 174 65 228 100 155 147 76 164 149 153 27 120 82 184 85]
+    // FYI: Interesting enough, Go returns a fixed value for sha256.Sum256(nil) and
+    // this value is:
+    // [227 176 196 66 152 252 28 20 154 251 244 200 153 111 185 36 39 174 65 228
+    // 100 155 147 76 164 149 153 27 120 82 184 85]
     // whose Base64 encoded value is 47DEQpj8HBSa+/TImW+5JCeuQeRkm5NMpJWZG3hSuFU=.
-    // But Java's MessageDigest fails with NPE when providing a null value. So we treat this case as in Go.
-    private static final byte[] SHA256_SUM_OF_NULL = Base64.getDecoder().decode("47DEQpj8HBSa+/TImW+5JCeuQeRkm5NMpJWZG3hSuFU=");
+    // But Java's MessageDigest fails with NPE when providing a null value. So we
+    // treat this case as in Go.
+    private static final byte[] SHA256_SUM_OF_NULL = Base64.getDecoder()
+            .decode("47DEQpj8HBSa+/TImW+5JCeuQeRkm5NMpJWZG3hSuFU=");
 
     /**
      * This method returns a SHA256 digest of the provided data.
@@ -56,7 +59,6 @@ public class CryptoUtils {
     }
 
     public static byte[][] digestsFrom(List<ByteString> terms) {
-
         if (terms == null) {
             return null;
         }
@@ -81,9 +83,82 @@ public class CryptoUtils {
         return d;
     }
 
+    public static byte[] advanceLinearHash(byte[] alh, long txID, byte[] term) {
+        byte[] bs = new byte[Consts.TX_ID_SIZE + 2 * Consts.SHA256_SIZE];
+        Utils.putUint64(txID, bs);
+        System.arraycopy(alh, 0, bs, Consts.TX_ID_SIZE, Consts.SHA256_SIZE);
+        // innerHash = hash(ts + mdLen + md + nentries + eH + blTxID + blRoot)
+        System.arraycopy(term, 0, bs, Consts.TX_ID_SIZE + Consts.SHA256_SIZE, Consts.SHA256_SIZE);
+        // hash(txID + prevAlh + innerHash)
+        return sha256Sum(bs);
+    }
+
+    public static boolean verifyLinearAdvanceProof(
+            LinearAdvanceProof proof,
+            long startTxID,
+            long endTxID,
+            byte[] endAlh,
+            byte[] treeRoot,
+            long treeSize) {
+        //
+        // Old
+        // \ Merkle Tree
+        // \
+        // \
+        // \ Additional Inclusion proof
+        // \ for those nodes
+        // \ in new Merkle Tree
+        // \ ......................
+        // \ / \
+        // \
+        // \+--+ +--+ +--+ +--+ +--+
+        // -----------| |-----| |-----| |-----| |-----| |
+        // +--+ +--+ +--+ +--+ +--+
+        //
+        // startTxID endTxID
+        //
+        if (endTxID < startTxID) {
+            // This must not happen - that's an invalid proof
+            return false;
+        }
+
+        if (endTxID <= startTxID + 1) {
+            // Linear Advance Proof is not needed
+            return true;
+        }
+
+        if (proof == null ||
+                proof.terms.length != endTxID - startTxID ||
+                proof.inclusionProofs.size() != (endTxID - startTxID) - 1) {
+            // Check more preconditions that would indicate broken proof
+            return false;
+        }
+
+        byte[] calculatedAlh = proof.terms[0]; // alh at startTx+1
+
+        for (long txID = startTxID + 1; txID < endTxID; txID++) {
+            // Ensure the node in the chain is included in the target Merkle Tree
+            if (!verifyInclusion(
+                    proof.inclusionProofs.get((int) (txID - startTxID - 1)).terms,
+                    txID,
+                    treeSize,
+                    leafFor(calculatedAlh),
+                    treeRoot)) {
+                return false;
+            }
+
+            // Get the Alh for the next transaction
+            calculatedAlh = advanceLinearHash(calculatedAlh, txID + 1, proof.terms[(int) (txID - startTxID)]);
+        }
+
+        // We must end up with the final Alh - that one is also checked for inclusion
+        // but in different part of the proof
+        return Arrays.equals(calculatedAlh, endAlh);
+    }
+
     public static boolean verifyDualProof(DualProof proof,
-                                          long sourceTxId, long targetTxId,
-                                          byte[] sourceAlh, byte[] targetAlh) {
+            long sourceTxId, long targetTxId,
+            byte[] sourceAlh, byte[] targetAlh) {
 
         if (proof == null || proof.sourceTxHeader == null || proof.targetTxHeader == null
                 || proof.sourceTxHeader.getId() != sourceTxId || proof.targetTxHeader.getId() != targetTxId) {
@@ -94,8 +169,20 @@ public class CryptoUtils {
             return false;
         }
 
-        if (!Arrays.equals(sourceAlh, proof.sourceTxHeader.alh()) || !Arrays.equals(targetAlh, proof.targetTxHeader.alh())) {
+        if (!Arrays.equals(sourceAlh, proof.sourceTxHeader.alh())
+                || !Arrays.equals(targetAlh, proof.targetTxHeader.alh())) {
             return false;
+        }
+
+        if (proof.linearAdvanceProof == null) {
+            // Find the range startTxID / endTxID to fill with linear inclusion proof
+            long startTxID = proof.sourceTxHeader.getBlTxId();
+            long endTxID = Math.min(proof.sourceTxHeader.getId(), proof.targetTxHeader.getBlTxId());
+
+            if (endTxID > startTxID + 1) {
+                // Linear Advance Proof is needed
+                throw new RuntimeException("Linear Advance Proof is needed");
+            }
         }
 
         if (sourceTxId < proof.targetTxHeader.getBlTxId()) {
@@ -115,8 +202,7 @@ public class CryptoUtils {
                     proof.sourceTxHeader.getBlTxId(),
                     proof.targetTxHeader.getBlTxId(),
                     proof.sourceTxHeader.getBlRoot(),
-                    proof.targetTxHeader.getBlRoot()
-            )) {
+                    proof.targetTxHeader.getBlRoot())) {
                 return false;
             }
         }
@@ -126,18 +212,50 @@ public class CryptoUtils {
                     proof.lastInclusionProof,
                     proof.targetTxHeader.getBlTxId(),
                     leafFor(proof.targetBlTxAlh),
-                    proof.targetTxHeader.getBlRoot()
-            )) {
+                    proof.targetTxHeader.getBlRoot())) {
                 return false;
             }
         }
 
         if (sourceTxId < proof.targetTxHeader.getBlTxId()) {
-            return verifyLinearProof(proof.linearProof,
-                    proof.targetTxHeader.getBlTxId(), targetTxId, proof.targetBlTxAlh, targetAlh);
+            if (!verifyLinearProof(proof.linearProof,
+                    proof.targetTxHeader.getBlTxId(), targetTxId, proof.targetBlTxAlh, targetAlh)) {
+                return false;
+            }
+
+            // Verify that the part of the linear proof consumed by the new merkle tree is
+            // consistent with that Merkle Tree
+            // In this case, this is the whole chain to the SourceTxID from the previous
+            // Merkle Tree.
+            // The sourceTxID consistency is already proven using proof.InclusionProof
+            return verifyLinearAdvanceProof(
+                    proof.linearAdvanceProof,
+                    proof.sourceTxHeader.getBlTxId(),
+                    sourceTxId,
+                    sourceAlh,
+                    proof.targetTxHeader.getBlRoot(),
+                    proof.targetTxHeader.getBlTxId());
         }
 
-        return verifyLinearProof(proof.linearProof, sourceTxId, targetTxId, sourceAlh, targetAlh);
+        if (!verifyLinearProof(proof.linearProof, sourceTxId, targetTxId, sourceAlh, targetAlh)) {
+            return false;
+        }
+
+        // Verify that the part of the linear proof consumed by the new merkle tree is
+        // consistent with that Merkle Tree
+        // In this case, this is the whole linear chain between the old Merkle Tree and
+        // the new Merkle Tree. The last entry
+        // in the new Merkle Tree is already proven through the LastInclusionProof, the
+        // remaining part of the liner proof
+        // that goes outside of the target Merkle Tree will be validated in future
+        // DualProof validations
+        return verifyLinearAdvanceProof(
+                proof.linearAdvanceProof,
+                proof.sourceTxHeader.getBlTxId(),
+                proof.targetTxHeader.getBlTxId(),
+                proof.targetBlTxAlh,
+                proof.targetTxHeader.getBlRoot(),
+                proof.targetTxHeader.getBlTxId());
     }
 
     private static byte[] leafFor(byte[] d) {
@@ -148,8 +266,8 @@ public class CryptoUtils {
     }
 
     private static boolean verifyLinearProof(LinearProof proof,
-                                             long sourceTxId, long targetTxId,
-                                             byte[] sourceAlh, byte[] targetAlh) {
+            long sourceTxId, long targetTxId,
+            byte[] sourceAlh, byte[] targetAlh) {
 
         if (proof == null || proof.sourceTxId != sourceTxId || proof.targetTxId != targetTxId) {
             return false;

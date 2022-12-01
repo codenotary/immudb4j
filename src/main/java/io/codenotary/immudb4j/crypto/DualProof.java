@@ -28,14 +28,16 @@ public class DualProof {
     public final byte[] targetBlTxAlh;
     public final byte[][] lastInclusionProof;
     public final LinearProof linearProof;
+    public final LinearAdvanceProof linearAdvanceProof;
 
     public DualProof(TxHeader sourceTxHeader,
-                     TxHeader targetTxHeader,
-                     byte[][] inclusionProof,
-                     byte[][] consistencyProof,
-                     byte[] targetBlTxAlh,
-                     byte[][] lastInclusionProof,
-                     LinearProof linearProof) {
+            TxHeader targetTxHeader,
+            byte[][] inclusionProof,
+            byte[][] consistencyProof,
+            byte[] targetBlTxAlh,
+            byte[][] lastInclusionProof,
+            LinearProof linearProof,
+            LinearAdvanceProof linearAdvanceProof) {
         this.sourceTxHeader = sourceTxHeader;
         this.targetTxHeader = targetTxHeader;
         this.inclusionProof = inclusionProof;
@@ -43,6 +45,7 @@ public class DualProof {
         this.targetBlTxAlh = targetBlTxAlh;
         this.lastInclusionProof = lastInclusionProof;
         this.linearProof = linearProof;
+        this.linearAdvanceProof = linearAdvanceProof;
     }
 
     public static DualProof valueOf(ImmudbProto.DualProof proof) {
@@ -53,7 +56,8 @@ public class DualProof {
                 Utils.convertSha256ListToBytesArray(proof.getConsistencyProofList()),
                 proof.getTargetBlTxAlh().toByteArray(),
                 Utils.convertSha256ListToBytesArray(proof.getLastInclusionProofList()),
-                LinearProof.valueOf(proof.getLinearProof())
+                LinearProof.valueOf(proof.getLinearProof()),
+                LinearAdvanceProof.valueOf(proof.getLinearAdvanceProof())
         );
     }
 

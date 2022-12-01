@@ -197,6 +197,11 @@ message LinearProof {
 	repeated bytes terms = 3;
 }
 
+message LinearAdvanceProof {
+	repeated bytes linearProofTerms = 1;
+	repeated InclusionProof inclusionProofs = 2;
+}
+
 message DualProof {
 	TxHeader sourceTxHeader = 1;
 	TxHeader targetTxHeader = 2;
@@ -208,6 +213,8 @@ message DualProof {
 	repeated bytes lastInclusionProof = 6;
 
 	LinearProof linearProof = 7;
+
+	LinearAdvanceProof LinearAdvanceProof = 8;
 }
 
 message Tx {
