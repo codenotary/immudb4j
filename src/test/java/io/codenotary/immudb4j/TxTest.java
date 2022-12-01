@@ -15,7 +15,6 @@ limitations under the License.
 */
 package io.codenotary.immudb4j;
 
-import io.codenotary.immudb4j.exceptions.CorruptedDataException;
 import io.codenotary.immudb4j.exceptions.TxNotFoundException;
 import io.codenotary.immudb4j.exceptions.VerificationException;
 import org.testng.Assert;
@@ -28,7 +27,7 @@ import java.util.List;
 public class TxTest extends ImmuClientIntegrationTest {
 
     @Test(testName = "verifiedSet, txById, verifiedTxById")
-    public void t1() throws NoSuchAlgorithmException, VerificationException{
+    public void t1() throws NoSuchAlgorithmException, VerificationException {
         immuClient.openSession("defaultdb", "immudb", "immudb");
 
         String key = "test-txid";
@@ -54,13 +53,13 @@ public class TxTest extends ImmuClientIntegrationTest {
         Assert.assertEquals(txHdr.getId(), tx.getHeader().getId());
 
         try {
-            immuClient.txById(txHdr.getId()+1);
+            immuClient.txById(txHdr.getId() + 1);
             Assert.fail("Failed at txById.");
         } catch (TxNotFoundException _) {
         }
 
         try {
-            immuClient.verifiedTxById(txHdr.getId()+1);
+            immuClient.verifiedTxById(txHdr.getId() + 1);
             Assert.fail("Failed at verifiedTxById.");
         } catch (TxNotFoundException _) {
         }
@@ -77,15 +76,12 @@ public class TxTest extends ImmuClientIntegrationTest {
         byte[] val2 = "immuRocks! Again!".getBytes(StandardCharsets.UTF_8);
 
         long initialTxId = 1;
-        try {
-            TxHeader txHdr = immuClient.set(key, val1);
-            Assert.assertNotNull(txHdr);
-            initialTxId = txHdr.getId();
-            txHdr = immuClient.set(key, val2);
-            Assert.assertNotNull(txHdr);
-        } catch (CorruptedDataException e) {
-            Assert.fail("Failed at set.", e);
-        }
+
+        TxHeader txHdr = immuClient.set(key, val1);
+        Assert.assertNotNull(txHdr);
+        initialTxId = txHdr.getId();
+        txHdr = immuClient.set(key, val2);
+        Assert.assertNotNull(txHdr);
 
         List<Tx> txs = immuClient.txScanAll(initialTxId, false, 1);
         Assert.assertNotNull(txs);

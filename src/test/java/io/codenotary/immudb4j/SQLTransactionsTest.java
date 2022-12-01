@@ -15,7 +15,6 @@ limitations under the License.
 */
 package io.codenotary.immudb4j;
 
-import io.codenotary.immudb4j.exceptions.CorruptedDataException;
 import io.codenotary.immudb4j.exceptions.VerificationException;
 import io.codenotary.immudb4j.sql.SQLException;
 import io.codenotary.immudb4j.sql.SQLQueryResult;
@@ -27,7 +26,7 @@ import org.testng.annotations.Test;
 public class SQLTransactionsTest extends ImmuClientIntegrationTest {
 
     @Test(testName = "simple sql transaction")
-    public void t1() throws VerificationException, CorruptedDataException, InterruptedException, SQLException {
+    public void t1() throws VerificationException, InterruptedException, SQLException {
         immuClient.openSession("defaultdb", "immudb", "immudb");
 
         immuClient.beginTransaction();
@@ -36,7 +35,7 @@ public class SQLTransactionsTest extends ImmuClientIntegrationTest {
                 "CREATE TABLE IF NOT EXISTS mytable(id INTEGER, title VARCHAR[256], active BOOLEAN, PRIMARY KEY id)");
 
         final int rows = 10;
-        
+
         for (int i = 0; i < rows; i++) {
             immuClient.sqlExec("UPSERT INTO mytable(id, title, active) VALUES (?, ?, ?)",
                     new SQLValue(i),

@@ -15,7 +15,6 @@ limitations under the License.
 */
 package io.codenotary.immudb4j;
 
-import io.codenotary.immudb4j.exceptions.CorruptedDataException;
 import io.codenotary.immudb4j.exceptions.VerificationException;
 import org.testng.Assert;
 import org.testng.annotations.Test;
@@ -32,11 +31,7 @@ public class VerifiedSetAndGetTest extends ImmuClientIntegrationTest {
         String key = "vsg";
         byte[] val = "test-set-vget".getBytes(StandardCharsets.UTF_8);
 
-        try {
-            immuClient.set(key, val);
-        } catch (CorruptedDataException e) {
-            Assert.fail("Failed at set.", e);
-        }
+        immuClient.set(key, val);
 
         Entry vEntry = null;
         try {
@@ -103,7 +98,7 @@ public class VerifiedSetAndGetTest extends ImmuClientIntegrationTest {
         immuClient.verifiedSet("key1", "val1".getBytes());
 
         immuClient.closeSession();
-        
+
         immuClient.shutdown();
 
         FileImmuStateHolder stateHolder = FileImmuStateHolder.newBuilder()

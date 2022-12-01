@@ -30,11 +30,11 @@ public class ListDatabasesTest extends ImmuClientIntegrationTest {
   public void t2() {
     immuClient.openSession("defaultdb", "immudb", "immudb");
 
-    List<String> databases = immuClient.databases();
+    List<Database> databases = immuClient.databases();
     if (databases.size() > 0) {
         System.out.print(">>> The databases are");
-        for (String db : databases) {
-            System.out.printf(" '%s'", db);
+        for (Database db : databases) {
+            System.out.printf(" '%s'(loaded: %b)", db.getName(), db.isLoaded());
         }
     } else {
         System.out.print(">>> There are no databases.");

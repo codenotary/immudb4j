@@ -13,10 +13,31 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
-package io.codenotary.immudb4j.exceptions;
+package io.codenotary.immudb4j;
 
-public class CorruptedDataException extends Exception {
+import io.codenotary.immudb.ImmudbProto;
 
-    private static final long serialVersionUID = 1L;
+public class Database {
 
+    private String name;
+    private boolean loaded;
+
+    private Database() {}
+
+    public static Database valueOf(ImmudbProto.DatabaseWithSettings pdb) {
+        final Database db = new Database();
+
+        db.name = pdb.getName();
+        db.loaded = pdb.getLoaded();
+
+        return db;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public boolean isLoaded() {
+        return loaded;
+    }
 }

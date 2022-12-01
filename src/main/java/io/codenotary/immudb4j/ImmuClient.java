@@ -78,7 +78,7 @@ public class ImmuClient {
     private Session session;
     private Timer sessionHeartBeat;
 
-    public ImmuClient(Builder builder) {
+    private ImmuClient(Builder builder) {
         stateHolder = builder.getStateHolder();
         serverSigningKey = builder.getServerSigningKey();
         keepAlivePeriod = builder.getKeepAlivePeriod();
@@ -94,10 +94,17 @@ public class ImmuClient {
         nonBlockingStub = ImmuServiceGrpc.newStub(channel);
     }
 
+    /**
+     * @return ImmuClient builder for chaining client settings
+     */
     public static Builder newBuilder() {
         return new Builder();
     }
 
+    /**
+     * Releases the resources used by the SDK objects. (e.g. connection resources).
+     * This method should be called just before the existing process ends.
+     */
     public synchronized void shutdown() throws InterruptedException {
         if (channel == null) {
             return;
@@ -118,6 +125,13 @@ public class ImmuClient {
         return session;
     }
 
+    /**
+     * Establishes a new database session using provided credentials
+     * 
+     * @param database The name of the database to which the session is established
+     * @param username The username is required to get authorization
+     * @param password The password is required to get authorization
+     */
     public synchronized void openSession(String database, String username, String password) {
         if (session != null) {
             throw new IllegalStateException("session already opened");
@@ -152,6 +166,9 @@ public class ImmuClient {
         }, 0, keepAlivePeriod);
     }
 
+    /**
+     * Closes the open database session
+     */
     public synchronized void closeSession() {
         if (session == null) {
             throw new IllegalStateException("no open session");
@@ -216,6 +233,13 @@ public class ImmuClient {
     // ========== SQL ==========
     //
 
+    /**
+     * Creates a new SQL transaction that can be terminated with the
+     * {@link #commitTransaction() commit} or {@link #rollbackTransaction()
+     * rollback} methods
+     * 
+     * @throws SQLException if the cause of the error is sql-related
+     */
     public synchronized void beginTransaction() throws SQLException {
         if (session == null) {
             throw new IllegalStateException("no open session");
@@ -234,6 +258,11 @@ public class ImmuClient {
         session.setTransactionID(res.getTransactionID());
     }
 
+    /**
+     * Commits the ongoing SQL transaction
+     * 
+     * @throws SQLException if the cause of the error is sql-related
+     */
     public synchronized void commitTransaction() throws SQLException {
         if (session == null) {
             throw new IllegalStateException("no open session");
@@ -245,9 +274,14 @@ public class ImmuClient {
 
         blockingStub.commit(Empty.getDefaultInstance());
 
-        session.setTransactionID( null);
+        session.setTransactionID(null);
     }
 
+    /**
+     * Rollback the ongoing SQL transaction
+     * 
+     * @throws SQLException if the cause of the error is sql-related
+     */
     public synchronized void rollbackTransaction() throws SQLException {
         if (session == null) {
             throw new IllegalStateException("no open session");
@@ -262,10 +296,26 @@ public class ImmuClient {
         session.setTransactionID(null);
     }
 
+    /**
+     * Executes a SQL statement in the ongoing SQL transaction
+     * 
+     * @param stmt   the SQL statement to be executed
+     * @param params the positional parameters for SQL statement evaluation
+     * 
+     * @throws SQLException if the cause of the error is sql-related
+     */
     public void sqlExec(String stmt, SQLValue... params) throws SQLException {
         sqlExec(stmt, sqlNameParams(params));
     }
 
+    /**
+     * Executes a SQL statement in the ongoing SQL transaction
+     * 
+     * @param stmt   the SQL statement to be executed
+     * @param params the named parameters for SQL statement evaluation
+     * 
+     * @throws SQLException if the cause of the error is sql-related
+     */
     public synchronized void sqlExec(String stmt, Map<String, SQLValue> params) throws SQLException {
         if (session == null) {
             throw new IllegalStateException("no open session");
@@ -283,10 +333,30 @@ public class ImmuClient {
         blockingStub.txSQLExec(req);
     }
 
+    /**
+     * Performs a SQL query in the ongoing SQL transaction
+     * 
+     * @param stmt   the SQL query to be evaluated
+     * @param params the positional parameters for SQL statement evaluation
+     * 
+     * @return the query resultset
+     * 
+     * @throws SQLException if the cause of the error is sql-related
+     */
     public SQLQueryResult sqlQuery(String stmt, SQLValue... params) throws SQLException {
         return sqlQuery(stmt, sqlNameParams(params));
     }
 
+    /**
+     * Performs a SQL query in the ongoing SQL transaction
+     * 
+     * @param stmt   the SQL query to be evaluated
+     * @param params the named parameters for SQL statement evaluation
+     * 
+     * @return the query resultset
+     * 
+     * @throws SQLException if the cause of the error is sql-related
+     */
     public synchronized SQLQueryResult sqlQuery(String stmt, Map<String, SQLValue> params) throws SQLException {
         if (session == null) {
             throw new IllegalStateException("no open session");
@@ -308,7 +378,7 @@ public class ImmuClient {
         final Map<String, SQLValue> nparams = new HashMap<>(params.length);
 
         for (int i = 1; i <= params.length; i++) {
-            nparams.put("param" + i, params[i-1]);
+            nparams.put("param" + i, params[i - 1]);
         }
 
         return nparams;
@@ -319,10 +389,9 @@ public class ImmuClient {
 
         for (Map.Entry<String, SQLValue> p : params.entrySet()) {
             nparams.add(NamedParam.newBuilder()
-                .setName(p.getKey())
-                .setValue(p.getValue().asProtoSQLValue())
-                .build()
-            );
+                    .setName(p.getKey())
+                    .setValue(p.getValue().asProtoSQLValue())
+                    .build());
         }
 
         return nparams;
@@ -332,10 +401,21 @@ public class ImmuClient {
     // ========== DATABASE ==========
     //
 
+    /**
+     * Creates a database using default settings
+     * 
+     * @param database the database name
+     */
     public void createDatabase(String database) {
         createDatabase(database, false);
     }
 
+    /**
+     * Creates a database using default settings
+     * 
+     * @param database    the database name
+     * @param ifNotExists allow the database to be already created
+     */
     public synchronized void createDatabase(String database, boolean ifNotExists) {
         if (session == null) {
             throw new IllegalStateException("no open session");
@@ -349,12 +429,16 @@ public class ImmuClient {
         blockingStub.createDatabaseV2(req);
     }
 
-    // LoadDatabase loads database on the server. A database is not loaded
-    // if it has AutoLoad setting set to false or if it failed to load during
-    // immudb startup.
-    //
-    // This call requires SysAdmin permission level or admin permission to the
-    // database.
+    /**
+     * Loads database on the server. A database is not loaded
+     * if it has AutoLoad setting set to false or if it failed to load during immudb
+     * startup.
+     * 
+     * This call requires SysAdmin permission level or admin permission to the
+     * database.
+     * 
+     * @param database the database name
+     */
     public synchronized void loadDatabase(String database) {
         if (session == null) {
             throw new IllegalStateException("no open session");
@@ -367,13 +451,15 @@ public class ImmuClient {
         blockingStub.loadDatabase(req);
     }
 
-    // UnloadDatabase unloads database on the server. Such database becomes
-    // inaccessible
-    // by the client and server frees internal resources allocated for that
-    // database.
-    //
-    // This call requires SysAdmin permission level or admin permission to the
-    // database.
+    /**
+     * Unloads database on the server. Such database becomes inaccessible by the
+     * client and server frees internal resources allocated for that database.
+     * 
+     * This call requires SysAdmin permission level or admin permission to the
+     * database.
+     * 
+     * @param database the database name
+     */
     public synchronized void unloadDatabase(String database) {
         if (session == null) {
             throw new IllegalStateException("no open session");
@@ -386,11 +472,15 @@ public class ImmuClient {
         blockingStub.unloadDatabase(req);
     }
 
-    // DeleteDatabase removes an unloaded database.
-    // This also removes locally stored files used by the database.
-    //
-    // This call requires SysAdmin permission level or admin permission to the
-    // database.
+    /**
+     * Removes an unloaded database. This also removes locally stored files used by
+     * the database.
+     * 
+     * This call requires SysAdmin permission level or admin permission to the
+     * database.
+     * 
+     * @param database the database name
+     */
     public synchronized void deleteDatabase(String database) {
         if (session == null) {
             throw new IllegalStateException("no open session");
@@ -403,7 +493,10 @@ public class ImmuClient {
         blockingStub.deleteDatabase(req);
     }
 
-    public synchronized List<String> databases() {
+    /**
+     * @return the list of existing databases
+     */
+    public synchronized List<Database> databases() {
         if (session == null) {
             throw new IllegalStateException("no open session");
         }
@@ -411,10 +504,10 @@ public class ImmuClient {
         final ImmudbProto.DatabaseListRequestV2 req = ImmudbProto.DatabaseListRequestV2.newBuilder().build();
         final ImmudbProto.DatabaseListResponseV2 resp = blockingStub.databaseListV2(req);
 
-        final List<String> list = new ArrayList<>(resp.getDatabasesCount());
+        final List<Database> list = new ArrayList<>(resp.getDatabasesCount());
 
         for (ImmudbProto.DatabaseWithSettings db : resp.getDatabasesList()) {
-            list.add(db.getName());
+            list.add(Database.valueOf(db));
         }
 
         return list;
@@ -424,18 +517,36 @@ public class ImmuClient {
     // ========== GET ==========
     //
 
+    /**
+     * @param key the key to look for
+     * @return the latest entry associated to the provided key
+     */
     public Entry get(String key) throws KeyNotFoundException {
         return get(Utils.toByteArray(key));
     }
 
+    /**
+     * @param key the key to look for
+     * @return the latest entry associated to the provided key
+     */
     public Entry get(byte[] key) throws KeyNotFoundException {
         return getAtTx(key, 0);
     }
 
+    /**
+     * @param key the key to look for
+     * @param tx  the transaction at which the associated entry is expected to be
+     * @return the entry associated to the provided key and transaction
+     */
     public Entry getAtTx(String key, long tx) throws KeyNotFoundException {
         return getAtTx(Utils.toByteArray(key), tx);
     }
 
+    /**
+     * @param key the key to look for
+     * @param tx  the transaction at which the associated entry is expected to be
+     * @return the entry associated to the provided key and transaction
+     */
     public synchronized Entry getAtTx(byte[] key, long tx) throws KeyNotFoundException {
         final ImmudbProto.KeyRequest req = ImmudbProto.KeyRequest.newBuilder()
                 .setKey(Utils.toByteString(key))
@@ -453,10 +564,32 @@ public class ImmuClient {
         }
     }
 
+    /**
+     * This method can be used to avoid additional latency while the server
+     * waits for the indexer to finish indexing but still guarantees that
+     * specific portion of the database history has already been indexed.
+     * 
+     * @param key the key to look for
+     * @param tx  the lowest transaction from which the associated entry should be
+     *            retrieved
+     * @return the latest indexed entry associated the to provided key. Ensuring the
+     *         indexing has already be completed up to the specified transaction.
+     */
     public Entry getSinceTx(String key, long tx) throws KeyNotFoundException {
         return getSinceTx(Utils.toByteArray(key), tx);
     }
 
+    /**
+     * This method can be used to avoid additional latency while the server
+     * waits for the indexer to finish indexing but still guarantees that
+     * specific portion of the database history has already been indexed.
+     * 
+     * @param key the key to look for
+     * @param tx  the lowest transaction from which the associated entry should be
+     *            retrieved
+     * @return the latest indexed entry associated the to provided key. Ensuring the
+     *         indexing has already be completed up to the specified transaction.
+     */
     public synchronized Entry getSinceTx(byte[] key, long tx) throws KeyNotFoundException {
         final ImmudbProto.KeyRequest req = ImmudbProto.KeyRequest.newBuilder()
                 .setKey(Utils.toByteString(key))
@@ -474,10 +607,46 @@ public class ImmuClient {
         }
     }
 
+    /**
+     * @param key the key to look for
+     * @param rev the specific revision
+     * @return the specific revision for given key.
+     * 
+     *         Key revision is an integer value that starts at 1 when
+     *         the key is created and then increased by 1 on every update made to
+     *         that key.
+     * 
+     *         The way rev is interpreted depends on the value:
+     *         - if rev == 0, returns current value
+     *         - if rev &gt; 0, returns nth revision value, e.g. 1 is the first
+     *         value,
+     *         2 is the second and so on
+     *         - if rev &lt; 0, returns nth revision value from the end, e.g. -1 is
+     *         the
+     *         previous value, -2 is the one before and so on
+     */
     public Entry getAtRevision(String key, long rev) throws KeyNotFoundException {
         return getAtRevision(Utils.toByteArray(key), rev);
     }
 
+    /**
+     * @param key the key to look for
+     * @param rev the specific revision
+     * @return the specific revision for given key.
+     * 
+     *         Key revision is an integer value that starts at 1 when
+     *         the key is created and then increased by 1 on every update made to
+     *         that key.
+     * 
+     *         The way rev is interpreted depends on the value:
+     *         - if rev == 0, returns current value
+     *         - if rev &gt; 0, returns nth revision value, e.g. 1 is the first
+     *         value,
+     *         2 is the second and so on
+     *         - if rev &lt; 0, returns nth revision value from the end, e.g. -1 is
+     *         the
+     *         previous value, -2 is the one before and so on
+     */
     public synchronized Entry getAtRevision(byte[] key, long rev) throws KeyNotFoundException {
         final ImmudbProto.KeyRequest req = ImmudbProto.KeyRequest.newBuilder()
                 .setKey(Utils.toByteString(key))
@@ -495,6 +664,10 @@ public class ImmuClient {
         }
     }
 
+    /**
+     * @param keys the lists of keys to look for
+     * @return retrieves multiple entries in a single call
+     */
     public synchronized List<Entry> getAll(List<String> keys) {
         final List<ByteString> keysBS = new ArrayList<>(keys.size());
 
@@ -514,18 +687,46 @@ public class ImmuClient {
         return result;
     }
 
+    /**
+     * @param key the keys to look for
+     * @return the latest entry associated to the provided key. Equivalent to
+     *         {@link #get(String) get} but with additional
+     *         server-provided proof validation.
+     */
     public Entry verifiedGet(String key) throws KeyNotFoundException, VerificationException {
         return verifiedGetAtTx(key, 0);
     }
 
+    /**
+     * @param key the keys to look for
+     * @return the latest entry associated to the provided key. Equivalent to
+     *         {@link #get(byte[]) get} but with additional
+     *         server-provided proof validation.
+     */
     public Entry verifiedGet(byte[] key) throws KeyNotFoundException, VerificationException {
         return verifiedGetAtTx(key, 0);
     }
 
+    /**
+     * @param key the key to look for
+     * @param tx  the transaction at which the associated entry is expected to be
+     * @return the entry associated to the provided key and transaction. Equivalent
+     *         to
+     *         {@link #getAtTx(String, long) getAtTx} but with additional
+     *         server-provided proof validation.
+     */
     public Entry verifiedGetAtTx(String key, long tx) throws KeyNotFoundException, VerificationException {
         return verifiedGetAtTx(Utils.toByteArray(key), tx);
     }
 
+    /**
+     * @param key the key to look for
+     * @param tx  the transaction at which the associated entry is expected to be
+     * @return the entry associated to the provided key and transaction. Equivalent
+     *         to
+     *         {@link #getAtTx(byte[], long) getAtTx} but with additional
+     *         server-provided proof validation.
+     */
     public synchronized Entry verifiedGetAtTx(byte[] key, long tx) throws KeyNotFoundException, VerificationException {
         final ImmuState state = state();
 
@@ -537,10 +738,38 @@ public class ImmuClient {
         return verifiedGet(keyReq, state);
     }
 
+    /**
+     * This method can be used to avoid additional latency while the server
+     * waits for the indexer to finish indexing but still guarantees that
+     * specific portion of the database history has already been indexed.
+     * 
+     * @param key the key to look for
+     * @param tx  the lowest transaction from which the associated entry should be
+     *            retrieved
+     * @return the latest indexed entry associated the to provided key. Ensuring the
+     *         indexing has already be completed up to the specified transaction.
+     *         Equivalent to
+     *         {@link #getSinceTx(String, long) getSinceTx} but with additional
+     *         server-provided proof validation.
+     */
     public Entry verifiedGetSinceTx(String key, long tx) throws KeyNotFoundException, VerificationException {
         return verifiedGetSinceTx(Utils.toByteArray(key), tx);
     }
 
+    /**
+     * This method can be used to avoid additional latency while the server
+     * waits for the indexer to finish indexing but still guarantees that
+     * specific portion of the database history has already been indexed.
+     * 
+     * @param key the key to look for
+     * @param tx  the lowest transaction from which the associated entry should be
+     *            retrieved
+     * @return the latest indexed entry associated the to provided key. Ensuring the
+     *         indexing has already be completed up to the specified transaction.
+     *         Equivalent to
+     *         {@link #getSinceTx(byte[], long) getSinceTx} but with additional
+     *         server-provided proof validation.
+     */
     public synchronized Entry verifiedGetSinceTx(byte[] key, long tx)
             throws KeyNotFoundException, VerificationException {
 
@@ -554,10 +783,26 @@ public class ImmuClient {
         return verifiedGet(keyReq, state);
     }
 
+    /**
+     * @param key the key to look for
+     * @param rev the specific revision
+     * @return the specific revision for given key. Equivalent to
+     *         {@link #getAtRevision(String, long) getAtRevision} but with
+     *         additional
+     *         server-provided proof validation.
+     */
     public Entry verifiedGetAtRevision(String key, long rev) throws KeyNotFoundException, VerificationException {
         return verifiedGetAtRevision(Utils.toByteArray(key), rev);
     }
 
+    /**
+     * @param key the key to look for
+     * @param rev the specific revision
+     * @return the specific revision for given key. Equivalent to
+     *         {@link #getAtRevision(byte[], long) getAtRevision} but with
+     *         additional
+     *         server-provided proof validation.
+     */
     public synchronized Entry verifiedGetAtRevision(byte[] key, long rev)
             throws KeyNotFoundException, VerificationException {
 
@@ -671,10 +916,20 @@ public class ImmuClient {
     // ========== DELETE ==========
     //
 
+    /**
+     * Performs a logical deletion for key
+     * 
+     * @param key the key to delete
+     */
     public TxHeader delete(String key) throws KeyNotFoundException {
         return delete(Utils.toByteArray(key));
     }
 
+    /**
+     * Performs a logical deletion for key
+     * 
+     * @param key the key to delete
+     */
     public synchronized TxHeader delete(byte[] key) throws KeyNotFoundException {
         try {
             final ImmudbProto.DeleteKeysRequest req = ImmudbProto.DeleteKeysRequest.newBuilder()
@@ -695,10 +950,26 @@ public class ImmuClient {
     // ========== HISTORY ==========
     //
 
+    /**
+     * @param key    the key to look for
+     * @param offset the number of entries to be skipped
+     * @param desc   the order in which entries are returned
+     * @param limit  the maximum number of entries to be returned
+     * @return the list of entries associated to the provided key
+     * @throws KeyNotFoundException if the key is not found
+     */
     public List<Entry> historyAll(String key, long offset, boolean desc, int limit) throws KeyNotFoundException {
         return historyAll(Utils.toByteArray(key), offset, desc, limit);
     }
 
+    /**
+     * @param key    the key to look for
+     * @param offset the number of entries to be skipped
+     * @param desc   the order in which entries are returned
+     * @param limit  the maximum number of entries to be returned
+     * @return the list of entries associated to the provided key
+     * @throws KeyNotFoundException if the key is not found
+     */
     public synchronized List<Entry> historyAll(byte[] key, long offset, boolean desc, int limit)
             throws KeyNotFoundException {
         try {
@@ -723,30 +994,75 @@ public class ImmuClient {
     // ========== SCAN ==========
     //
 
+    /**
+     * @param prefix the prefix used to filter entries
+     * @return the list of entries with a maching prefix
+     */
     public List<Entry> scanAll(String prefix) {
         return scanAll(Utils.toByteArray(prefix));
     }
 
+    /**
+     * @param prefix the prefix used to filter entries
+     * @return the list of entries with a maching prefix
+     */
     public List<Entry> scanAll(byte[] prefix) {
         return scanAll(prefix, false, 0);
     }
 
+    /**
+     * @param prefix the prefix used to filter entries
+     * @param desc   the order in which entries are returned
+     * @param limit  the maximum number of entries to be returned
+     * @return the list of entries with a maching prefix
+     */
     public List<Entry> scanAll(String prefix, boolean desc, long limit) {
         return scanAll(Utils.toByteArray(prefix), null, desc, limit);
     }
 
+    /**
+     * @param prefix the prefix used to filter entries
+     * @param desc   the order in which entries are returned
+     * @param limit  the maximum number of entries to be returned
+     * @return the list of entries with a maching prefix
+     */
     public List<Entry> scanAll(byte[] prefix, boolean desc, long limit) {
         return scanAll(prefix, null, desc, limit);
     }
 
+    /**
+     * @param prefix  the prefix used to filter entries
+     * @param seekKey the initial key from which the scan begins
+     * @param desc    the order in which entries are returned
+     * @param limit   the maximum number of entries to be returned
+     * @return the list of entries with a maching prefix
+     */
     public List<Entry> scanAll(byte[] prefix, byte[] seekKey, boolean desc, long limit) {
         return scanAll(prefix, seekKey, null, desc, limit);
     }
 
+    /**
+     * @param prefix  the prefix used to filter entries
+     * @param seekKey the initial key from which the scan begins
+     * @param endKey  the final key at which the scan ends
+     * @param desc    the order in which entries are returned
+     * @param limit   the maximum number of entries to be returned
+     * @return the list of entries with a maching prefix
+     */
     public List<Entry> scanAll(byte[] prefix, byte[] seekKey, byte[] endKey, boolean desc, long limit) {
-        return scanAll(prefix, seekKey, endKey, false, false, desc, limit);
+        return scanAll(prefix, seekKey, endKey, true, true, desc, limit);
     }
 
+    /**
+     * @param prefix        the prefix used to filter entries
+     * @param seekKey       the initial key from which the scan begins
+     * @param endKey        the final key at which the scan ends
+     * @param inclusiveSeek used to include/exclude the seekKey from the result
+     * @param inclusiveEnd  used to include/exclude the endKey from the result
+     * @param desc          the order in which entries are returned
+     * @param limit         the maximum number of entries to be returned
+     * @return the list of entries with a maching prefix
+     */
     public synchronized List<Entry> scanAll(byte[] prefix, byte[] seekKey, byte[] endKey, boolean inclusiveSeek,
             boolean inclusiveEnd,
             boolean desc, long limit) {
@@ -768,27 +1084,39 @@ public class ImmuClient {
     // ========== SET ==========
     //
 
-    public TxHeader set(String key, byte[] value) throws CorruptedDataException {
+    /**
+     * Commits a change of a value for a single key.
+     * 
+     * @param key   the key to set
+     * @param value the value to set
+     */
+    public TxHeader set(String key, byte[] value) {
         return set(Utils.toByteArray(key), value);
     }
 
-    public synchronized TxHeader set(byte[] key, byte[] value) throws CorruptedDataException {
+    /**
+     * Commits a change of a value for a single key.
+     * 
+     * @param key   the key to set
+     * @param value the value to set
+     */
+    public synchronized TxHeader set(byte[] key, byte[] value) {
         final ImmudbProto.KeyValue kv = ImmudbProto.KeyValue.newBuilder()
                 .setKey(Utils.toByteString(key))
                 .setValue(Utils.toByteString(value))
                 .build();
 
         final ImmudbProto.SetRequest req = ImmudbProto.SetRequest.newBuilder().addKVs(kv).build();
-        final ImmudbProto.TxHeader txHdr = blockingStub.set(req);
 
-        if (txHdr.getNentries() != 1) {
-            throw new CorruptedDataException();
-        }
-
-        return TxHeader.valueOf(txHdr);
+        return TxHeader.valueOf(blockingStub.set(req));
     }
 
-    public synchronized TxHeader setAll(List<KVPair> kvList) throws CorruptedDataException {
+    /**
+     * Commits multiple entries in a single transaction.
+     * 
+     * @param kvList the list of key-value pairs to set
+     */
+    public synchronized TxHeader setAll(List<KVPair> kvList) {
         final ImmudbProto.SetRequest.Builder reqBuilder = ImmudbProto.SetRequest.newBuilder();
 
         for (KVPair kv : kvList) {
@@ -800,29 +1128,28 @@ public class ImmuClient {
             reqBuilder.addKVs(kvBuilder.build());
         }
 
-        final ImmudbProto.TxHeader txHdr = blockingStub.set(reqBuilder.build());
-
-        if (txHdr.getNentries() != kvList.size()) {
-            throw new CorruptedDataException();
-        }
-
-        return TxHeader.valueOf(txHdr);
+        return TxHeader.valueOf(blockingStub.set(reqBuilder.build()));
     }
 
-    public TxHeader setReference(String key, String referencedKey) throws CorruptedDataException {
+    /**
+     * 
+     * @param key
+     * @param referencedKey
+     * @return
+     */
+    public TxHeader setReference(String key, String referencedKey) {
         return setReference(Utils.toByteArray(key), Utils.toByteArray(referencedKey));
     }
 
-    public TxHeader setReference(byte[] key, byte[] referencedKey) throws CorruptedDataException {
+    public TxHeader setReference(byte[] key, byte[] referencedKey) {
         return setReference(key, referencedKey, 0);
     }
 
-    public TxHeader setReference(String key, String referencedKey, long atTx) throws CorruptedDataException {
+    public TxHeader setReference(String key, String referencedKey, long atTx) {
         return setReference(Utils.toByteArray(key), Utils.toByteArray(referencedKey), atTx);
     }
 
-    public synchronized TxHeader setReference(byte[] key, byte[] referencedKey, long atTx)
-            throws CorruptedDataException {
+    public synchronized TxHeader setReference(byte[] key, byte[] referencedKey, long atTx) {
         final ImmudbProto.ReferenceRequest req = ImmudbProto.ReferenceRequest.newBuilder()
                 .setKey(Utils.toByteString(key))
                 .setReferencedKey(Utils.toByteString(referencedKey))
@@ -830,13 +1157,7 @@ public class ImmuClient {
                 .setBoundRef(atTx > 0)
                 .build();
 
-        final ImmudbProto.TxHeader txHdr = blockingStub.setReference(req);
-
-        if (txHdr.getNentries() != 1) {
-            throw new CorruptedDataException();
-        }
-
-        return TxHeader.valueOf(txHdr);
+        return TxHeader.valueOf(blockingStub.setReference(req));
     }
 
     public TxHeader verifiedSet(String key, byte[] value) throws VerificationException {
@@ -991,29 +1312,24 @@ public class ImmuClient {
     // ========== Z ==========
     //
 
-    public TxHeader zAdd(String set, String key, double score) throws CorruptedDataException {
+    public TxHeader zAdd(String set, String key, double score) {
         return zAdd(Utils.toByteArray(set), Utils.toByteArray(key), score);
     }
 
-    public TxHeader zAdd(byte[] set, byte[] key, double score) throws CorruptedDataException {
+    public TxHeader zAdd(byte[] set, byte[] key, double score) {
         return zAdd(set, key, 0, score);
     }
 
-    public synchronized TxHeader zAdd(byte[] set, byte[] key, long atTx, double score) throws CorruptedDataException {
-        final ImmudbProto.TxHeader txHdr = blockingStub.zAdd(
-                ImmudbProto.ZAddRequest.newBuilder()
-                        .setSet(Utils.toByteString(set))
-                        .setKey(Utils.toByteString(key))
-                        .setAtTx(atTx)
-                        .setScore(score)
-                        .setBoundRef(atTx > 0)
-                        .build());
+    public synchronized TxHeader zAdd(byte[] set, byte[] key, long atTx, double score) {
+        ImmudbProto.ZAddRequest req = ImmudbProto.ZAddRequest.newBuilder()
+                .setSet(Utils.toByteString(set))
+                .setKey(Utils.toByteString(key))
+                .setAtTx(atTx)
+                .setScore(score)
+                .setBoundRef(atTx > 0)
+                .build();
 
-        if (txHdr.getNentries() != 1) {
-            throw new CorruptedDataException();
-        }
-
-        return TxHeader.valueOf(txHdr);
+        return TxHeader.valueOf(blockingStub.zAdd(req));
     }
 
     public TxHeader verifiedZAdd(String set, String key, double score) throws VerificationException {
@@ -1095,11 +1411,11 @@ public class ImmuClient {
     }
 
     public List<ZEntry> zScanAll(String set, boolean reverse, long limit) {
-        return pzScanAll(Utils.toByteArray(set), null, null, null, null, 0, false, reverse, limit);
+        return pzScanAll(Utils.toByteArray(set), null, null, null, null, 0, true, reverse, limit);
     }
 
     public List<ZEntry> zScanAll(byte[] set, double minScore, double maxScore, boolean reverse, long limit) {
-        return pzScanAll(set, minScore, maxScore, null, null, 0, false, false, 0);
+        return pzScanAll(set, minScore, maxScore, null, null, 0, true, false, 0);
     }
 
     public List<ZEntry> zScanAll(byte[] set, double minScore, double maxScore, double seekScore, byte[] seekKey,
@@ -1377,12 +1693,12 @@ public class ImmuClient {
     // ========== STREAM SET ==========
     //
 
-    public TxHeader streamSet(String key, byte[] value) throws InterruptedException, CorruptedDataException {
+    public TxHeader streamSet(String key, byte[] value) throws InterruptedException {
         return streamSet(Utils.toByteArray(key), value);
     }
 
     public synchronized TxHeader streamSet(byte[] key, byte[] value)
-            throws InterruptedException, CorruptedDataException {
+            throws InterruptedException {
         final LatchHolder<ImmudbProto.TxHeader> latchHolder = new LatchHolder<>();
         final StreamObserver<Chunk> streamObserver = nonBlockingStub.streamSet(txHeaderStreamObserver(latchHolder));
 
@@ -1391,16 +1707,10 @@ public class ImmuClient {
 
         streamObserver.onCompleted();
 
-        final ImmudbProto.TxHeader txHdr = latchHolder.awaitValue();
-
-        if (txHdr.getNentries() != 1) {
-            throw new CorruptedDataException();
-        }
-
-        return TxHeader.valueOf(txHdr);
+        return TxHeader.valueOf(latchHolder.awaitValue());
     }
 
-    public synchronized TxHeader streamSetAll(List<KVPair> kvList) throws InterruptedException, CorruptedDataException {
+    public synchronized TxHeader streamSetAll(List<KVPair> kvList) throws InterruptedException {
         final LatchHolder<ImmudbProto.TxHeader> latchHolder = new LatchHolder<>();
         final StreamObserver<Chunk> streamObserver = nonBlockingStub.streamSet(txHeaderStreamObserver(latchHolder));
 
@@ -1411,13 +1721,7 @@ public class ImmuClient {
 
         streamObserver.onCompleted();
 
-        final ImmudbProto.TxHeader txHdr = latchHolder.awaitValue();
-
-        if (txHdr.getNentries() != kvList.size()) {
-            throw new CorruptedDataException();
-        }
-
-        return TxHeader.valueOf(txHdr);
+        return TxHeader.valueOf(latchHolder.awaitValue());
     }
 
     //
@@ -1470,7 +1774,7 @@ public class ImmuClient {
     }
 
     public Iterator<Entry> scan(byte[] prefix, byte[] seekKey, byte[] endKey, boolean desc, long limit) {
-        return scan(prefix, seekKey, endKey, false, false, desc, limit);
+        return scan(prefix, seekKey, endKey, true, true, desc, limit);
     }
 
     public synchronized Iterator<Entry> scan(byte[] prefix, byte[] seekKey, byte[] endKey, boolean inclusiveSeek,
@@ -1501,11 +1805,11 @@ public class ImmuClient {
     }
 
     public Iterator<ZEntry> zScan(String set, boolean reverse, long limit) {
-        return pzScan(Utils.toByteArray(set), null, null, null, null, 0, false, reverse, limit);
+        return pzScan(Utils.toByteArray(set), null, null, null, null, 0, true, reverse, limit);
     }
 
     public Iterator<ZEntry> zScan(byte[] set, double minScore, double maxScore, boolean reverse, long limit) {
-        return pzScan(set, minScore, maxScore, null, null, 0, false, false, 0);
+        return pzScan(set, minScore, maxScore, null, null, 0, true, false, 0);
     }
 
     public Iterator<ZEntry> zScan(byte[] set, double minScore, double maxScore, double seekScore, byte[] seekKey,

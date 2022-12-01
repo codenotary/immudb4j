@@ -15,7 +15,6 @@ limitations under the License.
 */
 package io.codenotary.immudb4j;
 
-import io.codenotary.immudb4j.exceptions.CorruptedDataException;
 import io.codenotary.immudb4j.exceptions.KeyNotFoundException;
 import org.testng.Assert;
 import org.testng.annotations.Test;
@@ -27,12 +26,12 @@ public class StreamSetAndGetTest extends ImmuClientIntegrationTest {
         immuClient.openSession("defaultdb", "immudb", "immudb");
 
         String key = "key1";
-        byte[] val = new byte[]{1, 2, 3, 4, 5};
+        byte[] val = new byte[] { 1, 2, 3, 4, 5 };
 
         TxHeader txHdr = null;
         try {
             txHdr = immuClient.streamSet(key, val);
-        } catch (CorruptedDataException|InterruptedException e) {
+        } catch (InterruptedException e) {
             Assert.fail("Failed at set.", e);
         }
         Assert.assertNotNull(txHdr);

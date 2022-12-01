@@ -15,7 +15,6 @@ limitations under the License.
 */
 package io.codenotary.immudb4j;
 
-import io.codenotary.immudb4j.exceptions.CorruptedDataException;
 import io.codenotary.immudb4j.exceptions.KeyNotFoundException;
 import org.testng.Assert;
 import org.testng.annotations.Test;
@@ -31,19 +30,15 @@ public class HistoryTest extends ImmuClientIntegrationTest {
     public void t1() {
         immuClient.openSession("defaultdb", "immudb", "immudb");
 
-        byte[] value1 = {0, 1, 2, 3};
-        byte[] value2 = {4, 5, 6, 7};
-        byte[] value3 = {8, 9, 10, 11};
+        byte[] value1 = { 0, 1, 2, 3 };
+        byte[] value2 = { 4, 5, 6, 7 };
+        byte[] value3 = { 8, 9, 10, 11 };
 
-        try {
-            immuClient.set("history1", value1);
-            immuClient.set("history1", value2);
-            immuClient.set("history2", value1);
-            immuClient.set("history2", value2);
-            immuClient.set("history2", value3);
-        } catch (CorruptedDataException e) {
-            Assert.fail("Failed at set.", e);
-        }
+        immuClient.set("history1", value1);
+        immuClient.set("history1", value2);
+        immuClient.set("history2", value1);
+        immuClient.set("history2", value2);
+        immuClient.set("history2", value3);
 
         List<Entry> historyResponse1 = immuClient.historyAll("history1", 0, false, 2);
 
@@ -93,11 +88,11 @@ public class HistoryTest extends ImmuClientIntegrationTest {
         } catch (KeyNotFoundException e) {
             // exception is expected here
         }
-        
+
         Iterator<Entry> entriesIt2 = immuClient.history("nonExisting", 0, false, 0);
-        
+
         Assert.assertFalse(entriesIt2.hasNext());
-        
+
         immuClient.closeSession();
     }
 

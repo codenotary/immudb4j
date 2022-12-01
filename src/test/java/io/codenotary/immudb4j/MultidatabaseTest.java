@@ -15,7 +15,6 @@ limitations under the License.
 */
 package io.codenotary.immudb4j;
 
-import io.codenotary.immudb4j.exceptions.CorruptedDataException;
 import io.codenotary.immudb4j.exceptions.VerificationException;
 import io.grpc.StatusRuntimeException;
 
@@ -58,22 +57,16 @@ public class MultidatabaseTest extends ImmuClientIntegrationTest {
         immuClient.openSession("db1", "immudb", "immudb");
 
         byte[] v0 = new byte[] { 0, 1, 2, 3 };
-        try {
-            immuClient.set("k0", v0);
-        } catch (CorruptedDataException e) {
-            Assert.fail("Failed at set.", e);
-        }
+
+        immuClient.set("k0", v0);
 
         immuClient.closeSession();
 
         immuClient.openSession("db2", "immudb", "immudb");
 
         byte[] v1 = new byte[] { 3, 2, 1, 0 };
-        try {
-            immuClient.set("k1", v1);
-        } catch (CorruptedDataException e) {
-            Assert.fail("Failed at set.", e);
-        }
+
+        immuClient.set("k1", v1);
 
         immuClient.closeSession();
 
@@ -97,12 +90,12 @@ public class MultidatabaseTest extends ImmuClientIntegrationTest {
         Entry ventry2 = immuClient.verifiedGet("k1");
         Assert.assertEquals(ventry2.getValue(), v1);
 
-        List<String> dbs = immuClient.databases();
+        List<Database> dbs = immuClient.databases();
         Assert.assertNotNull(dbs);
         Assert.assertEquals(3, dbs.size(), String.format("Expected 3, but got %d dbs: %s", dbs.size(), dbs));
-        Assert.assertTrue(dbs.contains("defaultdb"));
-        Assert.assertTrue(dbs.contains("db1"));
-        Assert.assertTrue(dbs.contains("db2"));
+        Assert.assertEquals(dbs.get(0).getName(), "defaultdb");
+        Assert.assertEquals(dbs.get(1).getName(), "db1");
+        Assert.assertEquals(dbs.get(2).getName(), "db2");
 
         immuClient.closeSession();
     }
@@ -117,15 +110,13 @@ public class MultidatabaseTest extends ImmuClientIntegrationTest {
 
         immuClient.deleteDatabase("manageddb");
 
-        /*
         try {
             immuClient.loadDatabase("manageddb");
             Assert.fail("exception expected");
         } catch (StatusRuntimeException e) {
             Assert.assertTrue(e.getMessage().contains("database does not exist"));
         }
-        */
-        
+
         immuClient.closeSession();
     }
 }
