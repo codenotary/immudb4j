@@ -40,7 +40,7 @@ public class HistoryTest extends ImmuClientIntegrationTest {
         immuClient.set("history2", value2);
         immuClient.set("history2", value3);
 
-        List<Entry> historyResponse1 = immuClient.historyAll("history1", 0, false, 2);
+        List<Entry> historyResponse1 = immuClient.historyAll("history1", false, 0, 2);
 
         Assert.assertEquals(historyResponse1.size(), 2);
 
@@ -50,7 +50,7 @@ public class HistoryTest extends ImmuClientIntegrationTest {
         Assert.assertEquals(historyResponse1.get(1).getKey(), "history1".getBytes(StandardCharsets.UTF_8));
         Assert.assertEquals(historyResponse1.get(1).getValue(), value2);
 
-        List<Entry> historyResponse2 = immuClient.historyAll("history2", 0, false, 3);
+        List<Entry> historyResponse2 = immuClient.historyAll("history2", false, 0, 3);
 
         Assert.assertEquals(historyResponse2.size(), 3);
 
@@ -63,11 +63,11 @@ public class HistoryTest extends ImmuClientIntegrationTest {
         Assert.assertEquals(historyResponse2.get(2).getKey(), "history2".getBytes(StandardCharsets.UTF_8));
         Assert.assertEquals(historyResponse2.get(2).getValue(), value3);
 
-        historyResponse2 = immuClient.historyAll("history2", 2, false, 1);
+        historyResponse2 = immuClient.historyAll("history2", false, 2, 1);
         Assert.assertNotNull(historyResponse2);
         Assert.assertEquals(historyResponse2.size(), 1);
 
-        Iterator<Entry> entriesIt = immuClient.history("history2", 2, false, 1);
+        Iterator<Entry> entriesIt = immuClient.history("history2", false, 2, 1);
         Assert.assertTrue(entriesIt.hasNext());
 
         Entry entry = entriesIt.next();
@@ -83,13 +83,13 @@ public class HistoryTest extends ImmuClientIntegrationTest {
         }
 
         try {
-            immuClient.historyAll("nonExisting", 0, false, 0);
+            immuClient.historyAll("nonExisting", false, 0, 0);
             Assert.fail("key not found exception expected");
         } catch (KeyNotFoundException e) {
             // exception is expected here
         }
 
-        Iterator<Entry> entriesIt2 = immuClient.history("nonExisting", 0, false, 0);
+        Iterator<Entry> entriesIt2 = immuClient.history("nonExisting", false, 0, 0);
 
         Assert.assertFalse(entriesIt2.hasNext());
 

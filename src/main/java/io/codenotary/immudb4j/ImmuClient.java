@@ -958,19 +958,19 @@ public class ImmuClient {
      * @return the list of entries associated to the provided key
      * @throws KeyNotFoundException if the key is not found
      */
-    public List<Entry> historyAll(String key, long offset, boolean desc, int limit) throws KeyNotFoundException {
-        return historyAll(Utils.toByteArray(key), offset, desc, limit);
+    public List<Entry> historyAll(String key, boolean desc, long offset, int limit) throws KeyNotFoundException {
+        return historyAll(Utils.toByteArray(key), desc, offset, limit);
     }
 
     /**
      * @param key    the key to look for
-     * @param offset the number of entries to be skipped
      * @param desc   the order in which entries are returned
+     * @param offset the number of entries to be skipped
      * @param limit  the maximum number of entries to be returned
      * @return the list of entries associated to the provided key
      * @throws KeyNotFoundException if the key is not found
      */
-    public synchronized List<Entry> historyAll(byte[] key, long offset, boolean desc, int limit)
+    public synchronized List<Entry> historyAll(byte[] key, boolean desc, long offset, int limit)
             throws KeyNotFoundException {
         try {
             ImmudbProto.Entries entries = blockingStub.history(ImmudbProto.HistoryRequest.newBuilder()
@@ -1851,11 +1851,11 @@ public class ImmuClient {
     // ========== STREAM HISTORY ==========
     //
 
-    public Iterator<Entry> history(String key, long offset, boolean desc, int limit) throws KeyNotFoundException {
-        return history(Utils.toByteArray(key), offset, desc, limit);
+    public Iterator<Entry> history(String key, boolean desc, long offset, int limit) throws KeyNotFoundException {
+        return history(Utils.toByteArray(key), desc, offset, limit);
     }
 
-    public synchronized Iterator<Entry> history(byte[] key, long offset, boolean desc, int limit)
+    public synchronized Iterator<Entry> history(byte[] key, boolean desc, long offset, int limit)
             throws KeyNotFoundException {
         try {
             ImmudbProto.HistoryRequest req = ImmudbProto.HistoryRequest.newBuilder()
