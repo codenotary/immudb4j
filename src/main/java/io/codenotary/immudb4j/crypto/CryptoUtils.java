@@ -174,6 +174,17 @@ public class CryptoUtils {
             return false;
         }
 
+        if (proof.linearAdvanceProof == null) {
+            // Find the range startTxID / endTxID to fill with linear inclusion proof
+            long startTxID = proof.sourceTxHeader.getBlTxId();
+            long endTxID = Math.min(proof.sourceTxHeader.getId(), proof.targetTxHeader.getBlTxId());
+
+            if (endTxID > startTxID + 1) {
+                // Linear Advance Proof is needed
+                throw new RuntimeException("Linear Advance Proof is needed");
+            }
+        }
+
         if (sourceTxId < proof.targetTxHeader.getBlTxId()) {
             if (!CryptoUtils.verifyInclusion(
                     proof.inclusionProof,
