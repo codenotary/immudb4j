@@ -97,12 +97,12 @@ public class MultidatabaseTest extends ImmuClientIntegrationTest {
         Entry ventry2 = immuClient.verifiedGet("k1");
         Assert.assertEquals(ventry2.getValue(), v1);
 
-        List<String> dbs = immuClient.databases();
+        List<Database> dbs = immuClient.databases();
         Assert.assertNotNull(dbs);
         Assert.assertEquals(3, dbs.size(), String.format("Expected 3, but got %d dbs: %s", dbs.size(), dbs));
-        Assert.assertTrue(dbs.contains("defaultdb"));
-        Assert.assertTrue(dbs.contains("db1"));
-        Assert.assertTrue(dbs.contains("db2"));
+        Assert.assertEquals(dbs.get(0).getName(), "defaultdb");
+        Assert.assertEquals(dbs.get(1).getName(), "db1");
+        Assert.assertEquals(dbs.get(2).getName(), "db2");
 
         immuClient.closeSession();
     }

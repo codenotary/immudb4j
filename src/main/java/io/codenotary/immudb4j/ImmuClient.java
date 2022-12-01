@@ -401,10 +401,21 @@ public class ImmuClient {
     // ========== DATABASE ==========
     //
 
+    /**
+     * Creates a database using default settings
+     * 
+     * @param database the database name
+     */
     public void createDatabase(String database) {
         createDatabase(database, false);
     }
 
+    /**
+     * Creates a database using default settings
+     * 
+     * @param database    the database name
+     * @param ifNotExists allow the database to be already created
+     */
     public synchronized void createDatabase(String database, boolean ifNotExists) {
         if (session == null) {
             throw new IllegalStateException("no open session");
@@ -418,12 +429,16 @@ public class ImmuClient {
         blockingStub.createDatabaseV2(req);
     }
 
-    // LoadDatabase loads database on the server. A database is not loaded
-    // if it has AutoLoad setting set to false or if it failed to load during
-    // immudb startup.
-    //
-    // This call requires SysAdmin permission level or admin permission to the
-    // database.
+    /**
+     * Loads database on the server. A database is not loaded
+     * if it has AutoLoad setting set to false or if it failed to load during immudb
+     * startup.
+     * 
+     * This call requires SysAdmin permission level or admin permission to the
+     * database.
+     * 
+     * @param database the database name
+     */
     public synchronized void loadDatabase(String database) {
         if (session == null) {
             throw new IllegalStateException("no open session");
@@ -436,13 +451,15 @@ public class ImmuClient {
         blockingStub.loadDatabase(req);
     }
 
-    // UnloadDatabase unloads database on the server. Such database becomes
-    // inaccessible
-    // by the client and server frees internal resources allocated for that
-    // database.
-    //
-    // This call requires SysAdmin permission level or admin permission to the
-    // database.
+    /**
+     * Unloads database on the server. Such database becomes inaccessible by the
+     * client and server frees internal resources allocated for that database.
+     * 
+     * This call requires SysAdmin permission level or admin permission to the
+     * database.
+     * 
+     * @param database the database name
+     */
     public synchronized void unloadDatabase(String database) {
         if (session == null) {
             throw new IllegalStateException("no open session");
@@ -455,11 +472,15 @@ public class ImmuClient {
         blockingStub.unloadDatabase(req);
     }
 
-    // DeleteDatabase removes an unloaded database.
-    // This also removes locally stored files used by the database.
-    //
-    // This call requires SysAdmin permission level or admin permission to the
-    // database.
+    /**
+     * Removes an unloaded database. This also removes locally stored files used by
+     * the database.
+     * 
+     * This call requires SysAdmin permission level or admin permission to the
+     * database.
+     * 
+     * @param database the database name
+     */
     public synchronized void deleteDatabase(String database) {
         if (session == null) {
             throw new IllegalStateException("no open session");
@@ -472,7 +493,10 @@ public class ImmuClient {
         blockingStub.deleteDatabase(req);
     }
 
-    public synchronized List<String> databases() {
+    /**
+     * @return the list of existing databases
+     */
+    public synchronized List<Database> databases() {
         if (session == null) {
             throw new IllegalStateException("no open session");
         }
@@ -480,10 +504,10 @@ public class ImmuClient {
         final ImmudbProto.DatabaseListRequestV2 req = ImmudbProto.DatabaseListRequestV2.newBuilder().build();
         final ImmudbProto.DatabaseListResponseV2 resp = blockingStub.databaseListV2(req);
 
-        final List<String> list = new ArrayList<>(resp.getDatabasesCount());
+        final List<Database> list = new ArrayList<>(resp.getDatabasesCount());
 
         for (ImmudbProto.DatabaseWithSettings db : resp.getDatabasesList()) {
-            list.add(db.getName());
+            list.add(Database.valueOf(db));
         }
 
         return list;
