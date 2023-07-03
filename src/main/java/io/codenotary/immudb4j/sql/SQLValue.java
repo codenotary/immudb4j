@@ -80,7 +80,7 @@ public class SQLValue {
         if (value == null) {
             builder.setNull(null);
         } else {
-            builder.setTs(TimeUnit.MICROSECONDS.toMicros(value.getTime()));
+            builder.setTs(TimeUnit.MILLISECONDS.toMicros(value.getTime()));
         }
 
         this.value = builder.build();   
