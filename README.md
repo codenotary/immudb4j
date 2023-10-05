@@ -55,25 +55,17 @@ Just include immudb4j as a dependency in your project:
   <dependency>
       <groupId>io.codenotary</groupId>
       <artifactId>immudb4j</artifactId>
-      <version>1.0.0</version>
+      <version>1.0.1</version>
   </dependency> 
   ```
 - if using Gradle:
   ```groovy
-  compile 'io.codenotary:immudb4j:1.0.0'
+  compile 'io.codenotary:immudb4j:1.0.1'
   ```
 
-`immudb4j` is currently hosted on both [Maven Central] and [Github Packages].
+`immudb4j` is currently hosted on both [Maven Central].
 
-[Github Packages]: https://docs.github.com/en/packages
 [Maven Central]: https://search.maven.org/artifact/io.codenotary/immudb4j
-
-### How to use immudb4j packages from Github Packages
-
-`immudb4j Github Package repository` needs to be included with authentication.
-When using Maven, it means to include immudb4j Github Package in your `~/.m2/settings.xml`
-file. See _Configuring Apache Maven for use with GitHub Packages_ 
-and _Configuring Gradle for use with GitHub Packages_ at [Github Packages].
 
 ## Supported Versions
 
