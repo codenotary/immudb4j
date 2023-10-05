@@ -77,9 +77,9 @@ and _Configuring Gradle for use with GitHub Packages_ at [Github Packages].
 
 ## Supported Versions
 
-immudb4j supports the [latest immudb server] release, that is 1.4.1 at the time of updating this document.
+immudb4j supports the [latest immudb server] release.
 
-[latest immudb server]: https://github.com/codenotary/immudb/releases/tag/v1.4.1
+[latest immudb server]: https://github.com/codenotary/immudb/releases/tag/v1.5.0
 
 ## Quickstart
 
