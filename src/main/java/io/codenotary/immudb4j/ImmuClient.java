@@ -371,7 +371,8 @@ public class ImmuClient {
                 .addAllParams(sqlEncodeParams(params))
                 .build();
 
-        return new SQLQueryResult(blockingStub.txSQLQuery(req));
+        Iterator<io.codenotary.immudb.ImmudbProto.SQLQueryResult> it = blockingStub.txSQLQuery(req);
+        return new SQLQueryResult(it);
     }
 
     private Map<String, SQLValue> sqlNameParams(SQLValue... params) {
