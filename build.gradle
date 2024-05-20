@@ -46,7 +46,7 @@ sourceCompatibility = 1.8
 targetCompatibility = 1.8
 
 def protocVersion = '3.19.4'
-def grpcVersion = '1.44.1'
+def grpcVersion = '1.55.1'
 
 protobuf {
     protoc {
