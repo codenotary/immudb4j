@@ -685,6 +685,7 @@ message SQLQueryRequest {
 	string sql = 1;
 	repeated NamedParam params = 2;
 	bool reuseSnapshot = 3;
+  bool acceptStream = 4;
 }
 
 message NamedParam {

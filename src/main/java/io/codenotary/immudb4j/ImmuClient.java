@@ -369,6 +369,7 @@ public class ImmuClient {
         final ImmudbProto.SQLQueryRequest req = ImmudbProto.SQLQueryRequest.newBuilder()
                 .setSql(stmt)
                 .addAllParams(sqlEncodeParams(params))
+                .setAcceptStream(true)
                 .build();
 
         return new SQLQueryResult(blockingStub.txSQLQuery(req));
