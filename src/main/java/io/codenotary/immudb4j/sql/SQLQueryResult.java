@@ -17,23 +17,27 @@ limitations under the License.
 package io.codenotary.immudb4j.sql;
 
 import java.util.Date;
+import java.util.NoSuchElementException;
 import java.util.concurrent.TimeUnit;
+import java.util.Iterator;
 
 import io.codenotary.immudb.ImmudbProto;
 
 public class SQLQueryResult {
-    
+
+    private final Iterator<ImmudbProto.SQLQueryResult> it;
     private ImmudbProto.SQLQueryResult res;
     private int currRow = -1;
 
     private boolean closed;
 
-    public SQLQueryResult(ImmudbProto.SQLQueryResult res) {
-        if (res == null) {
+    public SQLQueryResult(Iterator<ImmudbProto.SQLQueryResult> it) {
+        if (it == null) {
             throw new RuntimeException("illegal arguments");
         }
 
-        this.res = res;
+        this.it = it;
+        this.res = it.next();
     }
 
     public synchronized void close() throws SQLException {
@@ -45,12 +49,18 @@ public class SQLQueryResult {
             throw new SQLException("already closed");
         }
 
-        if (currRow + 1 >= res.getRowsCount()) {
-            return false;
+        if (res != null && currRow+1 < res.getRowsCount()) {
+            currRow++;
+            return true;
         }
 
-        currRow++;
-        
+        try {
+            res = this.it.next();
+        } catch (NoSuchElementException e) {
+            return false;
+        }
+        currRow = 0;
+
         return true;
     }
 
@@ -76,7 +86,7 @@ public class SQLQueryResult {
         if (closed) {
             throw new SQLException("already closed");
         }
-        
+
         return res.getColumnsCount();
     }
 
