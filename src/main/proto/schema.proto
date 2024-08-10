@@ -685,6 +685,7 @@ message SQLQueryRequest {
 	string sql = 1;
 	repeated NamedParam params = 2;
 	bool reuseSnapshot = 3;
+  bool acceptStream = 4;
 }
 
 message NamedParam {
@@ -783,7 +784,7 @@ service ImmuService {
   rpc Rollback (google.protobuf.Empty) returns (google.protobuf.Empty){};
 
   rpc TxSQLExec(SQLExecRequest) returns (google.protobuf.Empty) {};
-  rpc TxSQLQuery(SQLQueryRequest) returns (SQLQueryResult) {};
+  rpc TxSQLQuery(SQLQueryRequest) returns (stream SQLQueryResult) {};
 
   rpc Set (SetRequest) returns (TxHeader){
   };
@@ -894,7 +895,7 @@ service ImmuService {
   rpc SQLExec(SQLExecRequest) returns (SQLExecResult) {
   };
 
-  rpc SQLQuery(SQLQueryRequest) returns (SQLQueryResult) {
+  rpc SQLQuery(SQLQueryRequest) returns (stream SQLQueryResult) {
   };
 
   rpc ListTables(google.protobuf.Empty) returns (SQLQueryResult) {
