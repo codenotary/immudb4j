@@ -42,6 +42,9 @@ public class SQLTransactionsTest extends ImmuClientIntegrationTest {
                     new SQLValue(String.format("title%d", i)),
                     new SQLValue(i % 2 == 0));
         }
+        immuClient.commitTransaction();
+
+        immuClient.beginTransaction();
 
         SQLQueryResult res = immuClient.sqlQuery("SELECT id, title, active FROM mytable");
 
@@ -71,8 +74,6 @@ public class SQLTransactionsTest extends ImmuClientIntegrationTest {
         res.close();
 
         immuClient.commitTransaction();
-
-        immuClient.closeSession();
     }
 
 }
