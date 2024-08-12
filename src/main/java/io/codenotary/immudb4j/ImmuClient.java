@@ -148,7 +148,7 @@ public class ImmuClient {
 
         session = new Session(resp.getSessionID(), database);
 
-        sessionHeartBeat = new Timer();
+        sessionHeartBeat = new Timer(true);
 
         sessionHeartBeat.schedule(new TimerTask() {
             @Override
