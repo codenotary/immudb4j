@@ -989,7 +989,7 @@ public class ImmuClient {
 
         stateHolder.setState(newState);
 
-        return Entry.valueOf(vEntry.getEntry());
+        return VerifiableEntry.valueOf(vEntry);
     }
 
     //
