@@ -15,9 +15,9 @@ limitations under the License.
 */
 package io.codenotary.immudb4j;
 
-import io.codenotary.immudb.ImmudbProto;
 import io.codenotary.immudb4j.crypto.InclusionProof;
-import io.codenotary.immudb4j.exceptions.VerificationException;
+
+import java.util.Objects;
 
 public class VerifiableEntry extends Entry {
     private final Entry entry;
@@ -25,18 +25,19 @@ public class VerifiableEntry extends Entry {
     private final InclusionProof inclusionProof;
 
     private VerifiableEntry(Entry entry, VerifiableTx verifiableTx, InclusionProof inclusionProof) {
-        super(entry.getKey(), entry.getValue());
+        super(entry.getTx(),
+                entry.getKey(),
+                entry.getValue(),
+                entry.getMetadata(),
+                entry.getReferenceBy(),
+                entry.getRevision());
         this.entry = entry;
         this.verifiableTx = verifiableTx;
         this.inclusionProof = inclusionProof;
     }
 
-    public static VerifiableEntry valueOf(ImmudbProto.VerifiableEntry verifiableEntry) throws VerificationException {
-        return new VerifiableEntry(
-                Entry.valueOf(verifiableEntry.getEntry()),
-                VerifiableTx.valueOf(verifiableEntry.getVerifiableTx()),
-                InclusionProof.valueOf(verifiableEntry.getInclusionProof())
-        );
+    public static Builder newBuilder() {
+        return new Builder();
     }
 
     public Entry getEntry() {
@@ -51,43 +52,36 @@ public class VerifiableEntry extends Entry {
         return inclusionProof;
     }
 
-    @Override
-    public long getTx() {
-        return entry.getTx();
+    public static class Builder {
+        private Entry entry;
+        private VerifiableTx verifiableTx;
+        private InclusionProof inclusionProof;
+
+        private Builder() {
+
+        }
+
+        public Builder withEntry(Entry entry) {
+            this.entry = entry;
+            return this;
+        }
+
+        public Builder withVerifiableTx(VerifiableTx verifiableTx) {
+            this.verifiableTx = verifiableTx;
+            return this;
+        }
+
+        public Builder withInclusionProof(InclusionProof inclusionProof) {
+            this.inclusionProof = inclusionProof;
+            return this;
+        }
+
+        public VerifiableEntry build() {
+            Objects.requireNonNull(this.entry, "'entry' cant be null");
+            Objects.requireNonNull(this.verifiableTx, "'verifiableTx' cant be null");
+            Objects.requireNonNull(this.inclusionProof, "'inclusionProof' cant be null");
+            return new VerifiableEntry(this.entry, this.verifiableTx, this.inclusionProof);
+        }
     }
 
-    @Override
-    public byte[] getKey() {
-        return entry.getKey();
-    }
-
-    @Override
-    public byte[] getValue() {
-        return entry.getValue();
-    }
-
-    @Override
-    public KVMetadata getMetadata() {
-        return entry.getMetadata();
-    }
-
-    @Override
-    public Reference getReferenceBy() {
-        return entry.getReferenceBy();
-    }
-
-    @Override
-    public long getRevision() {
-        return entry.getRevision();
-    }
-
-    @Override
-    public byte[] getEncodedKey() {
-        return entry.getEncodedKey();
-    }
-
-    @Override
-    public byte[] digestFor(int version) {
-        return entry.digestFor(version);
-    }
 }

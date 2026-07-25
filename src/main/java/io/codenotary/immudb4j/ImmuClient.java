@@ -754,8 +754,8 @@ public class ImmuClient {
     /**
      * @param key the keys to look for
      * @return the latest entry associated to the provided key. Equivalent to
-     *         {@link #get(String) get} but with additional
-     *         server-provided proof validation.
+     *         {@link #get(String) get} but with additional server-provided proof validation.
+     *         Returned object can be cast to {@link VerifiableEntry} instance.
      * @throws KeyNotFoundException  if the key is not found
      * @throws VerificationException if proof validation fails
      */
@@ -768,6 +768,7 @@ public class ImmuClient {
      * @return the latest entry associated to the provided key. Equivalent to
      *         {@link #get(byte[]) get} but with additional
      *         server-provided proof validation.
+     *         Returned object can be cast to {@link VerifiableEntry} instance.
      * @throws KeyNotFoundException  if the key is not found
      * @throws VerificationException if proof validation fails
      */
@@ -779,9 +780,9 @@ public class ImmuClient {
      * @param key the key to look for
      * @param tx  the transaction at which the associated entry is expected to be
      * @return the entry associated to the provided key and transaction. Equivalent
-     *         to
-     *         {@link #getAtTx(String, long) getAtTx} but with additional
+     *         to {@link #getAtTx(String, long) getAtTx} but with additional
      *         server-provided proof validation.
+     *         Returned object can be cast to {@link VerifiableEntry} instance.
      * @throws KeyNotFoundException  if the key is not found
      * @throws VerificationException if proof validation fails
      */
@@ -793,9 +794,9 @@ public class ImmuClient {
      * @param key the key to look for
      * @param tx  the transaction at which the associated entry is expected to be
      * @return the entry associated to the provided key and transaction. Equivalent
-     *         to
-     *         {@link #getAtTx(byte[], long) getAtTx} but with additional
+     *         to {@link #getAtTx(byte[], long) getAtTx} but with additional
      *         server-provided proof validation.
+     *         Returned object can be cast to {@link VerifiableEntry} instance.
      * @throws KeyNotFoundException  if the key is not found
      * @throws VerificationException if proof validation fails
      */
@@ -820,9 +821,9 @@ public class ImmuClient {
      *            retrieved
      * @return the latest indexed entry associated the to provided key. Ensuring the
      *         indexing has already be completed up to the specified transaction.
-     *         Equivalent to
-     *         {@link #getSinceTx(String, long) getSinceTx} but with additional
+     *         Equivalent to {@link #getSinceTx(String, long) getSinceTx} but with additional
      *         server-provided proof validation.
+     *         Returned object can be cast to {@link VerifiableEntry} instance.
      * @throws KeyNotFoundException  if the key is not found
      * @throws VerificationException if proof validation fails
      */
@@ -840,9 +841,9 @@ public class ImmuClient {
      *            retrieved
      * @return the latest indexed entry associated the to provided key. Ensuring the
      *         indexing has already be completed up to the specified transaction.
-     *         Equivalent to
-     *         {@link #getSinceTx(byte[], long) getSinceTx} but with additional
+     *         Equivalent to {@link #getSinceTx(byte[], long) getSinceTx} but with additional
      *         server-provided proof validation.
+     *         Returned object can be cast to {@link VerifiableEntry} instance.
      * @throws KeyNotFoundException  if the key is not found
      * @throws VerificationException if proof validation fails
      */
@@ -864,8 +865,8 @@ public class ImmuClient {
      * @param rev the specific revision
      * @return the specific revision for given key. Equivalent to
      *         {@link #getAtRevision(String, long) getAtRevision} but with
-     *         additional
-     *         server-provided proof validation.
+     *         additional server-provided proof validation.
+     *         Returned object can be cast to {@link VerifiableEntry} instance.
      * @throws KeyNotFoundException  if the key is not found
      * @throws VerificationException if proof validation fails
      */
@@ -878,8 +879,8 @@ public class ImmuClient {
      * @param rev the specific revision
      * @return the specific revision for given key. Equivalent to
      *         {@link #getAtRevision(byte[], long) getAtRevision} but with
-     *         additional
-     *         server-provided proof validation.
+     *         additional server-provided proof validation.
+     *         Returned object can be cast to {@link VerifiableEntry} instance.
      * @throws KeyNotFoundException  if the key is not found
      * @throws VerificationException if proof validation fails
      */
@@ -989,7 +990,11 @@ public class ImmuClient {
 
         stateHolder.setState(newState);
 
-        return VerifiableEntry.valueOf(vEntry);
+        return VerifiableEntry.newBuilder()
+                .withEntry(entry)
+                .withInclusionProof(inclusionProof)
+                .withVerifiableTx(VerifiableTx.valueOf(vEntry.getVerifiableTx()))
+                .build();
     }
 
     //
