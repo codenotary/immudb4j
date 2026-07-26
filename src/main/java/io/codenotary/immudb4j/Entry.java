@@ -18,43 +18,52 @@ package io.codenotary.immudb4j;
 import io.codenotary.immudb.ImmudbProto;
 
 public class Entry {
-    private long tx;
+    private final long tx;
 
-    private byte[] key;
+    private final byte[] key;
 
-    private byte[] value;
+    private final byte[] value;
 
-    private KVMetadata metadata;
+    private final KVMetadata metadata;
 
-    private Reference referencedBy;
+    private final Reference referencedBy;
 
-    private long revision;
-
-    private Entry() {}
+    private final long revision;
 
     public Entry(byte[] key, byte[] value) {
+        this(0L, key, value, null, null, 0L);
+    }
+
+    Entry(long tx,
+          byte[] key,
+          byte[] value,
+          KVMetadata metadata,
+          Reference referencedBy,
+          long revision) {
+        this.tx = tx;
         this.key = key;
         this.value = value;
+        this.metadata = metadata;
+        this.referencedBy = referencedBy;
+        this.revision = revision;
     }
 
     public static Entry valueOf(ImmudbProto.Entry e) {
-        final Entry entry = new Entry();
 
-        entry.tx = e.getTx();
-        entry.key = e.getKey().toByteArray();
-        entry.value = e.getValue().toByteArray();
-
+        KVMetadata metadata = null;
         if (e.hasMetadata()) {
-            entry.metadata = KVMetadata.valueOf(e.getMetadata());
+            metadata = KVMetadata.valueOf(e.getMetadata());
         }
-
+        Reference referencedBy = null;
         if (e.hasReferencedBy()) {
-            entry.referencedBy = Reference.valueOf(e.getReferencedBy());
+            referencedBy = Reference.valueOf(e.getReferencedBy());
         }
-
-        entry.revision = e.getRevision();
-
-        return entry;
+        return new Entry(e.getTx(),
+                e.getKey().toByteArray(),
+                e.getValue().toByteArray(),
+                metadata,
+                referencedBy,
+                e.getRevision());
     }
 
     public long getTx() {

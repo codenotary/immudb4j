@@ -192,4 +192,73 @@ public class VerifiedSetAndGetTest extends ImmuClientIntegrationTest {
         immuClient.closeSession();
     }
 
+    @Test(testName = "verifyGet returns a valid VerifiableEntry")
+    public void t7() {
+        immuClient.openSession("defaultdb", "immudb", "immudb");
+
+        byte[] key = "verifyGet1".getBytes(StandardCharsets.UTF_8);
+        byte[] val = "test-verify-get".getBytes(StandardCharsets.UTF_8);
+        try {
+            TxHeader txHdr = immuClient.verifiedSet(key, val);
+            Assert.assertNotNull(txHdr, "The result of verifiedSet must not be null.");
+        } catch (VerificationException e) {
+            Assert.fail("Failed at verifiedSet. Cause: " + e.getMessage(), e);
+        }
+
+        try {
+            VerifiableEntry vEntry = (VerifiableEntry) immuClient.verifiedGet(key);
+            Assert.assertNotNull(vEntry.getEntry());
+            Assert.assertNotNull(vEntry.getVerifiableTx());
+            Assert.assertNotNull(vEntry.getInclusionProof());
+            Assert.assertNotEquals(vEntry.getTx(), 0);
+            Assert.assertEquals(vEntry.getKey(), key);
+            Assert.assertEquals(vEntry.getValue(), val);
+            Assert.assertNull(vEntry.getMetadata());
+            Assert.assertNull(vEntry.getReferenceBy());
+            Assert.assertNotEquals(vEntry.getRevision(), 0);
+            Assert.assertNotNull(vEntry.getEncodedKey());
+            Assert.assertNotNull(vEntry.digestFor(1));
+
+        } catch (VerificationException e) {
+            Assert.fail("Failed at verifiedGet. Cause: " + e.getMessage(), e);
+        } catch (ClassCastException e) {
+            Assert.fail("verifiedGet result is not instance of :" + VerifiableEntry.class.getName(), e);
+        }
+        immuClient.closeSession();
+    }
+
+    @Test(testName = "VerifiableEntry returned by verifiedGet contains a valid VerifiableTx")
+    public void t8() {
+        immuClient.openSession("defaultdb", "immudb", "immudb");
+
+        byte[] key = "verifyGet1".getBytes(StandardCharsets.UTF_8);
+        byte[] val = "test-verify-get".getBytes(StandardCharsets.UTF_8);
+        try {
+            //first save
+            TxHeader txHdr = immuClient.verifiedSet(key, val);
+            Assert.assertNotNull(txHdr, "The result of first verifiedSet must not be null.");
+        } catch (VerificationException e) {
+            Assert.fail("Failed at verifiedSet. Cause: " + e.getMessage(), e);
+        }
+
+        try {
+            VerifiableEntry vEntry = (VerifiableEntry) immuClient.verifiedGet(key);
+            Assert.assertNotNull(vEntry.getEntry());
+            VerifiableTx verifiableTx = vEntry.getVerifiableTx();
+            Assert.assertNotNull(verifiableTx);
+            Assert.assertNotNull(verifiableTx.getTx());
+            Assert.assertNotNull(verifiableTx.getDualProof());
+            Signature signature = verifiableTx.getSignature();
+            Assert.assertNotNull(signature);
+            Assert.assertNotNull(signature.getSignature());
+            Assert.assertNotNull(signature.getPublicKey());
+
+        } catch (VerificationException e) {
+            Assert.fail("Failed at verifiedGet. Cause: " + e.getMessage(), e);
+        } catch (ClassCastException e) {
+            Assert.fail("verifiedGet result is not instance of :" + VerifiableEntry.class.getName(), e);
+        }
+        immuClient.closeSession();
+    }
+
 }
