@@ -45,8 +45,10 @@ version = '1.0.1'
 sourceCompatibility = 1.8
 targetCompatibility = 1.8
 
-def protocVersion = '3.19.4'
-def grpcVersion = '1.55.1'
+// Bump protoc/grpc so the generated stubs depend on protobuf-java 3.25.5 (pulled transitively via
+// grpc 1.68.1), fixing CVE-2024-7254 (protobuf recursion DoS) in the generated ImmudbProto types.
+def protocVersion = '3.25.5'
+def grpcVersion = '1.68.1'
 
 protobuf {
     protoc {
